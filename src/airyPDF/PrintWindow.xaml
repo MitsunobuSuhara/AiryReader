@@ -1,0 +1,37 @@
+<Window x:Class="AiryPdf.PrintWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ Title="印刷プレビュー — airyPDF" Width="1150" Height="850" MinWidth="940" MinHeight="640" FontFamily="Yu Gothic UI" FontSize="14" Background="#F5F7FA">
+ <Grid Margin="18">
+  <Grid.ColumnDefinitions><ColumnDefinition Width="300"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+  <DockPanel Margin="0,0,18,0"><StackPanel DockPanel.Dock="Bottom"><Button Content="プレビューを更新" Click="RefreshClick"/><Button x:Name="PrintButton" Content="この設定で印刷" Click="PrintNowClick" Background="#0F766E" Foreground="White" IsEnabled="False" Margin="3,6,3,3"/></StackPanel><ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel>
+   <TextBlock Text="印刷" FontSize="25" FontWeight="SemiBold" Margin="3,0,0,14"/>
+   <Button Content="プリンターを選ぶ・詳細設定" Click="PrinterClick"/>
+   <TextBlock x:Name="PrinterName" TextWrapping="Wrap" Margin="4,6,4,14"/>
+   <TextBlock Text="用紙 / 向き" Margin="4"/>
+   <ComboBox x:Name="PaperBox" SelectionChanged="SettingsChanged"/>
+   <ComboBox x:Name="OrientationBox" SelectedIndex="0" SelectionChanged="SettingsChanged"><ComboBoxItem Content="縦"/><ComboBoxItem Content="横"/></ComboBox>
+   <TextBlock Text="印刷方法" Margin="4,12,4,4"/>
+   <ComboBox x:Name="ModeBox" SelectedIndex="0" SelectionChanged="SettingsChanged">
+    <ComboBoxItem Content="原寸・指定倍率"/><ComboBoxItem Content="用紙に合わせる"/><ComboBoxItem Content="2ページ／枚"/><ComboBoxItem Content="4ページ／枚"/><ComboBoxItem Content="小冊子"/><ComboBoxItem Content="ポスター"/>
+   </ComboBox>
+   <WrapPanel><TextBlock Text="印刷倍率 %" Width="108"/><TextBox x:Name="PercentBox" Width="110" Text="100" TextChanged="SettingsChanged"/></WrapPanel>
+   <TextBlock Text="ページ範囲（空欄は全ページ）" Margin="4,12,4,4"/>
+   <TextBox x:Name="RangeBox" ToolTip="例: 1-3,5" TextChanged="SettingsChanged"/>
+   <CheckBox x:Name="RegionBox" Content="選択した範囲だけ印刷" Margin="4,8" Checked="SettingsChanged" Unchecked="SettingsChanged"/>
+   <TextBlock Text="片面 / 両面" Margin="4,10,4,4"/>
+   <ComboBox x:Name="DuplexBox" SelectedIndex="0" SelectionChanged="SettingsChanged"><ComboBoxItem Content="片面"/><ComboBoxItem Content="両面・長辺とじ"/><ComboBoxItem Content="両面・短辺とじ"/></ComboBox>
+   <WrapPanel><TextBlock Text="部数" Width="108"/><TextBox x:Name="CopiesBox" Width="110" Text="1" TextChanged="SettingsChanged"/></WrapPanel>
+   <CheckBox x:Name="RightBindingBox" Content="小冊子：右とじ" Margin="4,8" Checked="SettingsChanged" Unchecked="SettingsChanged"/>
+   <WrapPanel><TextBlock Text="重なり幅 mm" Width="108"/><TextBox x:Name="OverlapBox" Width="110" Text="5" TextChanged="SettingsChanged"/></WrapPanel>
+   <TextBlock Text="小冊子は横向き・短辺とじの両面を指定。ポスターは片面で出力します。" TextWrapping="Wrap" Foreground="#64748B" Margin="4,8"/>
+   <TextBlock Text="ドライバー側の倍率を100%、まとめて1枚・小冊子を無効にして、二重の縮小を防いでください。" TextWrapping="Wrap" Foreground="#64748B" Margin="4,8"/>
+
+
+  </StackPanel></ScrollViewer></DockPanel>
+  <DockPanel Grid.Column="1">
+   <TextBlock x:Name="Summary" DockPanel.Dock="Top" TextWrapping="Wrap" Margin="12,4,0,10"/>
+   <TextBlock x:Name="Warning" DockPanel.Dock="Top" Foreground="#B45309" TextWrapping="Wrap" Margin="12,0,0,10"/>
+   <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,10"><Button Content="‹ 前の面" Click="PreviousClick"/><TextBlock x:Name="SideLabel" Margin="14,0"/><Button Content="次の面 ›" Click="NextClick"/></StackPanel>
+   <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" Background="#DDE3EA"><Canvas x:Name="Preview" Background="White" Margin="24" HorizontalAlignment="Center" VerticalAlignment="Top" ClipToBounds="True"/></ScrollViewer>
+  </DockPanel>
+ </Grid>
+</Window>

@@ -1,0 +1,39 @@
+<Window x:Class="AiryPdf.MainWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ Title="airyPDF" Width="1180" Height="840" MinWidth="860" MinHeight="560" Background="#F5F7FA" FontFamily="Yu Gothic UI" FontSize="14" Icon="Assets/icon.png"
+ AllowDrop="True" Drop="FilesDropped" PreviewKeyDown="WindowKeyDown" Closing="WindowClosing">
+ <DockPanel>
+  <Border DockPanel.Dock="Top" Background="White" BorderBrush="#DEE4EA" BorderThickness="0,0,0,1" Padding="14,10">
+   <DockPanel>
+    <StackPanel Orientation="Horizontal" DockPanel.Dock="Left"><Image Source="Assets/icon.png" Width="32" Height="32" Margin="0,0,10,0"/><TextBlock Text="airyPDF" FontSize="23" FontWeight="SemiBold" Margin="0,0,22,0"/></StackPanel>
+    <WrapPanel>
+     <Button Content="PDFを開く" Click="OpenClick" ToolTip="Ctrl+O"/>
+     <Button Content="印刷プレビュー" Click="PrintClick" ToolTip="Ctrl+P"/>
+     <Button Content="名前を付けて保存" Click="SaveClick"/>
+     <Button Content="タブを閉じる" Click="CloseClick"/>
+    </WrapPanel>
+   </DockPanel>
+  </Border>
+  <Border DockPanel.Dock="Bottom" Background="White" Padding="16,8"><TextBlock x:Name="Status" Text="PDFを開くか、この画面にドラッグしてください。" TextWrapping="Wrap"/></Border>
+  <StackPanel DockPanel.Dock="Top">
+   <TabControl x:Name="Tabs" SelectionChanged="TabChanged" Margin="12,8,12,0" MinHeight="35"/>
+   <WrapPanel Margin="12,5">
+    <Button Content="‹" Click="PreviousClick"/><TextBox x:Name="PageNumber" Text="1" Width="48" KeyDown="PageNumberKeyDown"/><TextBlock x:Name="PageCount" Text="/ —" Margin="3,0,10,0"/><Button Content="›" Click="NextClick"/>
+    <Button Content="−" Click="ZoomOutClick"/><TextBlock x:Name="ZoomText" Text="100%" Width="56" TextAlignment="Center"/><Button Content="＋" Click="ZoomInClick"/><Button Content="幅に合わせる" Click="FitClick"/>
+    <Button Content="左回転" Click="RotateLeftClick"/><Button Content="右回転" Click="RotateRightClick"/><CheckBox x:Name="AllPages" Content="全ページ" VerticalAlignment="Center" Margin="8"/>
+    <CheckBox x:Name="SelectRegion" Content="範囲選択" VerticalAlignment="Center" Margin="8"/><Button Content="選択解除" Click="ClearSelectionClick"/>
+   </WrapPanel>
+  </StackPanel>
+  <Grid Background="#E6EAF0">
+   <StackPanel x:Name="Welcome" VerticalAlignment="Center" HorizontalAlignment="Center">
+    <TextBlock Text="軽やかに開く。寸法を守って印刷する。" FontSize="25" Foreground="#334155" HorizontalAlignment="Center"/>
+    <TextBlock Text="PDFをドラッグするか、「PDFを開く」を選んでください。" Margin="0,18" Foreground="#64748B" HorizontalAlignment="Center"/>
+   </StackPanel>
+   <ScrollViewer x:Name="Viewer" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" PreviewMouseWheel="ViewerWheel">
+    <Grid x:Name="PageSurface" Margin="24" HorizontalAlignment="Center" VerticalAlignment="Top" Background="White" MouseLeftButtonDown="SelectionStart" MouseMove="SelectionMove" MouseLeftButtonUp="SelectionEnd">
+     <Image x:Name="PageImage" Stretch="Fill" RenderOptions.BitmapScalingMode="LowQuality"/>
+     <Canvas x:Name="SelectionCanvas" IsHitTestVisible="False"><Rectangle x:Name="SelectionBox" Stroke="#E25822" StrokeThickness="2" Fill="#30F89A55" Visibility="Collapsed"/></Canvas>
+    </Grid>
+   </ScrollViewer>
+  </Grid>
+ </DockPanel>
+</Window>
