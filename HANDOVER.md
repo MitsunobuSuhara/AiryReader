@@ -68,6 +68,13 @@ GitHub: https://github.com/MitsunobuSuhara/airyPDF （非公開、origin/main）
 - 実際の業務PDFを読取専用で検証。ホイール入力イベントで1ページ目を越えるテストを追加し、4/4の表示画像を確認。業務PDFと画像・パスはGit対象外。AIRYPDF_UI_PDF環境変数で実ファイルの閲覧検証が可能（複数ページ限定）。印刷テストは合成PDFのまま。
 - 更新後のタスクバーリンク先を確認し、対象PDFを最新版で起動済み。旧版には通常終了のみ要求。
 
+## タスクバーの白い紙アイコンを修正（2026-09-13）
+
+- ユーザー提供画像で白い紙アイコンを確認。リンクのTargetPathはパッケージのLocalCache実パスだがIconLocationは仮想LocalAppDataのままだった。
+- GetFinalPathNameByHandleでコピー先exeの実パスを取得し、TargetPath・WorkingDirectory・IconLocationを統一。保存後にSHChangeNotifyでリンクの更新を通知。
+- 実パスが同じ内容を指すことと接頭辞除去を検証。Releaseと全テスト合格。再登録後の参照先一致とexeから羽根アイコンを抽出できることを目視確認。タスクバー実表示はユーザーへ確認中。
+- 公式API資料: https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-getfinalpathnamebyhandlew と https://learn.microsoft.com/en-us/windows/win32/api/shlobj_core/nf-shlobj_core-shchangenotify
+
 ## 次に着手すること
 
 1. ユーザーはこのPCを会社へ持参する。登録済みのApeosを選び、寸法確認用PDFをA4縦・ページ1・100%で1枚出力。Acrobat Readerと同条件で紙上の縦横を実測する。次にページ3でA3横を確認。READMEに手順あり。

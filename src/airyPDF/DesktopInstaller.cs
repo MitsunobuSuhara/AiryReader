@@ -27,7 +27,8 @@ public static class DesktopInstaller
                 File.Copy(file, destination, true);
             }
         }
-        string exe = System.IO.Path.Combine(target, "airyPDF.exe");
+        string exe = ResolveShellPath(System.IO.Path.Combine(target, "airyPDF.exe"));
+        target = System.IO.Path.GetDirectoryName(exe)!;
         // 元の版は残す。更新中や実行中のファイルを削除しない。
         CreateShortcut(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), exe, target);
         CreateShortcut(Environment.GetFolderPath(Environment.SpecialFolder.Programs), exe, target);
@@ -36,6 +37,21 @@ public static class DesktopInstaller
         if (File.Exists(System.IO.Path.Combine(pinnedFolder, "airyPDF.lnk")))
             CreateShortcut(pinnedFolder, exe, target);
         return exe;
+    }
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    private static extern uint GetFinalPathNameByHandle(Microsoft.Win32.SafeHandles.SafeFileHandle file, System.Text.StringBuilder path, uint length, uint flags);
+    [DllImport("shell32.dll", CharSet = CharSet.Unicode)]
+    private static extern void SHChangeNotify(int change, uint flags, string path, IntPtr unused);
+    internal static string ResolveShellPath(string path)
+    {
+        // パッケージ環境ではLocalAppDataへの書込みが転送される。Explorerからも読める実パスを登録する。
+        using var file = File.OpenHandle(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+        var buffer = new System.Text.StringBuilder(32768);
+        uint length = GetFinalPathNameByHandle(file, buffer, (uint)buffer.Capacity, 0);
+        if (length == 0 || length >= buffer.Capacity) throw new IOException("アイコンと起動先の実際の場所を確認できません。");
+        string resolved = buffer.ToString();
+        if (resolved.StartsWith(@"\\?\UNC\", StringComparison.OrdinalIgnoreCase)) return @"\\" + resolved[8..];
+        return resolved.StartsWith(@"\\?\", StringComparison.Ordinal) ? resolved[4..] : resolved;
     }
     internal static bool IsOwnInstall(string path)
     {
@@ -61,6 +77,7 @@ public static class DesktopInstaller
             shortcut.TargetPath = exe; shortcut.WorkingDirectory = working; shortcut.IconLocation = exe + ",0";
             shortcut.Description = "airyPDF — PDF閲覧・印刷チェック";
             shortcut.Save();
+            SHChangeNotify(0x2000, 0x1005, path, IntPtr.Zero);
         }
         finally
         {

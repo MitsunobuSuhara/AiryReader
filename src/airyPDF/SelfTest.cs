@@ -112,6 +112,9 @@ public static class SelfTest
         Directory.CreateDirectory("artifacts");
         string fixture = System.IO.Path.GetFullPath("artifacts/dimension-check.pdf");
         CreateFixture(fixture, 5);
+        string resolvedFixture = DesktopInstaller.ResolveShellPath(fixture);
+        Check(File.Exists(resolvedFixture) && File.ReadAllBytes(fixture).SequenceEqual(File.ReadAllBytes(resolvedFixture)), "ショートカット用の実パスが同じファイルを指す");
+        Check(!resolvedFixture.StartsWith(@"\\?\", StringComparison.Ordinal), "シェル用のパスから拡張接頭辞を除去");
         var watch = Stopwatch.StartNew();
         using var doc = new PdfDocument(fixture);
         Check(doc.Count == 5, "PDF読込・5ページ");
