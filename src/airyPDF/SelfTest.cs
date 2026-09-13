@@ -45,6 +45,15 @@ public static class SelfTest
         await print.RefreshAsync();
         Check(printButton.IsEnabled, "ポスターのプレビュー更新");
         Capture(print, "artifacts/print-poster.png");
+        // 登録済みの物理プリンターもプレビューだけ検証する。印刷ジョブは送らない。
+        var printerBox = (ComboBox)print.FindName("PrinterBox");
+        foreach (string printerName in printerBox.Items.Cast<string>().ToArray())
+        {
+            printerBox.SelectedItem = printerName;
+            modeBox.SelectedIndex = 0;
+            await print.RefreshAsync();
+            Check(printButton.IsEnabled, "プリンター切替・プレビュー: " + printerName);
+        }
         print.Close(); window.Close();
         File.WriteAllLines("artifacts/ui-test-results.txt", Results);
     }

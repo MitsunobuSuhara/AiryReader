@@ -4,7 +4,8 @@
   <Grid.ColumnDefinitions><ColumnDefinition Width="300"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
   <DockPanel Margin="0,0,18,0"><StackPanel DockPanel.Dock="Bottom"><Button Content="プレビューを更新" Click="RefreshClick"/><Button x:Name="PrintButton" Content="この設定で印刷" Click="PrintNowClick" Background="#0F766E" Foreground="White" IsEnabled="False" Margin="3,6,3,3"/></StackPanel><ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel>
    <TextBlock Text="印刷" FontSize="25" FontWeight="SemiBold" Margin="3,0,0,14"/>
-   <Button Content="プリンターを選ぶ・詳細設定" Click="PrinterClick"/>
+   <ComboBox x:Name="PrinterBox" SelectionChanged="PrinterSelected"/>
+   <Button Content="プリンターの詳細設定" Click="PrinterClick"/>
    <TextBlock x:Name="PrinterName" TextWrapping="Wrap" Margin="4,6,4,14"/>
    <TextBlock Text="用紙 / 向き" Margin="4"/>
    <ComboBox x:Name="PaperBox" SelectionChanged="SettingsChanged"/>

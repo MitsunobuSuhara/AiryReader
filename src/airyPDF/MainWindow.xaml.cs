@@ -182,6 +182,21 @@ public partial class MainWindow : Window
         try { new PrintWindow(state.Document, state.Page, state.Region) { Owner = this }.ShowDialog(); }
         catch (Exception ex) { Error(ex); }
     }
+    private void CalibrationClick(object s, RoutedEventArgs e)
+    {
+        string path = System.IO.Path.Combine(AppContext.BaseDirectory, "Samples", "print-check.pdf");
+        if (!File.Exists(path)) { Error(new IOException("寸法確認用PDFが見つかりません。実行用フォルダ全体を使用してください。")); return; }
+        OpenPaths([path]);
+    }
+    private void HelpClick(object s, RoutedEventArgs e)
+    {
+        var answer = MessageBox.Show(this,
+            "明日の確認手順\n\n1. 会社のネットワークに接続\n2. 「寸法確認用PDF」を開く\n3. 印刷先をApeos C3571 (ART EX)、A4、原寸100%、ページ1に設定\n4. プレビューを更新して1枚印刷\n5. 同じPDFをAcrobat Readerでも100%で印刷し、縦横100mmを比較\n\nPDF閲覧：ホイールでスクロール、Ctrl＋ホイールで拡大縮小。\n\nデスクトップとスタートメニューにこのアプリを登録しますか？",
+            "airyPDF — 使い方とデスクトップ登録", MessageBoxButton.YesNo, MessageBoxImage.Information);
+        if (answer != MessageBoxResult.Yes) return;
+        try { DesktopInstaller.Install(); Status.Text = "デスクトップとスタートメニューに登録しました。"; }
+        catch (Exception ex) { Error(ex); }
+    }
     private void WindowKeyDown(object s, KeyEventArgs e)
     {
         if (Keyboard.Modifiers == ModifierKeys.Control)

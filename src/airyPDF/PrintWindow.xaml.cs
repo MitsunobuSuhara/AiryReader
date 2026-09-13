@@ -1,7 +1,7 @@
 using System.Drawing.Printing;
 using System.Globalization;
 using System.Runtime.InteropServices;
-using Forms = System.Windows.Forms;
+
 
 namespace AiryPdf;
 
@@ -26,6 +26,8 @@ public partial class PrintWindow : Window
         printer.DefaultPageSettings.Margins = new Margins(0, 0, 0, 0);
         printer.PrinterSettings.Copies = 1;
         printer.PrinterSettings.Duplex = Duplex.Simplex;
+        foreach (string name in PrinterSettings.InstalledPrinters) PrinterBox.Items.Add(name);
+        PrinterBox.SelectedItem = printer.PrinterSettings.PrinterName;
         LoadPapers(); ready = true;
         Loaded += (_, _) => Refresh();
         Closed += (_, _) => { ++previewVersion; printer.Dispose(); };
@@ -45,11 +47,29 @@ public partial class PrintWindow : Window
         ++previewVersion; ++settingsVersion; PrintButton.IsEnabled = false;
         Warning.Text = "設定が変わりました。「プレビューを更新」で配置を確認してください。";
     }
+    private void PrinterSelected(object s, SelectionChangedEventArgs e)
+    {
+        if (!ready || PrinterBox.SelectedItem is not string name) return;
+        try
+        {
+            printer.PrinterSettings = new PrinterSettings { PrinterName = name };
+            printer.DefaultPageSettings = new PageSettings(printer.PrinterSettings) { Margins = new Margins(0, 0, 0, 0) };
+            LoadPapers(); SettingsChanged(s, e);
+        }
+        catch (Exception ex) { Warning.Text = ex.Message; PrintButton.IsEnabled = false; }
+    }
     private void PrinterClick(object s, RoutedEventArgs e)
     {
-        using var dialog = new Forms.PrintDialog { Document = printer, UseEXDialog = true, AllowSomePages = false, AllowSelection = false };
-        if (dialog.ShowDialog() != Forms.DialogResult.OK) return;
-        LoadPapers(); SettingsChanged(s, e);
+        try
+        {
+            if (!NativePrinterSettings.Show(this, printer)) return;
+            int kind = printer.DefaultPageSettings.PaperSize.RawKind;
+            LoadPapers();
+            PaperBox.SelectedItem = PaperBox.Items.Cast<PaperSize>().FirstOrDefault(p => p.RawKind == kind) ?? PaperBox.SelectedItem;
+            OrientationBox.SelectedIndex = printer.DefaultPageSettings.Landscape ? 1 : 0;
+            SettingsChanged(s, e);
+        }
+        catch (Exception ex) { Warning.Text = ex.Message; PrintButton.IsEnabled = false; }
     }
     private static double Number(TextBox box, string label)
     {
