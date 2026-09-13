@@ -12,16 +12,28 @@ public partial class MainWindow : Window
         public int Page;
         public double Zoom = 1;
         public Rect? Region;
+        public double ScrollOffset;
     }
     private TabState? Current => (Tabs.SelectedItem as TabItem)?.Tag as TabState;
     private readonly DispatcherTimer zoomTimer = new() { Interval = TimeSpan.FromMilliseconds(140) };
+    private sealed class PageView
+    {
+        public Grid Surface = new() { Background = Brushes.White, HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 0, 0, 24) };
+        public Image Image = new() { Stretch = Stretch.Fill };
+        public System.Windows.Shapes.Rectangle Selection = new() { Stroke = Brushes.OrangeRed, StrokeThickness = 2, Fill = new SolidColorBrush(Color.FromArgb(48, 248, 154, 85)), Visibility = Visibility.Collapsed };
+        public int RenderWidth;
+    }
+    private readonly List<PageView> pageViews = [];
+    private Grid PageSurface => pageViews[Current!.Page].Surface;
+    private System.Windows.Shapes.Rectangle SelectionBox => pageViews[Current!.Page].Selection;
+    private bool changingLayout;
     private int renderVersion;
     private bool opening;
     private Point? selectionStart;
     public MainWindow()
     {
         InitializeComponent();
-        zoomTimer.Tick += async (_, _) => { zoomTimer.Stop(); await RenderCurrent(); };
+        zoomTimer.Tick += async (_, _) => { zoomTimer.Stop(); await RenderVisible(); };
     }
     private void Error(Exception ex) => MessageBox.Show(this, ex.Message, "airyPDF", MessageBoxButton.OK, MessageBoxImage.Warning);
     public async void OpenPaths(IEnumerable<string> paths) => await OpenPathsAsync(paths);
@@ -50,37 +62,102 @@ public partial class MainWindow : Window
     {
         if (e.Data.GetData(DataFormats.FileDrop) is string[] files) OpenPaths(files.Where(x => string.Equals(System.IO.Path.GetExtension(x), ".pdf", StringComparison.OrdinalIgnoreCase)));
     }
-    private async void TabChanged(object sender, SelectionChangedEventArgs e) { if (e.Source == Tabs && !opening) { PageImage.Source = null; Viewer.ScrollToTop(); await RenderCurrent(); } }
+    private async void TabChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (e.Source == Tabs && !opening) await RenderCurrent();
+    }
     private async Task RenderCurrent()
     {
-        int version = ++renderVersion;
+        ++renderVersion;
         var state = Current;
+        changingLayout = true;
+        PagesHost.Children.Clear(); pageViews.Clear();
         Welcome.Visibility = state == null ? Visibility.Visible : Visibility.Collapsed;
-        if (state == null) { PageImage.Source = null; PageSurface.Width = PageSurface.Height = 0; return; }
         try
         {
-            int page = state.Page;
-            Size mm = state.Document.SizeMm(page);
-            PageSurface.Width = mm.Width * 96 / 25.4 * state.Zoom;
-            PageSurface.Height = mm.Height * 96 / 25.4 * state.Zoom;
-            PageNumber.Text = (page + 1).ToString(); PageCount.Text = $"/ {state.Document.Count}"; ZoomText.Text = $"{state.Zoom:P0}";
-            DrawSelection();
-            double dpi = VisualTreeHelper.GetDpi(this).DpiScaleX;
-            double factor = Math.Min(dpi, Math.Sqrt(12_000_000 / (PageSurface.Width * PageSurface.Height)));
-            int w = Math.Max(1, (int)(PageSurface.Width * factor)), h = Math.Max(1, (int)(PageSurface.Height * factor));
-            var bitmap = await Task.Run(() => state.Document.Render(page, w, h));
-            if (version != renderVersion || Current != state) return;
-            PageImage.Source = bitmap;
-            Status.Text = $"{System.IO.Path.GetFileName(state.Document.Path)}  ·  {mm.Width:F1} × {mm.Height:F1} mm  ·  印刷倍率 {state.Document.PrintPercent:0.##}%" + (state.Region.HasValue ? "  ·  範囲選択中" : "");
+            if (state == null) return;
+            for (int i = 0; i < state.Document.Count; i++)
+            {
+                var view = new PageView();
+                view.Surface.Tag = i;
+                view.Surface.Children.Add(view.Image);
+                var canvas = new Canvas { IsHitTestVisible = false }; canvas.Children.Add(view.Selection);
+                view.Surface.Children.Add(canvas);
+                view.Surface.MouseLeftButtonDown += SelectionStart;
+                view.Surface.MouseMove += SelectionMove;
+                view.Surface.MouseLeftButtonUp += SelectionEnd;
+                pageViews.Add(view); PagesHost.Children.Add(view.Surface);
+            }
+            SizePages(); Viewer.UpdateLayout();
+            Viewer.ScrollToVerticalOffset(state.ScrollOffset);
+            Viewer.UpdateLayout(); UpdatePageInfo(); DrawSelection();
+        }
+        finally { changingLayout = false; }
+        await RenderVisible();
+    }
+    private void SizePages()
+    {
+        if (Current is not { } state) return;
+        for (int i = 0; i < pageViews.Count; i++)
+        {
+            Size mm = state.Document.SizeMm(i);
+            pageViews[i].Surface.Width = mm.Width * 96 / 25.4 * state.Zoom;
+            pageViews[i].Surface.Height = mm.Height * 96 / 25.4 * state.Zoom;
+        }
+    }
+    private void UpdatePageInfo()
+    {
+        if (Current is not { } state) return;
+        Size mm = state.Document.SizeMm(state.Page);
+        PageNumber.Text = (state.Page + 1).ToString(); PageCount.Text = $"/ {state.Document.Count}";
+        ZoomText.Text = $"{state.Zoom:P0}";
+        Status.Text = $"{System.IO.Path.GetFileName(state.Document.Path)}  ·  {mm.Width:F1} × {mm.Height:F1} mm  ·  印刷倍率 {state.Document.PrintPercent:0.##}%" + (state.Region.HasValue ? "  ·  範囲選択中" : "");
+    }
+    private void ViewerScrolled(object sender, ScrollChangedEventArgs e)
+    {
+        if (changingLayout || Current is not { } state || pageViews.Count == 0) return;
+        state.ScrollOffset = Viewer.VerticalOffset;
+        if (selectionStart == null)
+        {
+            double marker = Math.Min(200, Viewer.ViewportHeight / 3);
+            int page = pageViews.FindIndex(v => v.Surface.TranslatePoint(new Point(0, v.Surface.Height), Viewer).Y > marker);
+            if (page >= 0 && page != state.Page) { state.Page = page; state.Region = null; DrawSelection(); }
+            UpdatePageInfo();
+        }
+        zoomTimer.Stop(); zoomTimer.Start();
+    }
+    private async Task RenderVisible()
+    {
+        int version = ++renderVersion;
+        if (Current is not { } state) return;
+        try
+        {
+            // 全ページの画像を保持せず、画面付近だけ描画して大きなPDFのメモリを抑える。
+            var visible = pageViews.Select((v, i) => (View: v, Page: i))
+                .Where(x => { double top = x.View.Surface.TranslatePoint(new Point(), Viewer).Y;
+                    return top < Viewer.ViewportHeight + 300 && top + x.View.Surface.Height > -300; }).ToArray();
+            foreach (var view in pageViews.Except(visible.Select(x => x.View))) { view.Image.Source = null; view.RenderWidth = 0; }
+            foreach (var item in visible)
+            {
+                var surface = item.View.Surface;
+                double dpi = VisualTreeHelper.GetDpi(this).DpiScaleX;
+                double factor = Math.Min(dpi, Math.Sqrt(12_000_000.0 / Math.Max(1, visible.Length) / (surface.Width * surface.Height)));
+                int w = Math.Max(1, (int)(surface.Width * factor)), h = Math.Max(1, (int)(surface.Height * factor));
+                if (item.View.RenderWidth == w && item.View.Image.Source != null) continue;
+                var bitmap = await Task.Run(() => state.Document.Render(item.Page, w, h));
+                if (version != renderVersion || Current != state) return;
+                item.View.Image.Source = bitmap; item.View.RenderWidth = w;
+            }
         }
         catch (ObjectDisposedException) { }
         catch (Exception ex) { if (version == renderVersion) Error(ex); }
     }
-    private async void GoPage(int page)
+    private void GoPage(int page)
     {
-        if (Current is not { } state) return;
+        if (Current is not { } state || pageViews.Count == 0) return;
         state.Page = Math.Clamp(page, 0, state.Document.Count - 1); state.Region = null;
-        PageImage.Source = null; Viewer.ScrollToTop(); await RenderCurrent();
+        Viewer.ScrollToVerticalOffset(PageSurface.TranslatePoint(new Point(), PagesHost).Y + 24);
+        UpdatePageInfo(); DrawSelection();
     }
     private void PreviousClick(object s, RoutedEventArgs e) => GoPage((Current?.Page ?? 0) - 1);
     private void NextClick(object s, RoutedEventArgs e) => GoPage((Current?.Page ?? 0) + 1);
@@ -92,13 +169,16 @@ public partial class MainWindow : Window
         double old = state.Zoom; state.Zoom = Math.Clamp(old * factor, .1, 8);
         double ratio = state.Zoom / old;
         Point point = anchor ?? new Point(Viewer.ViewportWidth / 2, Viewer.ViewportHeight / 2);
-        Point pageAnchor = Viewer.TranslatePoint(point, PageSurface);
-        PageSurface.Width *= ratio; PageSurface.Height *= ratio;
-        ZoomText.Text = $"{state.Zoom:P0}"; DrawSelection();
+        var anchorView = pageViews.FirstOrDefault(v => v.Surface.TranslatePoint(new Point(0, v.Surface.Height), Viewer).Y > point.Y) ?? pageViews[^1];
+        Point pageAnchor = Viewer.TranslatePoint(point, anchorView.Surface);
+        changingLayout = true;
+        SizePages(); ZoomText.Text = $"{state.Zoom:P0}"; DrawSelection();
         Viewer.UpdateLayout();
-        Point moved = PageSurface.TranslatePoint(new Point(pageAnchor.X * ratio, pageAnchor.Y * ratio), Viewer);
+        Point moved = anchorView.Surface.TranslatePoint(new Point(pageAnchor.X * ratio, pageAnchor.Y * ratio), Viewer);
         Viewer.ScrollToHorizontalOffset(Viewer.HorizontalOffset + moved.X - point.X);
         Viewer.ScrollToVerticalOffset(Viewer.VerticalOffset + moved.Y - point.Y);
+        Viewer.UpdateLayout(); changingLayout = false;
+        state.ScrollOffset = Viewer.VerticalOffset;
         zoomTimer.Stop(); zoomTimer.Start();
     }
     private void ZoomInClick(object s, RoutedEventArgs e) => Zoom(1.2);
@@ -152,6 +232,10 @@ public partial class MainWindow : Window
     private void SelectionStart(object s, MouseButtonEventArgs e)
     {
         if (SelectRegion.IsChecked != true || Current is null) return;
+        if (s is Grid { Tag: int page } && Current is { } state)
+        {
+            if (state.Page != page) { state.Page = page; state.Region = null; DrawSelection(); UpdatePageInfo(); }
+        }
         selectionStart = e.GetPosition(PageSurface); PageSurface.CaptureMouse(); e.Handled = true;
     }
     private void SelectionMove(object s, MouseEventArgs e)
@@ -170,7 +254,8 @@ public partial class MainWindow : Window
     }
     private void DrawSelection()
     {
-        if (Current is not { Region: { } rect } state) { SelectionBox.Visibility = Visibility.Collapsed; return; }
+        foreach (var view in pageViews) view.Selection.Visibility = Visibility.Collapsed;
+        if (Current is not { Region: { } rect } state || pageViews.Count == 0) return;
         double unit = 96 / 25.4 * state.Zoom;
         SelectionBox.Visibility = Visibility.Visible; Canvas.SetLeft(SelectionBox, rect.X * unit); Canvas.SetTop(SelectionBox, rect.Y * unit);
         SelectionBox.Width = rect.Width * unit; SelectionBox.Height = rect.Height * unit;

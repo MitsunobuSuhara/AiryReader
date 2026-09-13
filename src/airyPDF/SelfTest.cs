@@ -22,6 +22,27 @@ public static class SelfTest
         await window.OpenPathsAsync([fixture]);
         window.UpdateLayout();
         Capture(window, "artifacts/viewer-window.png");
+        var viewer = (ScrollViewer)window.FindName("Viewer");
+        var host = (StackPanel)window.FindName("PagesHost");
+        var pageNumber = (TextBox)window.FindName("PageNumber");
+        Check(host.Children.Count == 5, "全5ページを連続して配置");
+        var second = (Grid)host.Children[1];
+        viewer.ScrollToVerticalOffset(second.TranslatePoint(new Point(), host).Y - 150);
+        await Task.Delay(600); window.UpdateLayout();
+        Check(((Image)((Grid)host.Children[0]).Children[0]).Source != null && ((Image)second.Children[0]).Source != null, "境目で前後のページを同時に描画");
+        Capture(window, "artifacts/continuous-boundary.png");
+        viewer.ScrollToBottom(); await Task.Delay(600); window.UpdateLayout();
+        Check(pageNumber.Text == "5", "スクロールで最終ページに移動しページ番号を更新");
+        Check(((Image)((Grid)host.Children[4]).Children[0]).Source != null, "最終ページの内容を描画");
+        Check(((Image)((Grid)host.Children[0]).Children[0]).Source == null, "画面から離れたページの画像を解放");
+        var zoomButton = FindButtons(window).First(b => (string?)b.Content == "＋");
+        double oldHeight = second.Height;
+        zoomButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        await Task.Delay(600); window.UpdateLayout();
+        Check(second.Height > oldHeight && pageNumber.Text == "5", "連続表示の拡大後も閲覧ページを維持");
+        Capture(window, "artifacts/continuous-last.png");
+        viewer.ScrollToTop(); await Task.Delay(600); window.UpdateLayout();
+        Check(pageNumber.Text == "1", "スクロールで先頭ページへ戻れる");
         using var doc = new PdfDocument(fixture);
         var print = new PrintWindow(doc, 0, null) { Owner = window };
         print.Show();
@@ -56,6 +77,15 @@ public static class SelfTest
         }
         print.Close(); window.Close();
         File.WriteAllLines("artifacts/ui-test-results.txt", Results);
+    }
+    private static IEnumerable<Button> FindButtons(DependencyObject parent)
+    {
+        for (int i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
+        {
+            var child = VisualTreeHelper.GetChild(parent, i);
+            if (child is Button button) yield return button;
+            foreach (var nested in FindButtons(child)) yield return nested;
+        }
     }
     private static void Capture(Window window, string path)
     {

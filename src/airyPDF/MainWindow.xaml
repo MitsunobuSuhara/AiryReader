@@ -30,11 +30,8 @@
     <TextBlock Text="軽やかに開く。寸法を守って印刷する。" FontSize="25" Foreground="#334155" HorizontalAlignment="Center"/>
     <TextBlock Text="PDFをドラッグするか、「PDFを開く」を選んでください。" Margin="0,18" Foreground="#64748B" HorizontalAlignment="Center"/>
    </StackPanel>
-   <ScrollViewer x:Name="Viewer" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" PreviewMouseWheel="ViewerWheel">
-    <Grid x:Name="PageSurface" Margin="24" HorizontalAlignment="Center" VerticalAlignment="Top" Background="White" MouseLeftButtonDown="SelectionStart" MouseMove="SelectionMove" MouseLeftButtonUp="SelectionEnd">
-     <Image x:Name="PageImage" Stretch="Fill" RenderOptions.BitmapScalingMode="LowQuality"/>
-     <Canvas x:Name="SelectionCanvas" IsHitTestVisible="False"><Rectangle x:Name="SelectionBox" Stroke="#E25822" StrokeThickness="2" Fill="#30F89A55" Visibility="Collapsed"/></Canvas>
-    </Grid>
+   <ScrollViewer x:Name="Viewer" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" PreviewMouseWheel="ViewerWheel" ScrollChanged="ViewerScrolled">
+    <StackPanel x:Name="PagesHost" Margin="24" HorizontalAlignment="Center" VerticalAlignment="Top"/>
    </ScrollViewer>
   </Grid>
  </DockPanel>
