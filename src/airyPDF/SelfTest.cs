@@ -19,27 +19,41 @@ public static class SelfTest
         string fixture = System.IO.Path.GetFullPath("artifacts/dimension-check.pdf");
         CreateFixture(fixture, 5);
         var window = new MainWindow(); window.Show();
-        await window.OpenPathsAsync([fixture]);
+        string uiPath = Environment.GetEnvironmentVariable("AIRYPDF_UI_PDF") ?? fixture;
+        using var uiDocument = new PdfDocument(uiPath);
+        int pageTotal = uiDocument.Count;
+        Check(pageTotal >= 2, "連続表示の検証対象が複数ページ");
+        await window.OpenPathsAsync([uiPath]);
         window.UpdateLayout();
         Capture(window, "artifacts/viewer-window.png");
         var viewer = (ScrollViewer)window.FindName("Viewer");
         var host = (StackPanel)window.FindName("PagesHost");
         var pageNumber = (TextBox)window.FindName("PageNumber");
-        Check(host.Children.Count == 5, "全5ページを連続して配置");
+        Check(host.Children.Count == pageTotal, "PDFの全ページを連続して配置");
+        // ScrollToOffsetだけでは実際のホイール経路の不具合を見落とすため、入力イベントでも検証する。
+        for (int i = 0; i < 35; i++)
+        {
+            ((Grid)host.Children[0]).RaiseEvent(new System.Windows.Input.MouseWheelEventArgs(System.Windows.Input.Mouse.PrimaryDevice, Environment.TickCount, -120)
+            { RoutedEvent = System.Windows.Input.Mouse.MouseWheelEvent });
+            await Task.Delay(20);
+        }
+        await Task.Delay(800); window.UpdateLayout();
+        Check(viewer.VerticalOffset > ((Grid)host.Children[0]).Height, "ホイール操作で1ページ目を越えて進む");
+        viewer.ScrollToTop(); await Task.Delay(400);
         var second = (Grid)host.Children[1];
         viewer.ScrollToVerticalOffset(second.TranslatePoint(new Point(), host).Y - 150);
         await Task.Delay(600); window.UpdateLayout();
         Check(((Image)((Grid)host.Children[0]).Children[0]).Source != null && ((Image)second.Children[0]).Source != null, "境目で前後のページを同時に描画");
         Capture(window, "artifacts/continuous-boundary.png");
         viewer.ScrollToBottom(); await Task.Delay(600); window.UpdateLayout();
-        Check(pageNumber.Text == "5", "スクロールで最終ページに移動しページ番号を更新");
-        Check(((Image)((Grid)host.Children[4]).Children[0]).Source != null, "最終ページの内容を描画");
+        Check(pageNumber.Text == pageTotal.ToString(), "スクロールで最終ページに移動しページ番号を更新");
+        Check(((Image)((Grid)host.Children[pageTotal - 1]).Children[0]).Source != null, "最終ページの内容を描画");
         Check(((Image)((Grid)host.Children[0]).Children[0]).Source == null, "画面から離れたページの画像を解放");
         var zoomButton = FindButtons(window).First(b => (string?)b.Content == "＋");
         double oldHeight = second.Height;
         zoomButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
         await Task.Delay(600); window.UpdateLayout();
-        Check(second.Height > oldHeight && pageNumber.Text == "5", "連続表示の拡大後も閲覧ページを維持");
+        Check(second.Height > oldHeight && pageNumber.Text == pageTotal.ToString(), "連続表示の拡大後も閲覧ページを維持");
         Capture(window, "artifacts/continuous-last.png");
         viewer.ScrollToTop(); await Task.Delay(600); window.UpdateLayout();
         Check(pageNumber.Text == "1", "スクロールで先頭ページへ戻れる");
