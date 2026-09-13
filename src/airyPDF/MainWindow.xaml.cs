@@ -33,6 +33,7 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        WindowPreferences.Restore(this);
         zoomTimer.Tick += async (_, _) => { zoomTimer.Stop(); await RenderVisible(); };
     }
     private void Error(Exception ex) => MessageBox.Show(this, ex.Message, "airyPDF", MessageBoxButton.OK, MessageBoxImage.Warning);
@@ -227,6 +228,7 @@ public partial class MainWindow : Window
     {
         var states = Tabs.Items.Cast<TabItem>().Select(t => (TabState)t.Tag).ToArray();
         if (states.Any(state => !CanClose(state))) { e.Cancel = true; return; }
+        WindowPreferences.Save(this);
         ++renderVersion; zoomTimer.Stop(); foreach (var state in states) state.Document.Dispose();
     }
     private void SelectionStart(object s, MouseButtonEventArgs e)
@@ -275,12 +277,9 @@ public partial class MainWindow : Window
     }
     private void HelpClick(object s, RoutedEventArgs e)
     {
-        var answer = MessageBox.Show(this,
-            "明日の確認手順\n\n1. 会社のネットワークに接続\n2. 「寸法確認用PDF」を開く\n3. 印刷先をApeos C3571 (ART EX)、A4、原寸100%、ページ1に設定\n4. プレビューを更新して1枚印刷\n5. 同じPDFをAcrobat Readerでも100%で印刷し、縦横100mmを比較\n\nPDF閲覧：ホイールでスクロール、Ctrl＋ホイールで拡大縮小。\n\nデスクトップとスタートメニューにこのアプリを登録しますか？",
-            "airyPDF — 使い方とデスクトップ登録", MessageBoxButton.YesNo, MessageBoxImage.Information);
-        if (answer != MessageBoxResult.Yes) return;
-        try { DesktopInstaller.Install(); Status.Text = "デスクトップとスタートメニューに登録しました。"; }
-        catch (Exception ex) { Error(ex); }
+        MessageBox.Show(this,
+            "airyPDF 1.0\n\nPDFを開く：Ctrl＋O、またはドラッグ＆ドロップ\nページ移動：ホイールで連続スクロール、ページ番号入力、左右のボタン\n拡大縮小：Ctrl＋ホイール、＋／−、幅に合わせる\n印刷：Ctrl＋P\n\n新しいPDFの印刷倍率は100%。指定倍率では自動縮小せず、欠けをプレビューで知らせます。\nドライバー側の拡大縮小・Nアップは無効にしてください。\n回転を保存するときは別名保存します。\n\n寸法確認用PDFには縦横100mmの基準線があります。\n会社での印刷は利用者評価で用途上合格（約0.1mmのずれに見えるとの報告）。",
+            "airyPDF — 使い方", MessageBoxButton.OK, MessageBoxImage.Information);
     }
     private void WindowKeyDown(object s, KeyEventArgs e)
     {

@@ -13,6 +13,12 @@ public partial class App : System.Windows.Application
             catch (Exception ex) { Directory.CreateDirectory("artifacts"); File.WriteAllText("artifacts/test-failure.txt", ex.ToString()); Shutdown(1); }
             return;
         }
+        if (e.Args.Contains("--unregister"))
+        {
+            if (MessageBox.Show("airyPDFのアプリ登録とショートカットを解除しますか？\n実行ファイルと設定は復旧用に残ります。", "airyPDF 登録解除", MessageBoxButton.YesNo) == MessageBoxResult.Yes)
+                DesktopInstaller.Unregister();
+            Shutdown(0); return;
+        }
         if (e.Args.Length == 2 && e.Args[0] == "--make-check")
         {
             CalibrationPdf.Create(e.Args[1]); Shutdown(0); return;

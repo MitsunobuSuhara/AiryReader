@@ -13,7 +13,7 @@ public static class DesktopInstaller
             throw new IOException(".NET同梱の実行用フォルダから登録してください。");
         string hash = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(dll)))[..12].ToLowerInvariant();
         string root = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Programs", "airyPDF");
-        string target = System.IO.Path.Combine(root, "0.2.1-" + hash);
+        string target = System.IO.Path.Combine(root, "1.0.0-" + hash);
         Directory.CreateDirectory(target);
         if (!string.Equals(source, target, StringComparison.OrdinalIgnoreCase))
         {
@@ -36,7 +36,41 @@ public static class DesktopInstaller
         // 既にピン留めされた自分のリンクのみ更新する。新たなピン留めは行わない。
         if (File.Exists(System.IO.Path.Combine(pinnedFolder, "airyPDF.lnk")))
             CreateShortcut(pinnedFolder, exe, target);
+        RegisterApplication(exe, target);
         return exe;
+    }
+    private static void RegisterApplication(string exe, string folder)
+    {
+        using var app = Microsoft.Win32.Registry.CurrentUser.CreateSubKey(@"Software\Classes\Applications\airyPDF.exe");
+        app.SetValue("FriendlyAppName", "airyPDF");
+        using (var command = app.CreateSubKey(@"shell\open\command")) command.SetValue("", "\"" + exe + "\" \"%1\"");
+        using (var types = app.CreateSubKey("SupportedTypes")) types.SetValue(".pdf", "");
+        using var uninstall = Microsoft.Win32.Registry.CurrentUser.CreateSubKey(@"Software\Microsoft\Windows\CurrentVersion\Uninstall\airyPDF");
+        uninstall.SetValue("DisplayName", "airyPDF");
+        uninstall.SetValue("DisplayVersion", "1.0.0");
+        uninstall.SetValue("Publisher", "airyPDF");
+        uninstall.SetValue("InstallLocation", folder);
+        uninstall.SetValue("DisplayIcon", exe + ",0");
+        uninstall.SetValue("UninstallString", "\"" + exe + "\" --unregister");
+        uninstall.SetValue("NoModify", 1); uninstall.SetValue("NoRepair", 1);
+    }
+    public static void Unregister()
+    {
+        Microsoft.Win32.Registry.CurrentUser.DeleteSubKeyTree(@"Software\Classes\Applications\airyPDF.exe", false);
+        Microsoft.Win32.Registry.CurrentUser.DeleteSubKeyTree(@"Software\Microsoft\Windows\CurrentVersion\Uninstall\airyPDF", false);
+        foreach (string folder in new[] { Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), Environment.GetFolderPath(Environment.SpecialFolder.Programs),
+            System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Microsoft", "Internet Explorer", "Quick Launch", "User Pinned", "TaskBar") })
+        {
+            string link = System.IO.Path.Combine(folder, "airyPDF.lnk");
+            if (!File.Exists(link)) continue;
+            Type shellType = Type.GetTypeFromProgID("WScript.Shell")!;
+            dynamic shell = Activator.CreateInstance(shellType)!;
+            object? shortcutObject = null;
+            try { dynamic shortcut = shell.CreateShortcut(link); shortcutObject = shortcut;
+                if (IsOwnInstall((string)shortcut.TargetPath)) { File.Delete(link); SHChangeNotify(0x4, 0x1005, link, IntPtr.Zero); } }
+            finally { if (shortcutObject != null) Marshal.FinalReleaseComObject(shortcutObject); Marshal.FinalReleaseComObject(shell); }
+        }
+        // 実行ファイルとユーザー設定は復旧用に残す。
     }
     [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
     private static extern uint GetFinalPathNameByHandle(Microsoft.Win32.SafeHandles.SafeFileHandle file, System.Text.StringBuilder path, uint length, uint flags);
