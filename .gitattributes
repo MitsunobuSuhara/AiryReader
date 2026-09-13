@@ -1,0 +1,4 @@
+# PDFの相互参照位置を保持するため、改行変換をしない。
+*.pdf binary
+*.ico binary
+*.png binary
