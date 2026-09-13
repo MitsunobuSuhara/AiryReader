@@ -13,7 +13,7 @@ public static class DesktopInstaller
             throw new IOException(".NET同梱の実行用フォルダから登録してください。");
         string hash = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(dll)))[..12].ToLowerInvariant();
         string root = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Programs", "airyPDF");
-        string target = System.IO.Path.Combine(root, "1.0.0-" + hash);
+        string target = System.IO.Path.Combine(root, "1.0.1-" + hash);
         Directory.CreateDirectory(target);
         if (!string.Equals(source, target, StringComparison.OrdinalIgnoreCase))
         {
@@ -47,7 +47,7 @@ public static class DesktopInstaller
         using (var types = app.CreateSubKey("SupportedTypes")) types.SetValue(".pdf", "");
         using var uninstall = Microsoft.Win32.Registry.CurrentUser.CreateSubKey(@"Software\Microsoft\Windows\CurrentVersion\Uninstall\airyPDF");
         uninstall.SetValue("DisplayName", "airyPDF");
-        uninstall.SetValue("DisplayVersion", "1.0.0");
+        uninstall.SetValue("DisplayVersion", "1.0.1");
         uninstall.SetValue("Publisher", "airyPDF");
         uninstall.SetValue("InstallLocation", folder);
         uninstall.SetValue("DisplayIcon", exe + ",0");
