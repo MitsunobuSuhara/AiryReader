@@ -95,3 +95,13 @@ GitHub: https://github.com/MitsunobuSuhara/airyPDF （非公開、origin/main）
 ## 共通指示
 
 C:\dev\AGENTS.md適用。日本語、呼称NOBUさん。区切りでコミットを提案し、コミットした変更は承認済みoriginへpush。AI署名footerなし。1リポ1エージェント。
+
+## 新アイコンの採用決定（2026-09-14）
+
+ユーザーからメインへの引き継ぎ：新アイコンは比較画像の中央にあるB案を採用。
+- 黒の単色背景。
+- 3つの白い面で表した羽根。
+- グラデーションなし。
+
+比較画像の原本：C:/Users/mitsu/.codex/generated_images/01a09d29-d8c6-7d12-9c57-f170376b3dec/exec-91e8d48b-0aaf-4b5e-97cd-9351be59cc69.png
+採用仕様は確定。現行PNG・ICOへの置き換えはこの引き継ぎでは実施していない。画像のツール表示は処理できず、中央B案の形状の目視確認は未完了。単体B案を準備し、アプリ・ショートカット・タスクバーへ反映すること。
