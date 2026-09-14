@@ -2,7 +2,7 @@
  Title="印刷プレビュー — airyPDF" Width="1150" Height="850" MinWidth="940" MinHeight="640" FontFamily="Yu Gothic UI" FontSize="14" Background="#F5F7FA">
  <Grid Margin="18">
   <Grid.ColumnDefinitions><ColumnDefinition Width="300"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
-  <DockPanel Margin="0,0,18,0"><StackPanel DockPanel.Dock="Top"><Button x:Name="PrintButton" Content="この設定で印刷" Click="PrintNowClick" Background="#0F766E" Foreground="White" IsEnabled="False" Margin="3,3,3,12"/></StackPanel><ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel>
+  <DockPanel Margin="0,0,18,0"><StackPanel DockPanel.Dock="Bottom"><Button x:Name="PrintButton" Content="この設定で印刷" Click="PrintNowClick" Background="#0F766E" Foreground="White" IsEnabled="False" Margin="3,12,3,3"/></StackPanel><ScrollViewer VerticalScrollBarVisibility="Auto"><StackPanel>
    <TextBlock Text="印刷" FontSize="25" FontWeight="SemiBold" Margin="3,0,0,14"/>
    <ComboBox x:Name="PrinterBox" SelectionChanged="PrinterSelected"/>
    <Button Content="プリンターの詳細設定" Click="PrinterClick"/>

@@ -95,7 +95,7 @@ public static class SelfTest
         print.UpdateLayout();
         Check(print.Top >= 0 && print.Top + print.ActualHeight <= 600, "小さい画面でも印刷ウィンドウを画面内に収める");
         Point printLocation = printButton.TranslatePoint(new Point(), print);
-        Check(printButton.IsVisible && printLocation.Y >= 0 && printLocation.Y + printButton.ActualHeight < print.ActualHeight && printLocation.Y < 100, "印刷ボタンを左上に固定して常時表示");
+        Check(printButton.IsVisible && printLocation.Y >= 0 && printLocation.Y + printButton.ActualHeight < print.ActualHeight && printLocation.Y > print.ActualHeight / 2, "小画面でも下部の印刷ボタンを常時表示");
         Capture(print, "artifacts/print-small-window.png");
         var previewScroller = (ScrollViewer)print.FindName("PreviewScroller");
         var sideText = (TextBlock)print.FindName("SideLabel");
