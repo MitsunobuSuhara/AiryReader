@@ -222,6 +222,16 @@ public partial class PrintWindow : Window
     }
     private async void PreviousClick(object s, RoutedEventArgs e) { if (side > 0) { side--; try { await ShowSide(); } catch (Exception ex) { Warning.Text = ex.Message; } } }
     private async void NextClick(object s, RoutedEventArgs e) { if (side + 1 < sheets.Count) { side++; try { await ShowSide(); } catch (Exception ex) { Warning.Text = ex.Message; } } }
+    private void CanPrintCommand(object sender, System.Windows.Input.CanExecuteRoutedEventArgs e)
+    {
+        e.CanExecute = ready && PrintButton.IsEnabled && sheets.Count > 0;
+        e.Handled = true;
+    }
+    private void PrintShortcutKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+    {
+        if (e.IsRepeat && e.Key == System.Windows.Input.Key.Enter && System.Windows.Input.Keyboard.Modifiers == System.Windows.Input.ModifierKeys.Control)
+            e.Handled = true;
+    }
     private void PrintNowClick(object s, RoutedEventArgs e)
     {
         if (!PrintButton.IsEnabled || sheets.Count == 0) return;

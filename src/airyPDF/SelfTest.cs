@@ -91,6 +91,8 @@ public static class SelfTest
         Capture(print, "artifacts/print-window.png");
         var printButton = (Button)print.FindName("PrintButton");
         Check(printButton.IsEnabled, "印刷プレビュー完了後に印刷可能");
+        Check(print.InputBindings.OfType<System.Windows.Input.KeyBinding>().Any(b => b.Command == System.Windows.Input.ApplicationCommands.Print && b.Key == System.Windows.Input.Key.Enter && b.Modifiers == System.Windows.Input.ModifierKeys.Control), "Ctrl＋Enterを印刷コマンドに割り当て");
+        Check(System.Windows.Input.ApplicationCommands.Print.CanExecute(null, print), "プレビュー完了時だけショートカットで印刷可能");
         print.FitToWorkArea(new Rect(0, 0, 1024, 600));
         print.UpdateLayout();
         Check(print.Top >= 0 && print.Top + print.ActualHeight <= 600, "小さい画面でも印刷ウィンドウを画面内に収める");
@@ -142,6 +144,7 @@ public static class SelfTest
         percentBox.Text = "NaN";
         await print.RefreshAsync();
         Check(!printButton.IsEnabled, "不正な倍率入力で印刷を止める");
+        Check(!System.Windows.Input.ApplicationCommands.Print.CanExecute(null, print), "不正な倍率ならCtrl＋Enterの印刷も無効");
         percentBox.Text = "100";
         Check(((FrameworkElement)print.FindName("PosterSettings")).Visibility == Visibility.Collapsed, "通常の印刷で貼り合わせ幅を隠す");
         modeBox.SelectedIndex = 5;
