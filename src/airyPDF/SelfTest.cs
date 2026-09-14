@@ -89,7 +89,23 @@ public static class SelfTest
             await print.RefreshAsync();
             Check(printButton.IsEnabled, "プリンター切替・プレビュー: " + printerName);
         }
-        print.Close(); window.Close();
+        print.Close();
+        if (File.Exists("artifacts/feature-tests/forms.pdf"))
+        {
+            string formPath = Environment.GetEnvironmentVariable("AIRYPDF_TOOL_PDF") ?? "artifacts/feature-tests/forms.pdf";
+            using var forms = new PdfDocument(formPath);
+            var metadata = await PdfHelper.RunAsync(new Dictionary<string,object?> { ["operation"]="inspect", ["source"]=formPath, ["password"]="" });
+            int expectedFields = metadata.GetProperty("fields").GetArrayLength();
+            var tools = new PdfToolsWindow(forms, 0, _ => { }, _ => Task.CompletedTask) { Owner = window };
+            tools.Show();
+            for (int i = 0; i < 100 && tools.FieldCount < expectedFields; i++) await Task.Delay(100);
+            tools.UpdateLayout();
+            Check(tools.FieldCount == expectedFields && tools.StatusMessage.Contains("入力欄"), "フォーム欄としおりを読み込んで表示: " + tools.StatusMessage);
+            Check(FindButtons(tools).Any(b => (string?)b.Content == "入力内容を別名保存"), "フォーム編集画面を表示");
+            Capture(tools, "artifacts/pdf-tools-window.png");
+            tools.Close();
+        }
+        window.Close();
         File.WriteAllLines("artifacts/ui-test-results.txt", Results);
     }
     private static IEnumerable<Button> FindButtons(DependencyObject parent)
@@ -115,7 +131,29 @@ public static class SelfTest
         string resolvedFixture = DesktopInstaller.ResolveShellPath(fixture);
         Check(File.Exists(resolvedFixture) && File.ReadAllBytes(fixture).SequenceEqual(File.ReadAllBytes(resolvedFixture)), "ショートカット用の実パスが同じファイルを指す");
         Check(!resolvedFixture.StartsWith(@"\\?\", StringComparison.Ordinal), "シェル用のパスから拡張接頭辞を除去");
+        if (File.Exists("artifacts/feature-tests/encrypted.pdf"))
+        {
+            bool refused = false;
+            try { using var protectedDoc = new PdfDocument("artifacts/feature-tests/encrypted.pdf", "wrong"); }
+            catch (PdfPasswordException) { refused = true; }
+            Check(refused, "間違ったPDFパスワードを拒否");
+            using var protectedOk = new PdfDocument("artifacts/feature-tests/encrypted.pdf", "secret");
+            Check(protectedOk.Count == 2, "パスワード付きPDFを全ページ読込");
+            using var filled = new PdfDocument("artifacts/feature-tests/filled.pdf");
+            SaveImage(filled.Render(0,595,842), "artifacts/filled-native.png"); Check(filled.Count == 2, "保存した入力欄のPDFium描画");
+            using var added = new PdfDocument("artifacts/feature-tests/added.pdf");
+            Check(added.PageText(1).Contains("日本語の記入"), "日本語追記をPDFium検索で抽出");
+            using var signed = new PdfDocument("artifacts/feature-tests/signed.pdf");
+            Check(signed.HasSignatures && !signed.CanEdit, "署名済みPDFの編集を保護");
+        }
         var watch = Stopwatch.StartNew();
+        string? compat = Environment.GetEnvironmentVariable("AIRYPDF_COMPAT_PDF");
+        if (!string.IsNullOrEmpty(compat))
+        {
+            using var compatible = new PdfDocument(compat);
+            Check(compatible.CanFill && !compatible.CanEdit, "Adobe系PDFのフォーム入力権限を維持");
+            for (int i=0;i<compatible.Count;i++) SaveImage(compatible.Render(i,794,1123), $"artifacts/compat-native-{i+1}.png");
+        }
         using var doc = new PdfDocument(fixture);
         Check(doc.Count == 5, "PDF読込・5ページ");
         Check(Near(doc.SizeMm(0).Width, 210) && Near(doc.SizeMm(0).Height, 297), "PDFのA4物理寸法");
@@ -156,12 +194,35 @@ public static class SelfTest
         using (var reopened = new PdfDocument(copy)) Check(Near(reopened.SizeMm(0).Width, 297) && reopened.Count == 5, "回転の保存・再読込");
         using (var original = new PdfDocument(fixture)) Check(Near(original.SizeMm(0).Width, 210), "元ファイルの維持");
         try { doc.SaveCopy(fixture); Check(false, "原本上書き"); } catch (IOException) { Check(true, "原本への上書きを拒否"); }
+        if (File.Exists("artifacts/feature-tests/filled.pdf")) VirtualPrintForm();
         VirtualPrint(fixture, 50);
         VirtualPrint(fixture, 100);
         VirtualPrint(fixture, 200);
         File.WriteAllLines("artifacts/test-results.txt", Results);
     }
 
+    private static void VirtualPrintForm()
+    {
+        using var doc = new PdfDocument("artifacts/feature-tests/filled.pdf");
+        using var printer = new PrintDocument();
+        printer.PrinterSettings.PrinterName = "Microsoft Print to PDF";
+        if (!printer.PrinterSettings.IsValid) return;
+        string output = System.IO.Path.GetFullPath("artifacts/form-printed.pdf");
+        printer.PrinterSettings.PrintToFile = true; printer.PrinterSettings.PrintFileName = output;
+        printer.PrintController = new StandardPrintController();
+        printer.DefaultPageSettings.PaperSize = printer.PrinterSettings.PaperSizes.Cast<PaperSize>().First(p => p.Kind == PaperKind.A4);
+        printer.DefaultPageSettings.Margins = new Margins(0,0,0,0);
+        var (paper, printable) = PrinterOutput.GetGeometry(printer);
+        var sheet = PrintLayout.Build(doc.SizeMm, [0], paper, printable, new(PrintMode.Scale, 100))[0];
+        printer.PrintPage += (_, args) => { PrinterOutput.Draw(doc, sheet, args); args.HasMorePages = false; };
+        printer.Print();
+        using var result = new PdfDocument(output);
+        var image = result.Render(0,595,842); SaveImage(image, "artifacts/form-printed.png");
+        var pixels = new byte[595*842*4]; image.CopyPixels(pixels,595*4,0);
+        int dark = 0;
+        for(int y=115;y<140;y++) for(int x=50;x<180;x++) if(pixels[(y*595+x)*4]<160)dark++;
+        Check(dark > 100, "日本語入力欄が実印刷経路でも出力される");
+    }
     private static void VirtualPrint(string fixture, int percent)
     {
         using var doc = new PdfDocument(fixture);

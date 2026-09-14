@@ -7,17 +7,24 @@ public sealed class PdfDocument : IDisposable
 {
     private static readonly object Gate = new();
     private static bool initialized;
-    private IntPtr handle;
+    private IntPtr handle, formHandle, formInfo, loadedPage;
+    private int loadedIndex = -1;
+    private Native.GetPageCallback? getPage;
+    private Native.GetCurrentPageCallback? getCurrentPage;
     private GCHandle pinned;
     public string Path { get; }
+    internal string? Password { get; }
+    public bool HasSignatures { get; }
     public int Count { get; }
     public bool Dirty { get; private set; }
     public bool CanPrint { get; }
     public bool CanEdit { get; }
+    public bool CanFill { get; }
     public double PrintPercent { get; set; } = 100;
 
-    public PdfDocument(string path)
+    public PdfDocument(string path, string? password = null)
     {
+        Password = password;
         Path = System.IO.Path.GetFullPath(path);
         if (new FileInfo(Path).Length > 512L * 1024 * 1024)
             throw new IOException("この試作版では512MBを超えるPDFは開けません。");
@@ -26,17 +33,30 @@ public sealed class PdfDocument : IDisposable
             if (!initialized) { Native.FPDF_InitLibrary(); initialized = true; }
             byte[] bytes = File.ReadAllBytes(Path);
             pinned = GCHandle.Alloc(bytes, GCHandleType.Pinned);
-            handle = Native.FPDF_LoadMemDocument64(pinned.AddrOfPinnedObject(), (UIntPtr)bytes.LongLength, IntPtr.Zero);
+            IntPtr passwordPtr = password == null ? IntPtr.Zero : Marshal.StringToCoTaskMemUTF8(password);
+            try { handle = Native.FPDF_LoadMemDocument64(pinned.AddrOfPinnedObject(), (UIntPtr)bytes.LongLength, passwordPtr); }
+            finally { if (passwordPtr != IntPtr.Zero) Marshal.ZeroFreeCoTaskMemUTF8(passwordPtr); }
             if (handle == IntPtr.Zero)
             {
                 uint error = Native.FPDF_GetLastError();
                 pinned.Free();
-                throw new IOException(error == 4 ? "パスワード付きPDFには、この試作版は対応していません。" : $"PDFを開けませんでした（エラー {error}）。");
+                if (error == 4) throw new PdfPasswordException();
+                throw new IOException($"PDFを開けませんでした（エラー {error}）。");
             }
+            formInfo = Marshal.AllocHGlobal(1024);
+            Marshal.Copy(new byte[1024], 0, formInfo, 1024);
+            Marshal.WriteInt32(formInfo, 1);
+            getPage = (_, doc, index) => doc == handle && index == loadedIndex ? loadedPage : IntPtr.Zero;
+            getCurrentPage = (_, doc) => doc == handle ? loadedPage : IntPtr.Zero;
+            Marshal.WriteIntPtr(formInfo, 8 + 8 * 8, Marshal.GetFunctionPointerForDelegate(getPage));
+            Marshal.WriteIntPtr(formInfo, 8 + 9 * 8, Marshal.GetFunctionPointerForDelegate(getCurrentPage));
+            formHandle = Native.FPDFDOC_InitFormFillEnvironment(handle, formInfo);
             Count = Native.FPDF_GetPageCount(handle);
+            HasSignatures = Native.FPDF_GetSignatureCount(handle) > 0;
             uint permissions = Native.FPDF_GetDocPermissions(handle);
             CanPrint = (permissions & 4) != 0 && (permissions & 2048) != 0;
-            CanEdit = (permissions & 8) != 0;
+            CanEdit = (permissions & 8) != 0 && !HasSignatures;
+            CanFill = ((permissions & 256) != 0 || (permissions & 8) != 0) && !HasSignatures;
             if (Count < 1) { Dispose(); throw new IOException("表示できるページがありません。"); }
         }
     }
@@ -49,8 +69,10 @@ public sealed class PdfDocument : IDisposable
             if (index < 0 || index >= Count) throw new ArgumentOutOfRangeException(nameof(index));
             IntPtr page = Native.FPDF_LoadPage(handle, index);
             if (page == IntPtr.Zero) throw new IOException($"{index + 1}ページを読み込めません。");
+            loadedPage = page; loadedIndex = index;
+            if (formHandle != IntPtr.Zero) Native.FORM_OnAfterLoadPage(page, formHandle);
             try { return action(page); }
-            finally { Native.FPDF_ClosePage(page); }
+            finally { if (formHandle != IntPtr.Zero) Native.FORM_OnBeforeClosePage(page, formHandle); loadedPage = IntPtr.Zero; loadedIndex = -1; Native.FPDF_ClosePage(page); }
         }
     }
 
@@ -70,6 +92,7 @@ public sealed class PdfDocument : IDisposable
         {
             Native.FPDFBitmap_FillRect(bitmap, 0, 0, width, height, 0xFFFFFFFF);
             Native.FPDF_RenderPageBitmap(bitmap, page, 0, 0, width, height, 0, 1);
+            if (formHandle != IntPtr.Zero) Native.FPDF_FFLDraw(formHandle, bitmap, page, 0, 0, width, height, 0, 1);
             int stride = Native.FPDFBitmap_GetStride(bitmap);
             // ネイティブバッファ解放前にWPF側へコピーする。
             var image = BitmapSource.Create(width, height, 96, 96, PixelFormats.Bgr32, null,
@@ -83,6 +106,24 @@ public sealed class PdfDocument : IDisposable
     public void DrawToPrinter(IntPtr dc, int index, int x, int y, int width, int height) => WithPage(index, page =>
     {
         Native.FPDF_RenderPage(dc, page, x, y, width, height, 0, 1 | 0x800);
+        if (formHandle != IntPtr.Zero && Native.FPDF_GetFormType(handle) != 0)
+        {
+            // 本文はベクトルのまま。入力欄の見た目だけ透過画像を重ねる。
+            double factor = Math.Min(1, Math.Sqrt(12_000_000.0 / Math.Max(1.0, (double)width * height)));
+            int w = Math.Max(1, (int)(width * factor)), h = Math.Max(1, (int)(height * factor));
+            IntPtr bitmap = Native.FPDFBitmap_Create(w, h, 1);
+            if (bitmap == IntPtr.Zero) throw new IOException("入力欄の印刷用画像を作成できません。");
+            try
+            {
+                Native.FPDFBitmap_FillRect(bitmap, 0, 0, w, h, 0);
+                Native.FPDF_FFLDraw(formHandle, bitmap, page, 0, 0, w, h, 0, 0x801);
+                using var image = new System.Drawing.Bitmap(w, h, Native.FPDFBitmap_GetStride(bitmap), System.Drawing.Imaging.PixelFormat.Format32bppArgb, Native.FPDFBitmap_GetBuffer(bitmap));
+                using var graphics = System.Drawing.Graphics.FromHdc(dc);
+                graphics.PageUnit = System.Drawing.GraphicsUnit.Pixel;
+                graphics.DrawImage(image, new System.Drawing.Rectangle(x, y, width, height));
+            }
+            finally { Native.FPDFBitmap_Destroy(bitmap); }
+        }
         return true;
     });
 
@@ -93,7 +134,7 @@ public sealed class PdfDocument : IDisposable
         Dirty = true;
     }
 
-    public void SaveCopy(string destination)
+    public void SaveCopy(string destination, bool markClean = true)
     {
         if (!CanEdit) throw new InvalidOperationException("このPDFは編集が制限されています。");
         if (string.Equals(System.IO.Path.GetFullPath(destination), Path, StringComparison.OrdinalIgnoreCase))
@@ -120,15 +161,31 @@ public sealed class PdfDocument : IDisposable
                 stream.Flush(true);
             }
             File.Move(temporary, destination, true);
-            Dirty = false;
+            if (markClean) Dirty = false;
         }
         finally { if (File.Exists(temporary)) File.Delete(temporary); }
     }
 
+    public string PageText(int index) => WithPage(index, page =>
+    {
+        IntPtr text = Native.FPDFText_LoadPage(page);
+        if (text == IntPtr.Zero) return "";
+        try
+        {
+            int count = Native.FPDFText_CountChars(text);
+            if (count <= 0) return "";
+            byte[] buffer = new byte[checked((count + 1) * 2)];
+            int written = Native.FPDFText_GetText(text, 0, count, buffer);
+            return System.Text.Encoding.Unicode.GetString(buffer, 0, Math.Max(0, written - 1) * 2);
+        }
+        finally { Native.FPDFText_ClosePage(text); }
+    });
     public void Dispose()
     {
         lock (Gate)
         {
+            if (formHandle != IntPtr.Zero) { Native.FPDFDOC_ExitFormFillEnvironment(formHandle); formHandle = IntPtr.Zero; }
+            if (formInfo != IntPtr.Zero) { Marshal.FreeHGlobal(formInfo); formInfo = IntPtr.Zero; }
             if (handle != IntPtr.Zero) { Native.FPDF_CloseDocument(handle); handle = IntPtr.Zero; }
             if (pinned.IsAllocated) pinned.Free();
         }
@@ -137,6 +194,19 @@ public sealed class PdfDocument : IDisposable
     private static class Native
     {
         private const string Dll = "pdfium";
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl)] internal delegate IntPtr GetPageCallback(IntPtr info, IntPtr doc, int index);
+        [UnmanagedFunctionPointer(CallingConvention.Cdecl)] internal delegate IntPtr GetCurrentPageCallback(IntPtr info, IntPtr doc);
+        [DllImport(Dll)] internal static extern IntPtr FPDFDOC_InitFormFillEnvironment(IntPtr document, IntPtr info);
+        [DllImport(Dll)] internal static extern void FPDFDOC_ExitFormFillEnvironment(IntPtr form);
+        [DllImport(Dll)] internal static extern void FORM_OnAfterLoadPage(IntPtr page, IntPtr form);
+        [DllImport(Dll)] internal static extern void FORM_OnBeforeClosePage(IntPtr page, IntPtr form);
+        [DllImport(Dll)] internal static extern void FPDF_FFLDraw(IntPtr form, IntPtr bitmap, IntPtr page, int x, int y, int width, int height, int rotation, int flags);
+        [DllImport(Dll)] internal static extern int FPDF_GetFormType(IntPtr document);
+        [DllImport(Dll)] internal static extern int FPDF_GetSignatureCount(IntPtr document);
+        [DllImport(Dll)] internal static extern IntPtr FPDFText_LoadPage(IntPtr page);
+        [DllImport(Dll)] internal static extern void FPDFText_ClosePage(IntPtr text);
+        [DllImport(Dll)] internal static extern int FPDFText_CountChars(IntPtr text);
+        [DllImport(Dll)] internal static extern int FPDFText_GetText(IntPtr text, int start, int count, [Out] byte[] result);
         [DllImport(Dll)] internal static extern void FPDF_InitLibrary();
         [DllImport(Dll)] internal static extern IntPtr FPDF_LoadMemDocument64(IntPtr data, UIntPtr size, IntPtr password);
         [DllImport(Dll)] internal static extern uint FPDF_GetLastError();
@@ -161,3 +231,5 @@ public sealed class PdfDocument : IDisposable
         [DllImport(Dll)] internal static extern int FPDF_SaveAsCopy(IntPtr document, ref FileWrite writer, uint flags);
     }
 }
+
+public sealed class PdfPasswordException : IOException { public PdfPasswordException() : base("PDFのパスワードを入力してください。") { } }

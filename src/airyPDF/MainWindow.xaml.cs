@@ -45,7 +45,17 @@ public partial class MainWindow : Window
             try
             {
                 Status.Text = "PDFを読み込んでいます…";
-                var doc = await Task.Run(() => new PdfDocument(path));
+                PdfDocument doc;
+                string? password = null;
+                while (true)
+                {
+                    try { doc = await Task.Run(() => new PdfDocument(path, password)); break; }
+                    catch (PdfPasswordException)
+                    {
+                        password = TextPrompt.Ask(this, "PDFのパスワード", password == null ? "開くためのパスワードを入力してください。" : "パスワードが正しくありません。再入力してください。", true);
+                        if (password == null) return;
+                    }
+                }
                 var state = new TabState(doc);
                 var tab = new TabItem { Header = System.IO.Path.GetFileName(path), ToolTip = path, Tag = state };
                 opening = true; Tabs.Items.Add(tab); Tabs.SelectedItem = tab; opening = false;
@@ -208,7 +218,7 @@ public partial class MainWindow : Window
     }
     private bool Save(TabState state)
     {
-        var dialog = new Microsoft.Win32.SaveFileDialog { Filter = "PDFファイル|*.pdf", FileName = System.IO.Path.GetFileNameWithoutExtension(state.Document.Path) + "_回転.pdf", OverwritePrompt = true };
+        var dialog = new Microsoft.Win32.SaveFileDialog { Filter = "PDFファイル|*.pdf", FileName = System.IO.Path.GetFileNameWithoutExtension(state.Document.Path) + "_編集.pdf", OverwritePrompt = true };
         if (dialog.ShowDialog(this) != true) return false;
         try { state.Document.SaveCopy(dialog.FileName); UpdateTabTitle(state); Status.Text = $"保存しました: {dialog.FileName}"; return true; }
         catch (Exception ex) { Error(ex); return false; }
@@ -217,7 +227,7 @@ public partial class MainWindow : Window
     private bool CanClose(TabState state)
     {
         if (!state.Document.Dirty) return true;
-        var result = MessageBox.Show(this, $"{System.IO.Path.GetFileName(state.Document.Path)} の回転を保存しますか？", "未保存の変更", MessageBoxButton.YesNoCancel);
+        var result = MessageBox.Show(this, $"{System.IO.Path.GetFileName(state.Document.Path)} の変更を保存しますか？", "未保存の変更", MessageBoxButton.YesNoCancel);
         return result == MessageBoxResult.No || result == MessageBoxResult.Yes && Save(state);
     }
     private void CloseClick(object s, RoutedEventArgs e)
@@ -278,8 +288,13 @@ public partial class MainWindow : Window
     private void HelpClick(object s, RoutedEventArgs e)
     {
         MessageBox.Show(this,
-            "airyPDF 1.0\n\nPDFを開く：Ctrl＋O、またはドラッグ＆ドロップ\nページ移動：ホイールで連続スクロール、ページ番号入力、左右のボタン\n拡大縮小：Ctrl＋ホイール、＋／−、幅に合わせる\n印刷：Ctrl＋P\n\n新しいPDFの印刷倍率は100%。指定倍率では自動縮小せず、欠けをプレビューで知らせます。\nドライバー側の拡大縮小・Nアップは無効にしてください。\n回転を保存するときは別名保存します。\n\n寸法確認用PDFには縦横100mmの基準線があります。\n会社での印刷は利用者評価で用途上合格（約0.1mmのずれに見えるとの報告）。",
+            "airyPDF 1.1\n\nPDFを開く：Ctrl＋O、またはドラッグ＆ドロップ\nページ移動：ホイールで連続スクロール、ページ番号入力、左右のボタン\n拡大縮小：Ctrl＋ホイール、＋／−、幅に合わせる\n印刷：Ctrl＋P\n入力・注釈・検索・署名：Ctrl＋F、または上のボタン\nパスワードはファイルを開く際に入力します。保存・ログには残しません。\n\n新しいPDFの印刷倍率は100%。指定倍率では自動縮小せず、欠けをプレビューで知らせます。\nドライバー側の拡大縮小・Nアップは無効にしてください。\n回転を保存するときは別名保存します。\n\n寸法確認用PDFには縦横100mmの基準線があります。\n会社での印刷は利用者評価で用途上合格（約0.1mmのずれに見えるとの報告）。",
             "airyPDF — 使い方", MessageBoxButton.OK, MessageBoxImage.Information);
+    }
+    private void ToolsClick(object sender, RoutedEventArgs e)
+    {
+        if (Current is not { } state) return;
+        new PdfToolsWindow(state.Document, state.Page, GoPage, async path => await OpenPathsAsync([path])) { Owner = this }.ShowDialog();
     }
     private void WindowKeyDown(object s, KeyEventArgs e)
     {
@@ -287,6 +302,7 @@ public partial class MainWindow : Window
         {
             if (e.Key == Key.O) { OpenClick(s, e); e.Handled = true; }
             if (e.Key == Key.P) { PrintClick(s, e); e.Handled = true; }
+            if (e.Key == Key.F) { ToolsClick(s, e); e.Handled = true; }
             if (e.Key == Key.W) { CloseClick(s, e); e.Handled = true; }
         }
     }

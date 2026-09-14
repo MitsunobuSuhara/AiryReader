@@ -25,6 +25,17 @@ public partial class App : System.Windows.Application
         }
         if (e.Args.Contains("--install") || e.Args.Contains("--install-quiet"))
         {
+            if (!new System.Security.Principal.WindowsPrincipal(System.Security.Principal.WindowsIdentity.GetCurrent()).IsInRole(System.Security.Principal.WindowsBuiltInRole.Administrator))
+            {
+                try
+                {
+                    string exe = DesktopInstaller.ResolveShellPath(Environment.ProcessPath!);
+                    System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(exe) { UseShellExecute = true, Verb = "runas", Arguments = e.Args.Contains("--install-quiet") ? "--install-quiet" : "--install", WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden });
+                    Shutdown(0);
+                }
+                catch (Exception ex) { MessageBox.Show(ex.Message, "管理者確認が完了しませんでした"); Shutdown(1); }
+                return;
+            }
             string logFolder = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "airyPDF");
             Directory.CreateDirectory(logFolder);
             try

@@ -12,8 +12,10 @@ public static class DesktopInstaller
         if (!File.Exists(dll) || !File.Exists(System.IO.Path.Combine(source, "coreclr.dll")))
             throw new IOException(".NET同梱の実行用フォルダから登録してください。");
         string hash = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(dll)))[..12].ToLowerInvariant();
-        string root = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Programs", "airyPDF");
-        string target = System.IO.Path.Combine(root, "1.0.1-" + hash);
+        if (!new System.Security.Principal.WindowsPrincipal(System.Security.Principal.WindowsIdentity.GetCurrent()).IsInRole(System.Security.Principal.WindowsBuiltInRole.Administrator))
+            throw new IOException("Program Filesへの登録には管理者権限が必要です。");
+        string root = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "airyPDF");
+        string target = System.IO.Path.Combine(root, "1.1.0-" + hash);
         Directory.CreateDirectory(target);
         if (!string.Equals(source, target, StringComparison.OrdinalIgnoreCase))
         {
@@ -47,7 +49,7 @@ public static class DesktopInstaller
         using (var types = app.CreateSubKey("SupportedTypes")) types.SetValue(".pdf", "");
         using var uninstall = Microsoft.Win32.Registry.CurrentUser.CreateSubKey(@"Software\Microsoft\Windows\CurrentVersion\Uninstall\airyPDF");
         uninstall.SetValue("DisplayName", "airyPDF");
-        uninstall.SetValue("DisplayVersion", "1.0.1");
+        uninstall.SetValue("DisplayVersion", "1.1.0");
         uninstall.SetValue("Publisher", "airyPDF");
         uninstall.SetValue("InstallLocation", folder);
         uninstall.SetValue("DisplayIcon", exe + ",0");
@@ -91,9 +93,10 @@ public static class DesktopInstaller
     {
         string local = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
         string direct = System.IO.Path.Combine(local, "Programs", "airyPDF") + System.IO.Path.DirectorySeparatorChar;
+        string programFiles = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "airyPDF") + System.IO.Path.DirectorySeparatorChar;
         string packages = System.IO.Path.Combine(local, "Packages") + System.IO.Path.DirectorySeparatorChar;
         return string.Equals(System.IO.Path.GetFileName(path), "airyPDF.exe", StringComparison.OrdinalIgnoreCase) &&
-            (path.StartsWith(direct, StringComparison.OrdinalIgnoreCase) ||
+            (path.StartsWith(programFiles, StringComparison.OrdinalIgnoreCase) || path.StartsWith(direct, StringComparison.OrdinalIgnoreCase) ||
              path.StartsWith(packages, StringComparison.OrdinalIgnoreCase) && path.Contains("\\LocalCache\\Local\\Programs\\airyPDF\\", StringComparison.OrdinalIgnoreCase));
     }
     private static void CreateShortcut(string folder, string exe, string working)
