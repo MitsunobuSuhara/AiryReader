@@ -34,8 +34,30 @@ public partial class PrintWindow : Window
         OrientationBox.SelectedIndex = sourceSize.Width > sourceSize.Height ? 1 : 0;
         previewTimer.Tick += (_, _) => { previewTimer.Stop(); Refresh(); };
         ready = true;
+        SourceInitialized += (_, _) => FitToScreen();
         Loaded += (_, _) => Refresh();
         Closed += (_, _) => { ready = false; previewTimer.Stop(); ++previewVersion; ++settingsVersion; printer.Dispose(); };
+    }
+    private void FitToScreen()
+    {
+        Window reference = Owner ?? this;
+        var screen = System.Windows.Forms.Screen.FromHandle(new System.Windows.Interop.WindowInteropHelper(reference).Handle);
+        var transform = PresentationSource.FromVisual(reference)?.CompositionTarget?.TransformFromDevice ?? Matrix.Identity;
+        var area = screen.WorkingArea;
+        Point origin = transform.Transform(new Point(area.Left, area.Top));
+        Point end = transform.Transform(new Point(area.Right, area.Bottom));
+        FitToWorkArea(new Rect(origin, end));
+    }
+    internal void FitToWorkArea(Rect area)
+    {
+        // タスクバーを除く画面内に収める。小さな画面でも最小高さで押し出さない。
+        double availableWidth = Math.Max(1, area.Width - 24), availableHeight = Math.Max(1, area.Height - 24);
+        MinWidth = Math.Min(940, availableWidth); MinHeight = Math.Min(640, availableHeight);
+        Width = Math.Min(1150, availableWidth); Height = Math.Min(850, availableHeight);
+        double centerX = Owner == null ? area.Left + area.Width / 2 : Owner.Left + Owner.ActualWidth / 2;
+        double centerY = Owner == null ? area.Top + area.Height / 2 : Owner.Top + Owner.ActualHeight / 2;
+        Left = Math.Clamp(centerX - Width / 2, area.Left + 12, area.Right - Width - 12);
+        Top = Math.Clamp(centerY - Height / 2, area.Top + 12, area.Bottom - Height - 12);
     }
     private void LoadPapers()
     {

@@ -91,6 +91,12 @@ public static class SelfTest
         Capture(print, "artifacts/print-window.png");
         var printButton = (Button)print.FindName("PrintButton");
         Check(printButton.IsEnabled, "印刷プレビュー完了後に印刷可能");
+        print.FitToWorkArea(new Rect(0, 0, 1024, 600));
+        print.UpdateLayout();
+        Check(print.Top >= 0 && print.Top + print.ActualHeight <= 600, "小さい画面でも印刷ウィンドウを画面内に収める");
+        Point printLocation = printButton.TranslatePoint(new Point(), print);
+        Check(printButton.IsVisible && printLocation.Y >= 0 && printLocation.Y + printButton.ActualHeight < print.ActualHeight && printLocation.Y < 100, "印刷ボタンを左上に固定して常時表示");
+        Capture(print, "artifacts/print-small-window.png");
         var previewScroller = (ScrollViewer)print.FindName("PreviewScroller");
         var sideText = (TextBlock)print.FindName("SideLabel");
         void PreviewScroll(int delta) => previewScroller.RaiseEvent(new System.Windows.Input.MouseWheelEventArgs(System.Windows.Input.Mouse.PrimaryDevice, Environment.TickCount, delta) { RoutedEvent = System.Windows.Input.Mouse.PreviewMouseWheelEvent });
