@@ -16,7 +16,8 @@
    </ComboBox>
    <WrapPanel><TextBlock Text="印刷倍率 %" Width="108"/><TextBox x:Name="PercentBox" PreviewKeyDown="NumberKeyDown" PreviewMouseLeftButtonDown="NumberClicked" GotKeyboardFocus="NumberFocused" Width="110" Text="100" TextChanged="SettingsChanged"/><StackPanel><Button Content="▲" Tag="PercentBox:1" Click="NumberStepClick" Padding="6,0" Margin="0,1" FontSize="10" ToolTip="1増やす"/><Button Content="▼" Tag="PercentBox:-1" Click="NumberStepClick" Padding="6,0" Margin="0,1" FontSize="10" ToolTip="1減らす"/></StackPanel></WrapPanel>
    <TextBlock Text="ページ範囲（空欄は全ページ）" Margin="4,12,4,4"/>
-   <TextBox x:Name="RangeBox" ToolTip="例: 1-3,5" TextChanged="SettingsChanged"/>
+   <TextBox x:Name="RangeBox" ToolTip="例: 1-3 / 1,3 / 1-3,5" TextChanged="SettingsChanged"/>
+   <TextBlock Text="1-3：1～3ページ　／　1,3：1・3ページ&#10;1-3,5：1～3ページと5ページ&#10;空欄：全ページ" TextWrapping="Wrap" Foreground="#64748B" FontSize="12" Margin="4,2,4,6"/>
    <CheckBox x:Name="RegionBox" Visibility="Collapsed" Content="選択した範囲だけ印刷" Margin="4,8" Checked="SettingsChanged" Unchecked="SettingsChanged"/>
    <TextBlock Text="片面 / 両面" Margin="4,10,4,4"/>
    <ComboBox x:Name="DuplexBox" SelectedIndex="0" SelectionChanged="SettingsChanged"><ComboBoxItem Content="片面"/><ComboBoxItem Content="両面・長辺とじ"/><ComboBoxItem Content="両面・短辺とじ"/></ComboBox>
