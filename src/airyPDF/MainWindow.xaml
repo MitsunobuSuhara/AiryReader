@@ -14,7 +14,7 @@
    <WrapPanel Margin="12,5">
     <Button Content="‹" Click="PreviousClick"/><TextBox x:Name="PageNumber" Text="1" Width="48" KeyDown="PageNumberKeyDown"/><TextBlock x:Name="PageCount" Text="/ —" Margin="3,0,10,0"/><Button Content="›" Click="NextClick"/>
     <Button Content="−" Click="ZoomOutClick"/><TextBox x:Name="ZoomText" Text="100" Width="66" TextAlignment="Right" KeyDown="ZoomInputKeyDown" LostKeyboardFocus="ZoomInputLostFocus" GotKeyboardFocus="ZoomInputGotFocus" ToolTip="表示倍率（10～800％）。入力してEnterで確定" AutomationProperties.Name="表示倍率"/><TextBlock Text="%"/><Button Content="＋" Click="ZoomInClick"/>
-    <Button Content="↶" FontFamily="Segoe UI Symbol" FontSize="21" Padding="10,2" Click="RotateLeftClick" ToolTip="左に90度回転" AutomationProperties.Name="左に90度回転"/><Button Content="↷" FontFamily="Segoe UI Symbol" FontSize="21" Padding="10,2" Click="RotateRightClick" ToolTip="右に90度回転" AutomationProperties.Name="右に90度回転"/><Button Content="画面幅に合わせる" Click="FitClick"/>
+    <Button Content="↶" FontFamily="Segoe UI Symbol" FontSize="21" Padding="10,2" Click="RotateLeftClick" ToolTip="左に90度回転" AutomationProperties.Name="左に90度回転"/><Button Content="↷" FontFamily="Segoe UI Symbol" FontSize="21" Padding="10,2" Click="RotateRightClick" ToolTip="右に90度回転" AutomationProperties.Name="右に90度回転"/><Button x:Name="FitWidthButton" Click="FitClick" ToolTip="画面幅に合わせて表示" ToolTipService.InitialShowDelay="250" AutomationProperties.Name="画面幅に合わせる" Padding="10,7"><Canvas Width="24" Height="18"><Path Data="M2,2 L2,16 M22,2 L22,16 M5,9 L19,9 M8,6 L5,9 L8,12 M16,6 L19,9 L16,12" Stroke="#192432" StrokeThickness="1.6" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"/></Canvas></Button>
 
    </WrapPanel>
   </StackPanel>

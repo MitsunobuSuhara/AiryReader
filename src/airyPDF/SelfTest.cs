@@ -84,9 +84,9 @@ public static class SelfTest
         Check(second.Height < oldHeight, "100％から次のホイールで縮小できる");
         EnterZoom("100");
         Check(!FindButtons(window).Any(b => (string?)b.Content == "100%"), "100％ボタンを削除");
-        var fit = FindButtons(window).First(b => (string?)b.Content == "画面幅に合わせる");
+        var fit = (Button)window.FindName("FitWidthButton");
         Check(((Panel)fit.Parent).Children[((Panel)fit.Parent).Children.Count - 1] == fit, "画面幅に合わせるを右端に配置");
-        Check(window.FindName("SelectRegion") == null && FindButtons(window).Any(b => (string?)b.Content == "画面幅に合わせる"), "範囲選択を削除して画面幅の文言に変更");
+        Check(window.FindName("SelectRegion") == null && fit.ToolTip?.ToString() == "画面幅に合わせて表示", "範囲選択を削除して画面幅の文言に変更");
         window.WindowState = WindowState.Normal; window.Width = 860;
         await Task.Delay(200); window.UpdateLayout();
         fit.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
