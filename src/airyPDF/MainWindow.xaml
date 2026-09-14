@@ -4,8 +4,8 @@
  <DockPanel>
   <Border DockPanel.Dock="Top" Background="White" BorderBrush="#DEE4EA" BorderThickness="0,0,0,1" Padding="14,10">
    <WrapPanel>
-    <Button Content="開く" Click="OpenClick" ToolTip="開く&#10;Ctrl+O" ToolTipService.InitialShowDelay="250"/>
-    <Button Content="印刷" Click="PrintClick" ToolTip="印刷&#10;Ctrl+P" ToolTipService.InitialShowDelay="250"/>
+    <Button Click="OpenClick" ToolTip="開く&#10;Ctrl+O" ToolTipService.InitialShowDelay="250" AutomationProperties.Name="PDFを開く" Padding="10,7"><Canvas Width="24" Height="20"><Path Data="M2,7 L2,3 L10,3 L12,6 L21,6 L21,9 M2,7 L2,17 L20,17 L23,9 L7,9 L4,17" Stroke="#192432" StrokeThickness="1.6" StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/></Canvas></Button>
+    <Button Click="PrintClick" ToolTip="印刷&#10;Ctrl+P" ToolTipService.InitialShowDelay="250" AutomationProperties.Name="印刷プレビュー" Padding="10,7"><Canvas Width="24" Height="20"><Path Data="M6,7 L6,2 L18,2 L18,7 M6,15 L2,15 L2,7 L22,7 L22,15 L18,15 M6,12 L18,12 L18,19 L6,19 Z M18,10 L20,10" Stroke="#192432" StrokeThickness="1.6" StrokeLineJoin="Round" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/></Canvas></Button>
    </WrapPanel>
   </Border>
   <Border DockPanel.Dock="Bottom" Background="White" Padding="16,8"><TextBlock x:Name="Status" Text="PDFを開くか、この画面にドラッグしてください。" TextWrapping="Wrap"/></Border>
