@@ -11,7 +11,7 @@ public partial class MainWindow : Window
         public PdfDocument Document = document;
         public int Page;
         public double Zoom = 1;
-        public Rect? Region;
+
         public double ScrollOffset;
     }
     private TabState? Current => (Tabs.SelectedItem as TabItem)?.Tag as TabState;
@@ -20,16 +20,14 @@ public partial class MainWindow : Window
     {
         public Grid Surface = new() { Background = Brushes.White, HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 0, 0, 24) };
         public Image Image = new() { Stretch = Stretch.Fill };
-        public System.Windows.Shapes.Rectangle Selection = new() { Stroke = Brushes.OrangeRed, StrokeThickness = 2, Fill = new SolidColorBrush(Color.FromArgb(48, 248, 154, 85)), Visibility = Visibility.Collapsed };
         public int RenderWidth;
     }
     private readonly List<PageView> pageViews = [];
     private Grid PageSurface => pageViews[Current!.Page].Surface;
-    private System.Windows.Shapes.Rectangle SelectionBox => pageViews[Current!.Page].Selection;
     private bool changingLayout;
     private int renderVersion;
     private bool opening;
-    private Point? selectionStart;
+
     public MainWindow()
     {
         InitializeComponent();
@@ -92,16 +90,11 @@ public partial class MainWindow : Window
                 var view = new PageView();
                 view.Surface.Tag = i;
                 view.Surface.Children.Add(view.Image);
-                var canvas = new Canvas { IsHitTestVisible = false }; canvas.Children.Add(view.Selection);
-                view.Surface.Children.Add(canvas);
-                view.Surface.MouseLeftButtonDown += SelectionStart;
-                view.Surface.MouseMove += SelectionMove;
-                view.Surface.MouseLeftButtonUp += SelectionEnd;
                 pageViews.Add(view); PagesHost.Children.Add(view.Surface);
             }
             SizePages(); Viewer.UpdateLayout();
             Viewer.ScrollToVerticalOffset(state.ScrollOffset);
-            Viewer.UpdateLayout(); UpdatePageInfo(); DrawSelection();
+            Viewer.UpdateLayout(); UpdatePageInfo();
         }
         finally { changingLayout = false; }
         await RenderVisible();
@@ -121,18 +114,18 @@ public partial class MainWindow : Window
         if (Current is not { } state) return;
         Size mm = state.Document.SizeMm(state.Page);
         PageNumber.Text = (state.Page + 1).ToString(); PageCount.Text = $"/ {state.Document.Count}";
-        ZoomText.Text = $"{state.Zoom:P0}";
-        Status.Text = $"{System.IO.Path.GetFileName(state.Document.Path)}  ·  {mm.Width:F1} × {mm.Height:F1} mm  ·  印刷倍率 {state.Document.PrintPercent:0.##}%" + (state.Region.HasValue ? "  ·  範囲選択中" : "");
+        if (!ZoomText.IsKeyboardFocusWithin) ZoomText.Text = (state.Zoom * 100).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
+        Status.Text = $"{System.IO.Path.GetFileName(state.Document.Path)}  ·  {mm.Width:F1} × {mm.Height:F1} mm  ·  印刷倍率 {state.Document.PrintPercent:0.##}%";
     }
     private void ViewerScrolled(object sender, ScrollChangedEventArgs e)
     {
         if (changingLayout || Current is not { } state || pageViews.Count == 0) return;
         state.ScrollOffset = Viewer.VerticalOffset;
-        if (selectionStart == null)
+        if (!changingLayout)
         {
             double marker = Math.Min(200, Viewer.ViewportHeight / 3);
             int page = pageViews.FindIndex(v => v.Surface.TranslatePoint(new Point(0, v.Surface.Height), Viewer).Y > marker);
-            if (page >= 0 && page != state.Page) { state.Page = page; state.Region = null; DrawSelection(); }
+            if (page >= 0 && page != state.Page) { state.Page = page; }
             UpdatePageInfo();
         }
         zoomTimer.Stop(); zoomTimer.Start();
@@ -166,9 +159,9 @@ public partial class MainWindow : Window
     private void GoPage(int page)
     {
         if (Current is not { } state || pageViews.Count == 0) return;
-        state.Page = Math.Clamp(page, 0, state.Document.Count - 1); state.Region = null;
+        state.Page = Math.Clamp(page, 0, state.Document.Count - 1);
         Viewer.ScrollToVerticalOffset(PageSurface.TranslatePoint(new Point(), PagesHost).Y + 24);
-        UpdatePageInfo(); DrawSelection();
+        UpdatePageInfo();
     }
     private void PreviousClick(object s, RoutedEventArgs e) => GoPage((Current?.Page ?? 0) - 1);
     private void NextClick(object s, RoutedEventArgs e) => GoPage((Current?.Page ?? 0) + 1);
@@ -183,7 +176,7 @@ public partial class MainWindow : Window
         var anchorView = pageViews.FirstOrDefault(v => v.Surface.TranslatePoint(new Point(0, v.Surface.Height), Viewer).Y > point.Y) ?? pageViews[^1];
         Point pageAnchor = Viewer.TranslatePoint(point, anchorView.Surface);
         changingLayout = true;
-        SizePages(); ZoomText.Text = $"{state.Zoom:P0}"; DrawSelection();
+        SizePages(); if (!ZoomText.IsKeyboardFocusWithin) ZoomText.Text = (state.Zoom * 100).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
         Viewer.UpdateLayout();
         Point moved = anchorView.Surface.TranslatePoint(new Point(pageAnchor.X * ratio, pageAnchor.Y * ratio), Viewer);
         Viewer.ScrollToHorizontalOffset(Viewer.HorizontalOffset + moved.X - point.X);
@@ -192,6 +185,20 @@ public partial class MainWindow : Window
         state.ScrollOffset = Viewer.VerticalOffset;
         zoomTimer.Stop(); zoomTimer.Start();
     }
+    private void ActualSizeClick(object s, RoutedEventArgs e) { if (Current is { } state) Zoom(1 / state.Zoom); }
+    private void ZoomInputGotFocus(object s, KeyboardFocusChangedEventArgs e) => ZoomText.SelectAll();
+    private void ApplyZoomInput()
+    {
+        if (Current is not { } state) return;
+        string input = ZoomText.Text.Trim().TrimEnd('%', '％');
+        if ((double.TryParse(input, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.CurrentCulture, out double percent) ||
+            double.TryParse(input, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out percent)) && double.IsFinite(percent) && percent >= 10 && percent <= 800)
+            Zoom(percent / 100 / state.Zoom);
+        else Status.Text = "表示倍率は10～800％で入力してください。";
+        ZoomText.Text = (state.Zoom * 100).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
+    }
+    private void ZoomInputKeyDown(object s, KeyEventArgs e) { if (e.Key == Key.Enter) { ApplyZoomInput(); e.Handled = true; } }
+    private void ZoomInputLostFocus(object s, KeyboardFocusChangedEventArgs e) => ApplyZoomInput();
     private void ZoomInClick(object s, RoutedEventArgs e) => Zoom(1.2);
     private void ZoomOutClick(object s, RoutedEventArgs e) => Zoom(1 / 1.2);
     private void FitClick(object s, RoutedEventArgs e) { if (Current is not null && PageSurface.Width > 0) Zoom((Viewer.ViewportWidth - 56) / PageSurface.Width); }
@@ -206,7 +213,7 @@ public partial class MainWindow : Window
         {
             if (AllPages.IsChecked == true) for (int i = 0; i < state.Document.Count; i++) state.Document.Rotate(i, delta);
             else state.Document.Rotate(state.Page, delta);
-            state.Region = null; UpdateTabTitle(state); await RenderCurrent();
+            UpdateTabTitle(state); await RenderCurrent();
         }
         catch (Exception ex) { Error(ex); }
     }
@@ -241,42 +248,10 @@ public partial class MainWindow : Window
         WindowPreferences.Save(this);
         ++renderVersion; zoomTimer.Stop(); foreach (var state in states) state.Document.Dispose();
     }
-    private void SelectionStart(object s, MouseButtonEventArgs e)
-    {
-        if (SelectRegion.IsChecked != true || Current is null) return;
-        if (s is Grid { Tag: int page } && Current is { } state)
-        {
-            if (state.Page != page) { state.Page = page; state.Region = null; DrawSelection(); UpdatePageInfo(); }
-        }
-        selectionStart = e.GetPosition(PageSurface); PageSurface.CaptureMouse(); e.Handled = true;
-    }
-    private void SelectionMove(object s, MouseEventArgs e)
-    {
-        if (selectionStart is not { } start || Current is not { } state) return;
-        var point = e.GetPosition(PageSurface);
-        var rect = new Rect(start, new Point(Math.Clamp(point.X, 0, PageSurface.Width), Math.Clamp(point.Y, 0, PageSurface.Height)));
-        double unit = 25.4 / 96 / state.Zoom;
-        state.Region = new Rect(rect.X * unit, rect.Y * unit, rect.Width * unit, rect.Height * unit); DrawSelection();
-    }
-    private void SelectionEnd(object s, MouseButtonEventArgs e)
-    {
-        selectionStart = null; PageSurface.ReleaseMouseCapture();
-        if (Current is { } state && state.Region is { } rect && (rect.Width < 1 || rect.Height < 1)) state.Region = null;
-        DrawSelection();
-    }
-    private void DrawSelection()
-    {
-        foreach (var view in pageViews) view.Selection.Visibility = Visibility.Collapsed;
-        if (Current is not { Region: { } rect } state || pageViews.Count == 0) return;
-        double unit = 96 / 25.4 * state.Zoom;
-        SelectionBox.Visibility = Visibility.Visible; Canvas.SetLeft(SelectionBox, rect.X * unit); Canvas.SetTop(SelectionBox, rect.Y * unit);
-        SelectionBox.Width = rect.Width * unit; SelectionBox.Height = rect.Height * unit;
-    }
-    private void ClearSelectionClick(object s, RoutedEventArgs e) { if (Current is { } state) state.Region = null; DrawSelection(); }
     private void PrintClick(object s, RoutedEventArgs e)
     {
         if (Current is not { } state) return;
-        try { new PrintWindow(state.Document, state.Page, state.Region) { Owner = this }.ShowDialog(); }
+        try { new PrintWindow(state.Document, state.Page, null) { Owner = this }.ShowDialog(); }
         catch (Exception ex) { Error(ex); }
     }
     private void CalibrationClick(object s, RoutedEventArgs e)
@@ -288,7 +263,7 @@ public partial class MainWindow : Window
     private void HelpClick(object s, RoutedEventArgs e)
     {
         MessageBox.Show(this,
-            "airyPDF 1.1\n\nPDFを開く：Ctrl＋O、またはドラッグ＆ドロップ\nページ移動：ホイールで連続スクロール、ページ番号入力、左右のボタン\n拡大縮小：Ctrl＋ホイール、＋／−、幅に合わせる\n印刷：Ctrl＋P\n入力・注釈・検索・署名：Ctrl＋F、または上のボタン\nパスワードはファイルを開く際に入力します。保存・ログには残しません。\n\n新しいPDFの印刷倍率は100%。指定倍率では自動縮小せず、欠けをプレビューで知らせます。\nドライバー側の拡大縮小・Nアップは無効にしてください。\n回転を保存するときは別名保存します。\n\n寸法確認用PDFには縦横100mmの基準線があります。\n会社での印刷は利用者評価で用途上合格（約0.1mmのずれに見えるとの報告）。",
+            "airyPDF 1.1\n\nPDFを開く：Ctrl＋O、またはドラッグ＆ドロップ\nページ移動：ホイールで連続スクロール、ページ番号入力、左右のボタン\n拡大縮小：Ctrl＋ホイール、＋／−、倍率の手入力、画面幅に合わせる\n印刷：Ctrl＋P\n入力・注釈・検索・署名：Ctrl＋F、または「編集／検索」\nパスワードはファイルを開く際に入力します。保存・ログには残しません。\n\n新しいPDFの印刷倍率は100%。指定倍率では自動縮小せず、欠けをプレビューで知らせます。\nドライバー側の拡大縮小・Nアップは無効にしてください。\n回転を保存するときは別名保存します。\n\n寸法確認用PDFには縦横100mmの基準線があります。\n会社での印刷は利用者評価で用途上合格（約0.1mmのずれに見えるとの報告）。",
             "airyPDF — 使い方", MessageBoxButton.OK, MessageBoxImage.Information);
     }
     private void ToolsClick(object sender, RoutedEventArgs e)

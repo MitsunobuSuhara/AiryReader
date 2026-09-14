@@ -6,13 +6,13 @@
    <DockPanel>
     <StackPanel Orientation="Horizontal" DockPanel.Dock="Left"><Image Source="Assets/icon.png" Width="32" Height="32" Margin="0,0,10,0"/><TextBlock Text="airyPDF" FontSize="23" FontWeight="SemiBold" Margin="0,0,22,0"/></StackPanel>
     <WrapPanel>
-     <Button Content="PDFを開く" Click="OpenClick" ToolTip="Ctrl+O"/>
-     <Button Content="印刷プレビュー" Click="PrintClick" ToolTip="Ctrl+P"/>
-     <Button Content="名前を付けて保存" Click="SaveClick"/>
-     <Button Content="タブを閉じる" Click="CloseClick"/>
-     <Button Content="寸法確認用PDF" Click="CalibrationClick"/>
-     <Button Content="入力・注釈・検索・署名" Click="ToolsClick" ToolTip="Ctrl+F"/>
-     <Button Content="使い方" Click="HelpClick"/>
+     <Button Content="開く" Click="OpenClick" ToolTip="Ctrl+O"/>
+     <Button Content="印刷" Click="PrintClick" ToolTip="Ctrl+P"/>
+     <Button Content="保存" Click="SaveClick"/>
+
+
+     <Button Content="編集／検索" Click="ToolsClick" ToolTip="Ctrl+F"/>
+     <Menu Background="Transparent" VerticalAlignment="Center"><MenuItem Header="その他" Padding="12,7"><MenuItem Header="タブを閉じる" Click="CloseClick" InputGestureText="Ctrl+W"/><Separator/><MenuItem x:Name="AllPages" Header="回転を全ページに適用" IsCheckable="True"/><Separator/><MenuItem Header="寸法確認用PDF" Click="CalibrationClick"/><MenuItem Header="使い方" Click="HelpClick"/></MenuItem></Menu>
     </WrapPanel>
    </DockPanel>
   </Border>
@@ -21,9 +21,9 @@
    <TabControl x:Name="Tabs" SelectionChanged="TabChanged" Margin="12,8,12,0" MinHeight="35"/>
    <WrapPanel Margin="12,5">
     <Button Content="‹" Click="PreviousClick"/><TextBox x:Name="PageNumber" Text="1" Width="48" KeyDown="PageNumberKeyDown"/><TextBlock x:Name="PageCount" Text="/ —" Margin="3,0,10,0"/><Button Content="›" Click="NextClick"/>
-    <Button Content="−" Click="ZoomOutClick"/><TextBlock x:Name="ZoomText" Text="100%" Width="56" TextAlignment="Center"/><Button Content="＋" Click="ZoomInClick"/><Button Content="幅に合わせる" Click="FitClick"/>
-    <Button Content="左回転" Click="RotateLeftClick"/><Button Content="右回転" Click="RotateRightClick"/><CheckBox x:Name="AllPages" Content="全ページ" VerticalAlignment="Center" Margin="8"/>
-    <CheckBox x:Name="SelectRegion" Content="範囲選択" VerticalAlignment="Center" Margin="8"/><Button Content="選択解除" Click="ClearSelectionClick"/>
+    <Button Content="−" Click="ZoomOutClick"/><TextBox x:Name="ZoomText" Text="100" Width="66" TextAlignment="Right" KeyDown="ZoomInputKeyDown" LostKeyboardFocus="ZoomInputLostFocus" GotKeyboardFocus="ZoomInputGotFocus" ToolTip="表示倍率（10～800％）。入力してEnterで確定" AutomationProperties.Name="表示倍率"/><TextBlock Text="%"/><Button Content="100%" Click="ActualSizeClick" ToolTip="表示倍率を100％に戻す"/><Button Content="＋" Click="ZoomInClick"/><Button Content="画面幅に合わせる" Click="FitClick"/>
+    <Button Content="↶" FontFamily="Segoe UI Symbol" FontSize="21" Padding="10,2" Click="RotateLeftClick" ToolTip="左に90度回転" AutomationProperties.Name="左に90度回転"/><Button Content="↷" FontFamily="Segoe UI Symbol" FontSize="21" Padding="10,2" Click="RotateRightClick" ToolTip="右に90度回転" AutomationProperties.Name="右に90度回転"/>
+
    </WrapPanel>
   </StackPanel>
   <Grid Background="#E6EAF0">

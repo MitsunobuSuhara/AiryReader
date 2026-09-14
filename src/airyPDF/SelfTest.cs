@@ -54,6 +54,22 @@ public static class SelfTest
         zoomButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
         await Task.Delay(600); window.UpdateLayout();
         Check(second.Height > oldHeight && pageNumber.Text == pageTotal.ToString(), "連続表示の拡大後も閲覧ページを維持");
+        var zoomInput = (TextBox)window.FindName("ZoomText");
+        void EnterZoom(string text)
+        {
+            zoomInput.Text = text;
+            zoomInput.RaiseEvent(new System.Windows.Input.KeyEventArgs(System.Windows.Input.Keyboard.PrimaryDevice, PresentationSource.FromVisual(window), Environment.TickCount, System.Windows.Input.Key.Enter) { RoutedEvent = System.Windows.Input.Keyboard.KeyDownEvent });
+        }
+        EnterZoom("100");
+        await Task.Delay(300); window.UpdateLayout();
+        Check(Near(second.Height, oldHeight) && zoomInput.Text == "100", "倍率手入力で100％へ正確に戻す");
+        EnterZoom("125%");
+        Check(Near(second.Height, oldHeight * 1.25), "％付きの倍率手入力を反映");
+        EnterZoom("NaN");
+        Check(Near(second.Height, oldHeight * 1.25) && zoomInput.Text == "125", "不正な表示倍率で状態を壊さない");
+        FindButtons(window).First(b => (string?)b.Content == "100%").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        Check(Near(second.Height, oldHeight), "100％ボタンで元の倍率に復帰");
+        Check(window.FindName("SelectRegion") == null && FindButtons(window).Any(b => (string?)b.Content == "画面幅に合わせる"), "範囲選択を削除して画面幅の文言に変更");
         Capture(window, "artifacts/continuous-last.png");
         viewer.ScrollToTop(); await Task.Delay(600); window.UpdateLayout();
         Check(pageNumber.Text == "1", "スクロールで先頭ページへ戻れる");
