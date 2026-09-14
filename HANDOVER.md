@@ -277,3 +277,7 @@ C:\dev\AGENTS.md適用。日本語、呼称NOBUさん。区切りでコミット
 ## 正式アイコンを折り紙のツルへ変更（2026-09-15）
 利用者がツル案を採用。assets/icons/airyPDF-crane.pngを正式画像とし、exeのICO（16〜256pxの7サイズ）とウィンドウ画像を変更。旧羽根PNGは比較・復旧用に保持。Releaseビルド・発行は警告0／エラー0。32pxの実ICOを目視確認。このPCの導入DLLと発行DLL一致を確認。最新セットアップ: artifacts/release/airyPDF-1.1-20260915-070454.zip、SHA256 D8E5A2A3CE1E19DE4BBA1F5BC77E8992E495565903BA4126EB9CCEB887B6ADB7。GitHub Releaseの配布ZIPは9/14版のまま。
 
+
+## 左上のツルの視認性改善（2026-09-15）
+16pxで首と折り目がつぶれるため、16/24/32pxは太い首と大きな面の専用図形をmake-icon.ps1で生成。大きいサイズは採用原本を維持。WPFのIconをPNGから複数サイズICOへ変更。16px画像を拡大して輪郭を確認、Releaseビルド警告0／エラー0、このPCの導入DLL一致。
+

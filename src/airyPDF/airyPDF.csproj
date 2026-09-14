@@ -18,6 +18,6 @@
     <Content Include="../../THIRD-PARTY/**/*" Link="THIRD-PARTY/%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="../../assets/checks/*.pdf" Link="Samples/print-check.pdf" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="../../artifacts/helper/airy-pdf-helper/**/*" Link="Helper/%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
-    <Resource Include="../../assets/icons/airyPDF-crane.png" Link="Assets/icon.png" />
+    <Resource Include="../../assets/icons/airyPDF.ico" Link="Assets/icon.ico" />
   </ItemGroup>
 </Project>

@@ -11,7 +11,27 @@ try {
         $taskMemory = [IO.MemoryStream]::new()
         try {
             $taskGraphics.InterpolationMode = [Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
-            $taskGraphics.DrawImage($taskSource,0,0,$taskSize,$taskSize)
+            if ($taskSize -le 32) {
+                # Small Windows icons need broad facets and a thicker neck.
+                $taskGraphics.Clear([Drawing.Color]::Black)
+                $taskGraphics.SmoothingMode = [Drawing.Drawing2D.SmoothingMode]::AntiAlias
+                $taskGraphics.ScaleTransform($taskSize/16.0,$taskSize/16.0)
+                $taskFacets = @(
+                    @(1,6, 3.5,4, 5,5, 7,9, 5.5,12, 3.5,6),
+                    @(7,8.5, 11.5,1.5, 10,10.5),
+                    @(6,12.5, 7.5,10, 10,11.5, 9,14),
+                    @(10,13.5, 11,11, 15,6)
+                )
+                foreach ($taskFacet in $taskFacets) {
+                    $taskPoints = [Collections.Generic.List[Drawing.PointF]]::new()
+                    for ($taskPoint=0; $taskPoint -lt $taskFacet.Count; $taskPoint+=2) {
+                        $taskPoints.Add([Drawing.PointF]::new($taskFacet[$taskPoint],$taskFacet[$taskPoint+1]))
+                    }
+                    $taskGraphics.FillPolygon([Drawing.Brushes]::White,$taskPoints.ToArray())
+                }
+            } else {
+                $taskGraphics.DrawImage($taskSource,0,0,$taskSize,$taskSize)
+            }
             $taskBitmap.Save($taskMemory,[Drawing.Imaging.ImageFormat]::Png)
             $taskPngs.Add($taskMemory.ToArray())
         } finally { $taskMemory.Dispose(); $taskGraphics.Dispose(); $taskBitmap.Dispose() }
