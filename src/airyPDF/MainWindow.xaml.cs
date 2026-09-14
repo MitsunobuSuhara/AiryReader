@@ -18,8 +18,8 @@ public partial class MainWindow : Window
     private readonly DispatcherTimer zoomTimer = new() { Interval = TimeSpan.FromMilliseconds(140) };
     private sealed class PageView
     {
-        public Grid Surface = new() { Background = Brushes.White, HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 0, 0, 24) };
-        public Image Image = new() { Stretch = Stretch.Fill };
+        public Grid Surface = new() { Background = Brushes.White, HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 0, 0, 24), UseLayoutRounding = true, SnapsToDevicePixels = true };
+        public Image Image = new() { Stretch = Stretch.Fill, SnapsToDevicePixels = true };
         public int RenderWidth;
     }
     private readonly List<PageView> pageViews = [];
@@ -34,6 +34,7 @@ public partial class MainWindow : Window
         InitializeComponent();
         WindowPreferences.Restore(this);
         zoomTimer.Tick += async (_, _) => { zoomTimer.Stop(); await RenderVisible(); };
+        DpiChanged += (_, _) => { zoomTimer.Stop(); zoomTimer.Start(); };
     }
     private void Error(Exception ex) => MessageBox.Show(this, ex.Message, "airyPDF", MessageBoxButton.OK, MessageBoxImage.Warning);
     public async void OpenPaths(IEnumerable<string> paths) => await OpenPathsAsync(paths);
@@ -89,6 +90,7 @@ public partial class MainWindow : Window
             for (int i = 0; i < state.Document.Count; i++)
             {
                 var view = new PageView();
+                RenderOptions.SetBitmapScalingMode(view.Image, BitmapScalingMode.HighQuality);
                 view.Surface.Tag = i;
                 view.Surface.Children.Add(view.Image);
                 pageViews.Add(view); PagesHost.Children.Add(view.Surface);
@@ -146,8 +148,8 @@ public partial class MainWindow : Window
             {
                 var surface = item.View.Surface;
                 double dpi = VisualTreeHelper.GetDpi(this).DpiScaleX;
-                double factor = Math.Min(dpi, Math.Sqrt(12_000_000.0 / Math.Max(1, visible.Length) / (surface.Width * surface.Height)));
-                int w = Math.Max(1, (int)(surface.Width * factor)), h = Math.Max(1, (int)(surface.Height * factor));
+                double factor = Math.Min(dpi * 2, Math.Sqrt(12_000_000.0 / Math.Max(1, visible.Length) / (surface.Width * surface.Height)));
+                int w = Math.Max(1, (int)Math.Ceiling(surface.Width * factor)), h = Math.Max(1, (int)Math.Ceiling(surface.Height * factor));
                 if (item.View.RenderWidth == w && item.View.Image.Source != null) continue;
                 var bitmap = await Task.Run(() => state.Document.Render(item.Page, w, h));
                 if (version != renderVersion || Current != state) return;
