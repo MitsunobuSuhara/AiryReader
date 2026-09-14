@@ -178,3 +178,6 @@ C:\dev\AGENTS.md適用。日本語、呼称NOBUさん。区切りでコミット
 ## Ctrl＋Enterで印刷開始（2026-09-14）
 利用者依頼で印刷プレビューのCtrl＋Enterを印刷コマンドに割り当て。ボタンと同じ開始処理を使い、ボタン無効／空レイアウトでは開始不可。キー長押しの繰り返しEnterを抑制。ツールチップに案内。UI検証ではキー割当、印刷可能状態、不正倍率時の無効化を確認し、物理プリンターへ試験ジョブは送らない。
 検証: Release、PDF/印刷、UI検証に成功。このPCのDLLと生成物一致を確認して更新完了。変更はローカル保存、GitHub送信は既存の承認待ち。
+
+## GitHub Release登録（2026-09-14）
+利用者が最新セットアップZIPをGitHubへ入れることを明示依頼。未送信のソースを3d09ef8までorigin/mainへpushし、同一ソースにv1.1.0 Releaseを登録。ZIP: airyPDF-1.1-20260914-103303.zip、112842301バイト、SHA256 473ACC79C540091716A67DEF33BFBC03C0D5CFE1E0D8A45E1BB9664BF4469CB7。GitHub側digestと一致しuploadedを確認。URL: https://github.com/MitsunobuSuhara/airyPDF/releases/tag/v1.1.0 。非公開を維持し、受取人の閲覧権限が必要。旧記録のpush待ちはこの依頼で解消。
