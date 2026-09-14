@@ -6,7 +6,7 @@
 
 ## 最新状態：デスクトップ版1.1（2026-09-14）
 
-最新操作と保存状況は末尾の「軽量保存 @@@」を参照。固定実行先は C:\Program Files\airyPDF\airyPDF.exe。最新配布ZIPは164327版、GitHub Release ZIPは103303版。
+最新操作と保存状況は末尾の「軽量保存 @@@」を参照。固定実行先は C:\Program Files\airyPDF\airyPDF.exe。最新配布ZIPとGitHub最新Release ZIPは164327版。
 
 Adobeからの移行向けにパスワード読込、標準AcroFormの記入、欄のないPDFへの日本語追記、付箋、検索、しおり、PFX/P12署名とオフライン検証を実装。Program Filesへ管理者確認付きで登録する構成に変更。詳細と未対応はREADME、実装・検証履歴は末尾の「1.1 PDF互換機能」を参照。
 利用者提示のAdobe製2ページ・80文字欄のフォームで日本語保存、権限保持、80欄と5しおりの画面読込を確認。原本・個人情報・証明書はGitと配布一式に含めない。仲間へ渡すセットアップZIPはartifacts/releaseに生成し、まだ外部送付していない。
@@ -254,3 +254,6 @@ C:\dev\AGENTS.md適用。日本語、呼称NOBUさん。区切りでコミット
 - 閲覧文字の描画変更は印刷描画・寸法を変えない。元が画像のPDFでは元画像の解像度が上限。
 - 原本PDF・個人情報・証明書はGitや配布物へ含めない。リポジトリは非公開を維持。
 - 新規機能ではなく利用者が希望する最小限のUIへ整理した。PDF互換機能の未対応はREADMEを参照。
+
+## GitHub配布版を最新版へ更新（2026-09-14）
+利用者明示依頼で最新164327 ZIPをv1.1.0-20260914として登録しLatestに指定。旧Releaseは保持、非公開を維持。URL: https://github.com/MitsunobuSuhara/airyPDF/releases/tag/v1.1.0-20260914 。GitHub側uploaded・112846890バイト・SHA256 A6DF3120749B594D181452D3930E1AF484C2B8FE082C89AD24EBE79DC2E29E36一致を確認。サンプルPDF未確認として一度審査拒否後、4ページ全文とGit管理の寸法確認PDFとのバイト一致を確認し再審査で許可。古い記録のRelease ZIP旧版という状態は本更新で解消。
