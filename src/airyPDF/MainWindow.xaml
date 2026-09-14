@@ -3,18 +3,10 @@
  UseLayoutRounding="True" SnapsToDevicePixels="True" AllowDrop="True" Drop="FilesDropped" PreviewKeyDown="WindowKeyDown" Closing="WindowClosing">
  <DockPanel>
   <Border DockPanel.Dock="Top" Background="White" BorderBrush="#DEE4EA" BorderThickness="0,0,0,1" Padding="14,10">
-   <DockPanel>
-    <StackPanel Orientation="Horizontal" DockPanel.Dock="Left"><Image Source="Assets/icon.png" Width="32" Height="32" Margin="0,0,10,0"/><TextBlock Text="airyPDF" FontSize="23" FontWeight="SemiBold" Margin="0,0,22,0"/></StackPanel>
-    <WrapPanel>
-     <Button Content="開く" Click="OpenClick" ToolTip="Ctrl+O"/>
-     <Button Content="印刷" Click="PrintClick" ToolTip="Ctrl+P"/>
-     <Button Content="保存" Click="SaveClick"/>
-
-
-     <Button Content="編集／検索" Click="ToolsClick" ToolTip="Ctrl+F"/>
-     <Menu Background="Transparent" VerticalAlignment="Center"><MenuItem Header="その他" Padding="12,7"><MenuItem Header="タブを閉じる" Click="CloseClick" InputGestureText="Ctrl+W"/><Separator/><MenuItem x:Name="AllPages" Header="回転を全ページに適用" IsCheckable="True"/><Separator/><MenuItem Header="寸法確認用PDF" Click="CalibrationClick"/><MenuItem Header="使い方" Click="HelpClick"/></MenuItem></Menu>
-    </WrapPanel>
-   </DockPanel>
+   <WrapPanel>
+    <Button Content="開く" Click="OpenClick" ToolTip="開く&#10;Ctrl+O" ToolTipService.InitialShowDelay="250"/>
+    <Button Content="印刷" Click="PrintClick" ToolTip="印刷&#10;Ctrl+P" ToolTipService.InitialShowDelay="250"/>
+   </WrapPanel>
   </Border>
   <Border DockPanel.Dock="Bottom" Background="White" Padding="16,8"><TextBlock x:Name="Status" Text="PDFを開くか、この画面にドラッグしてください。" TextWrapping="Wrap"/></Border>
   <StackPanel DockPanel.Dock="Top">
@@ -29,7 +21,7 @@
   <Grid Background="#E6EAF0">
    <StackPanel x:Name="Welcome" VerticalAlignment="Center" HorizontalAlignment="Center">
     <TextBlock Text="軽やかに開く。寸法を守って印刷する。" FontSize="25" Foreground="#334155" HorizontalAlignment="Center"/>
-    <TextBlock Text="PDFをドラッグするか、「PDFを開く」を選んでください。" Margin="0,18" Foreground="#64748B" HorizontalAlignment="Center"/>
+    <TextBlock Text="PDFをドラッグするか、「開く」を選んでください。" Margin="0,18" Foreground="#64748B" HorizontalAlignment="Center"/>
    </StackPanel>
    <ScrollViewer x:Name="Viewer" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" PreviewMouseWheel="ViewerWheel" ScrollChanged="ViewerScrolled">
     <StackPanel x:Name="PagesHost" Margin="24" HorizontalAlignment="Center" VerticalAlignment="Top"/>

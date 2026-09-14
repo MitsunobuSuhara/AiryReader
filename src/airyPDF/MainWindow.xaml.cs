@@ -230,8 +230,7 @@ public partial class MainWindow : Window
         if (Current is not { } state) return;
         try
         {
-            if (AllPages.IsChecked == true) for (int i = 0; i < state.Document.Count; i++) state.Document.Rotate(i, delta);
-            else state.Document.Rotate(state.Page, delta);
+            state.Document.Rotate(state.Page, delta);
             UpdateTabTitle(state); await RenderCurrent();
         }
         catch (Exception ex) { Error(ex); }
@@ -282,7 +281,7 @@ public partial class MainWindow : Window
     private void HelpClick(object s, RoutedEventArgs e)
     {
         MessageBox.Show(this,
-            "airyPDF 1.1\n\nPDFを開く：Ctrl＋O、またはドラッグ＆ドロップ\nページ移動：ホイールで連続スクロール、ページ番号入力、左右のボタン\n拡大縮小：Ctrl＋ホイール、＋／−、倍率の手入力、画面幅に合わせる\n印刷：Ctrl＋P\n入力・注釈・検索・署名：Ctrl＋F、または「編集／検索」\nパスワードはファイルを開く際に入力します。保存・ログには残しません。\n\n新しいPDFの印刷倍率は100%。指定倍率では自動縮小せず、欠けをプレビューで知らせます。\nドライバー側の拡大縮小・Nアップは無効にしてください。\n回転を保存するときは別名保存します。\n\n寸法確認用PDFには縦横100mmの基準線があります。\n会社での印刷は利用者評価で用途上合格（約0.1mmのずれに見えるとの報告）。",
+            "airyPDF 1.1\n\nPDFを開く：Ctrl＋O、またはドラッグ＆ドロップ\nページ移動：ホイールで連続スクロール、ページ番号入力、左右のボタン\n拡大縮小：Ctrl＋ホイール、＋／−、倍率の手入力、画面幅に合わせる\n印刷：Ctrl＋P\n入力・注釈・検索・署名：Ctrl＋F、Ctrl＋F\nパスワードはファイルを開く際に入力します。保存・ログには残しません。\n\n新しいPDFの印刷倍率は100%。指定倍率では自動縮小せず、欠けをプレビューで知らせます。\nドライバー側の拡大縮小・Nアップは無効にしてください。\n回転を保存するときは別名保存します。\n\n寸法確認用PDFには縦横100mmの基準線があります。\n会社での印刷は利用者評価で用途上合格（約0.1mmのずれに見えるとの報告）。",
             "airyPDF — 使い方", MessageBoxButton.OK, MessageBoxImage.Information);
     }
     private void ToolsClick(object sender, RoutedEventArgs e)
@@ -296,6 +295,7 @@ public partial class MainWindow : Window
         {
             if (e.Key == Key.O) { OpenClick(s, e); e.Handled = true; }
             if (e.Key == Key.P) { PrintClick(s, e); e.Handled = true; }
+            if (e.Key == Key.S) { SaveClick(s, e); e.Handled = true; }
             if (e.Key == Key.F) { ToolsClick(s, e); e.Handled = true; }
             if (e.Key == Key.W) { CloseClick(s, e); e.Handled = true; }
         }
