@@ -52,6 +52,7 @@ public static class DesktopInstaller
     {
         using var app = Microsoft.Win32.Registry.CurrentUser.CreateSubKey(@"Software\Classes\Applications\airyPDF.exe");
         app.SetValue("FriendlyAppName", "airyPDF");
+        using (var icon = app.CreateSubKey("DefaultIcon")) icon.SetValue("", IconLocation(exe));
         using (var command = app.CreateSubKey(@"shell\open\command")) command.SetValue("", "\"" + exe + "\" \"%1\"");
         using (var types = app.CreateSubKey("SupportedTypes")) types.SetValue(".pdf", "");
         using var uninstall = Microsoft.Win32.Registry.CurrentUser.CreateSubKey(@"Software\Microsoft\Windows\CurrentVersion\Uninstall\airyPDF");
@@ -59,9 +60,10 @@ public static class DesktopInstaller
         uninstall.SetValue("DisplayVersion", "1.1.0");
         uninstall.SetValue("Publisher", "airyPDF");
         uninstall.SetValue("InstallLocation", folder);
-        uninstall.SetValue("DisplayIcon", exe + ",0");
+        uninstall.SetValue("DisplayIcon", IconLocation(exe));
         uninstall.SetValue("UninstallString", "\"" + exe + "\" --unregister");
         uninstall.SetValue("NoModify", 1); uninstall.SetValue("NoRepair", 1);
+        SHChangeNotify(0x08000000, 0, null!, IntPtr.Zero);
     }
     public static void Unregister()
     {
@@ -106,6 +108,7 @@ public static class DesktopInstaller
             (path.StartsWith(programFiles, StringComparison.OrdinalIgnoreCase) || path.StartsWith(direct, StringComparison.OrdinalIgnoreCase) ||
              path.StartsWith(packages, StringComparison.OrdinalIgnoreCase) && path.Contains("\\LocalCache\\Local\\Programs\\airyPDF\\", StringComparison.OrdinalIgnoreCase));
     }
+    private static string IconLocation(string exe) => System.IO.Path.Combine(System.IO.Path.GetDirectoryName(exe)!, "airyPDF-crane-v2.ico") + ",0";
     private static void CreateShortcut(string folder, string exe, string working)
     {
         Directory.CreateDirectory(folder);
@@ -118,7 +121,7 @@ public static class DesktopInstaller
             dynamic shortcut = shell.CreateShortcut(path); shortcutObject = shortcut;
             if (File.Exists(path) && !string.IsNullOrEmpty((string)shortcut.TargetPath) && !IsOwnInstall((string)shortcut.TargetPath))
                 throw new IOException("既存のairyPDFショートカットが別の場所を指しています。上書きせず停止しました。");
-            shortcut.TargetPath = exe; shortcut.WorkingDirectory = working; shortcut.IconLocation = exe + ",0";
+            shortcut.TargetPath = exe; shortcut.WorkingDirectory = working; shortcut.IconLocation = IconLocation(exe);
             shortcut.Description = "airyPDF — PDF閲覧・印刷チェック";
             shortcut.Save();
             SHChangeNotify(0x2000, 0x1005, path, IntPtr.Zero);

@@ -11,7 +11,7 @@ try {
         $taskMemory = [IO.MemoryStream]::new()
         try {
             $taskGraphics.InterpolationMode = [Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
-            if ($taskSize -le 32) {
+            if ($taskSize -le 64) {
                 # Small Windows icons need broad facets and a thicker neck.
                 $taskGraphics.Clear([Drawing.Color]::Black)
                 $taskGraphics.SmoothingMode = [Drawing.Drawing2D.SmoothingMode]::AntiAlias

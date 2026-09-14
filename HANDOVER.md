@@ -281,3 +281,7 @@ C:\dev\AGENTS.md適用。日本語、呼称NOBUさん。区切りでコミット
 ## 左上のツルの視認性改善（2026-09-15）
 16pxで首と折り目がつぶれるため、16/24/32pxは太い首と大きな面の専用図形をmake-icon.ps1で生成。大きいサイズは採用原本を維持。WPFのIconをPNGから複数サイズICOへ変更。16px画像を拡大して輪郭を確認、Releaseビルド警告0／エラー0、このPCの導入DLL一致。
 
+
+## タスクバー・エクスプローラーのアイコン統一（2026-09-15）
+利用者依頼で16〜64pxを見やすいツル専用図形へ統一。airyPDF-crane-v2.icoをアプリ直下へ同梱し、デスクトップ・スタートメニュー・既存のairyPDFピン留めリンク・Applications/airyPDF.exe/DefaultIcon・アンインストール表示が参照。登録後に関連付け変更通知。新たなピン留めや他アプリの関連付けは変更しない。確認時PDF UserChoiceはMSEdgePDFであり、PDFファイル自体のアイコンは既定アプリに従う。Releaseビルド警告0／エラー0、導入DLL一致、デスクトップとスタートメニューの専用ICO参照・レジストリ登録を照合。配布ZIP: artifacts/release/airyPDF-1.1-20260915-070936.zip、SHA256 CB4307E2DD9234A1B0611FBE60BE4AC23EA5B9BDDF8AAF3754068A5D294FCF05。
+
