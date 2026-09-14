@@ -14,7 +14,7 @@ public partial class PrintWindow : Window
     private List<Sheet> sheets = [];
     private Rect? activeRegion;
     private PrintMode activeMode;
-    private bool ready;
+    private bool ready, previewReady;
     private readonly System.Windows.Threading.DispatcherTimer previewTimer = new() { Interval = TimeSpan.FromMilliseconds(250) };
     private int side, previewVersion, settingsVersion;
     public PrintWindow(PdfDocument doc, int page, Rect? region)
@@ -54,7 +54,7 @@ public partial class PrintWindow : Window
     private void SettingsChanged(object s, RoutedEventArgs e)
     {
         if (!ready) return;
-        ++previewVersion; ++settingsVersion; PrintButton.IsEnabled = false;
+        previewReady = false; ++previewVersion; ++settingsVersion; PrintButton.IsEnabled = false;
         Warning.Text = "プレビューを更新しています…";
         previewTimer.Stop(); previewTimer.Start();
     }
@@ -128,6 +128,7 @@ public partial class PrintWindow : Window
     private async Task ShowSide()
     {
         if (sheets.Count == 0) return;
+        previewReady = false;
         int version = ++previewVersion;
         Sheet sheet = sheets[side];
         const double display = 1.8;
@@ -145,7 +146,28 @@ public partial class PrintWindow : Window
         }
         var outline = new System.Windows.Shapes.Rectangle { Width = sheet.Printable.Width * display, Height = sheet.Printable.Height * display, Stroke = Brushes.IndianRed, StrokeThickness = 1, StrokeDashArray = [4, 3] };
         Canvas.SetLeft(outline, sheet.Printable.X * display); Canvas.SetTop(outline, sheet.Printable.Y * display); Preview.Children.Add(outline);
+        previewReady = true;
         SideLabel.Text = $"{side + 1} / {sheets.Count}  ·  {sheet.Label}  ·  " + string.Join(" / ", sheet.Items.Select(p => $"{p.Scale * 100:0.##}%"));
+    }
+    private async void PreviewWheel(object s, System.Windows.Input.MouseWheelEventArgs e)
+    {
+        if (e.Delta == 0) return;
+        if (!previewReady) { e.Handled = true; return; }
+        bool forward = e.Delta < 0;
+        bool atEdge = forward ? PreviewScroller.VerticalOffset >= PreviewScroller.ScrollableHeight - .5 : PreviewScroller.VerticalOffset <= .5;
+        if (!atEdge) return;
+        e.Handled = true;
+        int target = side + (forward ? 1 : -1);
+        if (target < 0 || target >= sheets.Count) return;
+        side = target;
+        try
+        {
+            await ShowSide();
+            if (!previewReady || !ready) return;
+            PreviewScroller.UpdateLayout();
+            if (forward) PreviewScroller.ScrollToTop(); else PreviewScroller.ScrollToBottom();
+        }
+        catch (Exception ex) { if (ready) Warning.Text = ex.Message; }
     }
     private async void PreviousClick(object s, RoutedEventArgs e) { if (side > 0) { side--; try { await ShowSide(); } catch (Exception ex) { Warning.Text = ex.Message; } } }
     private async void NextClick(object s, RoutedEventArgs e) { if (side + 1 < sheets.Count) { side++; try { await ShowSide(); } catch (Exception ex) { Warning.Text = ex.Message; } } }
