@@ -175,6 +175,20 @@ public static class SelfTest
             await print.RefreshAsync();
             Check(printButton.IsEnabled, "プリンター切替・プレビュー: " + printerName);
         }
+        printerBox.SelectedItem = "Microsoft Print to PDF";
+        modeBox.SelectedIndex = 0;
+        await print.RefreshAsync();
+        var jobPrinter = (PrintDocument)typeof(PrintWindow).GetField("printer", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(print)!;
+        var originalController = jobPrinter.PrintController;
+        jobPrinter.PrintController = new CancelPrintController();
+        printButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        Check(print.IsVisible, "印刷を取り消した場合はプレビューを残す");
+        jobPrinter.PrintController = originalController;
+        string jobPath = System.IO.Path.GetFullPath("artifacts/preview-print-job.pdf");
+        jobPrinter.PrinterSettings.PrintToFile = true;
+        jobPrinter.PrinterSettings.PrintFileName = jobPath;
+        printButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        Check(!print.IsVisible && File.Exists(jobPath), "印刷データ送信成功後にプレビューを自動で閉じる");
         print.Close();
         using (var landscapeDoc = new PdfDocument(System.IO.Path.Combine(AppContext.BaseDirectory, "Samples", "print-check.pdf")))
         {
@@ -209,6 +223,10 @@ public static class SelfTest
         }
         window.Close();
         File.WriteAllLines("artifacts/ui-test-results.txt", Results);
+    }
+    private sealed class CancelPrintController : PrintController
+    {
+        public override void OnStartPrint(PrintDocument document, PrintEventArgs e) => e.Cancel = true;
     }
     private static IEnumerable<Button> FindButtons(DependencyObject parent)
     {

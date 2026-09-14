@@ -242,10 +242,14 @@ public partial class PrintWindow : Window
             args.HasMorePages = index < sheets.Count;
         }
         printer.DocumentName = System.IO.Path.GetFileName(document.Path);
-        printer.PrintPage += Draw;
-        try { printer.Print(); Warning.Text = "印刷データを送信しました。紙上の寸法精度は実測で確認してください。"; }
+        bool completed = false, sent = false;
+        void End(object? sender, PrintEventArgs args) => completed = !args.Cancel && index == sheets.Count;
+        printer.PrintPage += Draw; printer.EndPrint += End;
+        try { printer.Print(); sent = completed; }
         catch (Exception ex) { MessageBox.Show(this, ex.Message, "印刷できませんでした"); }
-        finally { printer.PrintPage -= Draw; }
+        finally { printer.PrintPage -= Draw; printer.EndPrint -= End; }
+        // 取消や送信エラーでは設定を残し、送信処理が終わってから閉じる。
+        if (sent) Close();
     }
 }
 
