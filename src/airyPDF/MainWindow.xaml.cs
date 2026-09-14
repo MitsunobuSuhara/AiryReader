@@ -171,6 +171,7 @@ public partial class MainWindow : Window
         if (Current is not { } state) return;
         ++renderVersion;
         double old = state.Zoom; state.Zoom = Math.Clamp(old * factor, .1, 8);
+        if (Math.Abs(state.Zoom - 1) < 1e-10) state.Zoom = 1;
         double ratio = state.Zoom / old;
         Point point = anchor ?? new Point(Viewer.ViewportWidth / 2, Viewer.ViewportHeight / 2);
         var anchorView = pageViews.FirstOrDefault(v => v.Surface.TranslatePoint(new Point(0, v.Surface.Height), Viewer).Y > point.Y) ?? pageViews[^1];
@@ -185,7 +186,6 @@ public partial class MainWindow : Window
         state.ScrollOffset = Viewer.VerticalOffset;
         zoomTimer.Stop(); zoomTimer.Start();
     }
-    private void ActualSizeClick(object s, RoutedEventArgs e) { if (Current is { } state) Zoom(1 / state.Zoom); }
     private void ZoomInputGotFocus(object s, KeyboardFocusChangedEventArgs e) => ZoomText.SelectAll();
     private void ApplyZoomInput()
     {
@@ -202,9 +202,17 @@ public partial class MainWindow : Window
     private void ZoomInClick(object s, RoutedEventArgs e) => Zoom(1.2);
     private void ZoomOutClick(object s, RoutedEventArgs e) => Zoom(1 / 1.2);
     private void FitClick(object s, RoutedEventArgs e) { if (Current is not null && PageSurface.Width > 0) Zoom((Viewer.ViewportWidth - 56) / PageSurface.Width); }
+    internal void ZoomByWheel(int delta, Point? anchor = null)
+    {
+        if (delta == 0 || Current is not { } state) return;
+        double target = state.Zoom * (delta > 0 ? 1.12 : 1 / 1.12);
+        // 100％をまたぐ1回は原寸で止め、次の操作から先へ進む。
+        if ((state.Zoom < 1 && target >= 1) || (state.Zoom > 1 && target <= 1)) target = 1;
+        Zoom(target / state.Zoom, anchor);
+    }
     private void ViewerWheel(object s, MouseWheelEventArgs e)
     {
-        if ((Keyboard.Modifiers & ModifierKeys.Control) != 0) { Zoom(e.Delta > 0 ? 1.12 : 1 / 1.12, e.GetPosition(Viewer)); e.Handled = true; }
+        if ((Keyboard.Modifiers & ModifierKeys.Control) != 0) { ZoomByWheel(e.Delta, e.GetPosition(Viewer)); e.Handled = true; }
     }
     private async void Rotate(int delta)
     {

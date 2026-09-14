@@ -21,8 +21,8 @@
    <TabControl x:Name="Tabs" SelectionChanged="TabChanged" Margin="12,8,12,0" MinHeight="35"/>
    <WrapPanel Margin="12,5">
     <Button Content="‹" Click="PreviousClick"/><TextBox x:Name="PageNumber" Text="1" Width="48" KeyDown="PageNumberKeyDown"/><TextBlock x:Name="PageCount" Text="/ —" Margin="3,0,10,0"/><Button Content="›" Click="NextClick"/>
-    <Button Content="−" Click="ZoomOutClick"/><TextBox x:Name="ZoomText" Text="100" Width="66" TextAlignment="Right" KeyDown="ZoomInputKeyDown" LostKeyboardFocus="ZoomInputLostFocus" GotKeyboardFocus="ZoomInputGotFocus" ToolTip="表示倍率（10～800％）。入力してEnterで確定" AutomationProperties.Name="表示倍率"/><TextBlock Text="%"/><Button Content="100%" Click="ActualSizeClick" ToolTip="表示倍率を100％に戻す"/><Button Content="＋" Click="ZoomInClick"/><Button Content="画面幅に合わせる" Click="FitClick"/>
-    <Button Content="↶" FontFamily="Segoe UI Symbol" FontSize="21" Padding="10,2" Click="RotateLeftClick" ToolTip="左に90度回転" AutomationProperties.Name="左に90度回転"/><Button Content="↷" FontFamily="Segoe UI Symbol" FontSize="21" Padding="10,2" Click="RotateRightClick" ToolTip="右に90度回転" AutomationProperties.Name="右に90度回転"/>
+    <Button Content="−" Click="ZoomOutClick"/><TextBox x:Name="ZoomText" Text="100" Width="66" TextAlignment="Right" KeyDown="ZoomInputKeyDown" LostKeyboardFocus="ZoomInputLostFocus" GotKeyboardFocus="ZoomInputGotFocus" ToolTip="表示倍率（10～800％）。入力してEnterで確定" AutomationProperties.Name="表示倍率"/><TextBlock Text="%"/><Button Content="＋" Click="ZoomInClick"/>
+    <Button Content="↶" FontFamily="Segoe UI Symbol" FontSize="21" Padding="10,2" Click="RotateLeftClick" ToolTip="左に90度回転" AutomationProperties.Name="左に90度回転"/><Button Content="↷" FontFamily="Segoe UI Symbol" FontSize="21" Padding="10,2" Click="RotateRightClick" ToolTip="右に90度回転" AutomationProperties.Name="右に90度回転"/><Button Content="画面幅に合わせる" Click="FitClick"/>
 
    </WrapPanel>
   </StackPanel>
