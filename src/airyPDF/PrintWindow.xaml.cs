@@ -54,6 +54,7 @@ public partial class PrintWindow : Window
     private void SettingsChanged(object s, RoutedEventArgs e)
     {
         if (!ready) return;
+        PosterSettings.Visibility = ModeBox.SelectedIndex == (int)PrintMode.Poster ? Visibility.Visible : Visibility.Collapsed;
         previewReady = false; ++previewVersion; ++settingsVersion; PrintButton.IsEnabled = false;
         Warning.Text = "プレビューを更新しています…";
         previewTimer.Stop(); previewTimer.Start();
@@ -81,6 +82,34 @@ public partial class PrintWindow : Window
             SettingsChanged(s, e);
         }
         catch (Exception ex) { Warning.Text = ex.Message; PrintButton.IsEnabled = false; }
+    }
+    private void NumberClicked(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    {
+        if (sender is not TextBox box) return;
+        box.Focus(); box.SelectAll(); e.Handled = true;
+    }
+    private void NumberFocused(object sender, System.Windows.Input.KeyboardFocusChangedEventArgs e)
+    {
+        if (sender is TextBox box) box.SelectAll();
+    }
+    private void StepNumber(TextBox box, int step)
+    {
+        bool copies = box == CopiesBox;
+        if (!double.TryParse(box.Text, NumberStyles.Float, CultureInfo.InvariantCulture, out double value) || !double.IsFinite(value)) value = copies ? 1 : 100;
+        if (copies) value = Math.Round(value);
+        box.Text = Math.Clamp(value + step, 1, copies ? 999 : 1000).ToString("0.##", CultureInfo.InvariantCulture);
+        box.SelectAll();
+    }
+    private void NumberStepClick(object sender, RoutedEventArgs e)
+    {
+        if (sender is not Button { Tag: string tag }) return;
+        string[] parts = tag.Split(':');
+        StepNumber(parts[0] == "CopiesBox" ? CopiesBox : PercentBox, int.Parse(parts[1], CultureInfo.InvariantCulture));
+    }
+    private void NumberKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+    {
+        if (sender is TextBox box && (e.Key == System.Windows.Input.Key.Up || e.Key == System.Windows.Input.Key.Down))
+        { StepNumber(box, e.Key == System.Windows.Input.Key.Up ? 1 : -1); e.Handled = true; }
     }
     private static double Number(TextBox box, string label)
     {
@@ -110,7 +139,7 @@ public partial class PrintWindow : Window
             var (paperSize, printableRect) = PrinterOutput.GetGeometry(printer);
             activeRegion = RegionBox.IsChecked == true ? selectedRegion : null;
             int[] pages = activeRegion.HasValue ? [currentPage] : PrintLayout.ParsePages(RangeBox.Text, document.Count);
-            var options = new PrintOptions(activeMode, percent, Number(OverlapBox, "重なり幅"), RightBindingBox.IsChecked == true);
+            var options = new PrintOptions(activeMode, percent, activeMode == PrintMode.Poster ? Number(OverlapBox, "貼り合わせ幅") : 5, RightBindingBox.IsChecked == true);
             sheets = PrintLayout.Build(document.SizeMm, pages, paperSize, printableRect, options, activeRegion);
             document.PrintPercent = percent;
             side = 0;

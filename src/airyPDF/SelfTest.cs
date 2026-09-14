@@ -111,6 +111,21 @@ public static class SelfTest
         Check(printButton.IsEnabled, "2アップのプレビュー更新後に印刷可能");
         Capture(print, "artifacts/print-two-up.png");
         var percentBox = (TextBox)print.FindName("PercentBox");
+        foreach (string name in new[] { "PercentBox", "CopiesBox", "OverlapBox" })
+        {
+            var numberInput = (TextBox)print.FindName(name);
+            numberInput.Select(0, 0);
+            numberInput.RaiseEvent(new System.Windows.Input.MouseButtonEventArgs(System.Windows.Input.Mouse.PrimaryDevice, Environment.TickCount, System.Windows.Input.MouseButton.Left) { RoutedEvent = System.Windows.Input.Mouse.PreviewMouseDownEvent });
+            Check(numberInput.SelectionLength == numberInput.Text.Length, "印刷入力欄クリックで全選択: " + name);
+        }
+        FindButtons(print).First(b => (string?)b.Tag == "PercentBox:1").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        Check(percentBox.Text == "101", "倍率の上矢印で1％増やす");
+        var copiesInput = (TextBox)print.FindName("CopiesBox");
+        FindButtons(print).First(b => (string?)b.Tag == "CopiesBox:1").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        Check(copiesInput.Text == "2", "部数の上矢印で1部増やす");
+        copiesInput.Text = "1";
+        FindButtons(print).First(b => (string?)b.Tag == "CopiesBox:-1").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        Check(copiesInput.Text == "1", "部数の下矢印で1部未満にしない");
         modeBox.SelectedIndex = 0;
         percentBox.Text = "50";
         for (int i = 0; i < 100 && !printButton.IsEnabled; i++) await Task.Delay(100);
@@ -122,7 +137,9 @@ public static class SelfTest
         await print.RefreshAsync();
         Check(!printButton.IsEnabled, "不正な倍率入力で印刷を止める");
         percentBox.Text = "100";
+        Check(((FrameworkElement)print.FindName("PosterSettings")).Visibility == Visibility.Collapsed, "通常の印刷で貼り合わせ幅を隠す");
         modeBox.SelectedIndex = 5;
+        Check(((FrameworkElement)print.FindName("PosterSettings")).Visibility == Visibility.Visible, "ポスター選択時だけ貼り合わせ幅を表示");
         await print.RefreshAsync();
         Check(printButton.IsEnabled, "ポスターのプレビュー更新");
         Capture(print, "artifacts/print-poster.png");
