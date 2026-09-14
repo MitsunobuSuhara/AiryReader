@@ -1,7 +1,7 @@
-﻿$ErrorActionPreference = 'Stop'
+$ErrorActionPreference = 'Stop'
 $taskRoot = Split-Path -Parent $PSScriptRoot
 Add-Type -AssemblyName System.Drawing
-$taskSource = [Drawing.Bitmap]::new((Join-Path $taskRoot 'assets\icons\airyPDF-b.png'))
+$taskSource = [Drawing.Bitmap]::new((Join-Path $taskRoot 'assets\icons\airyPDF-crane.png'))
 $taskSizes = @(16,24,32,48,64,128,256)
 $taskPngs = [Collections.Generic.List[byte[]]]::new()
 try {
