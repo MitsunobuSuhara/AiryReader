@@ -18,7 +18,7 @@
 
    </WrapPanel>
   </StackPanel>
-  <Grid Background="#BCC3CC">
+  <Grid Background="#000000">
    <StackPanel x:Name="Welcome" VerticalAlignment="Center" HorizontalAlignment="Center">
     <TextBlock Text="軽やかに開く。寸法を守って印刷する。" FontSize="25" Foreground="#334155" HorizontalAlignment="Center"/>
     <TextBlock Text="PDFをドラッグするか、「開く」を選んでください。" Margin="0,18" Foreground="#64748B" HorizontalAlignment="Center"/>
