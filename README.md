@@ -4,7 +4,7 @@ Windows 11 x64用のPDFデスクトップアプリ。原寸・指定倍率の印
 
 ## インストール・起動
 
-セットアップ一式を展開し、Setup.cmdを実行します。Windowsの管理者確認後に C:\Program Files\airyPDF\1.1.0-ハッシュ へ.NETとPDF編集エンジンを同梱して登録します。デスクトップ・スタートメニュー・既存のタスクバーピンを更新します。旧版は復旧用に残します。
+セットアップ一式を展開し、Setup.cmdを実行します。Windowsの管理者確認後に C:\Program Files\airyPDF へ.NETとPDF編集エンジンを同梱して登録します。デスクトップ・スタートメニュー・既存のタスクバーピンを更新します。実行ファイルは C:\Program Files\airyPDF\airyPDF.exe です。更新時はairyPDFを閉じてからSetup.cmdを実行します。PDFを右クリック→「プログラムから開く」でairyPDFを選び、既定に設定できます。
 
 PDFの「プログラムから開く」にairyPDFを追加します。既定のPDFアプリは変更しません。設定はユーザーのLocalAppData/airyPDFに保存します。登録解除はWindowsのアプリ一覧から行います。登録と自分のリンクを解除し、実行ファイルと設定は復旧用に残す方式です。
 

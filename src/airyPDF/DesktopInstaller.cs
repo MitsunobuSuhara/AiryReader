@@ -11,14 +11,21 @@ public static class DesktopInstaller
         string dll = System.IO.Path.Combine(source, "airyPDF.dll");
         if (!File.Exists(dll) || !File.Exists(System.IO.Path.Combine(source, "coreclr.dll")))
             throw new IOException(".NET同梱の実行用フォルダから登録してください。");
-        string hash = Convert.ToHexString(SHA256.HashData(File.ReadAllBytes(dll)))[..12].ToLowerInvariant();
         if (!new System.Security.Principal.WindowsPrincipal(System.Security.Principal.WindowsIdentity.GetCurrent()).IsInRole(System.Security.Principal.WindowsBuiltInRole.Administrator))
             throw new IOException("Program Filesへの登録には管理者権限が必要です。");
         string root = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "airyPDF");
-        string target = System.IO.Path.Combine(root, "1.1.0-" + hash);
+        string target = root;
         Directory.CreateDirectory(target);
         if (!string.Equals(source, target, StringComparison.OrdinalIgnoreCase))
         {
+            // コピー前に既存ファイルを確認し、起動中の版への途中までの上書きを防ぐ。
+            foreach (string existing in Directory.EnumerateFiles(target, "*", SearchOption.AllDirectories))
+            {
+                string incoming = System.IO.Path.Combine(source, System.IO.Path.GetRelativePath(target, existing));
+                if (!File.Exists(incoming) || SHA256.HashData(File.ReadAllBytes(existing)).SequenceEqual(SHA256.HashData(File.ReadAllBytes(incoming)))) continue;
+                try { using var check = File.Open(existing, FileMode.Open, FileAccess.ReadWrite, FileShare.None); }
+                catch (IOException) { throw new IOException("airyPDFを閉じてから、もう一度セットアップしてください。"); }
+            }
             foreach (string file in Directory.EnumerateFiles(source, "*", SearchOption.AllDirectories))
             {
                 string relative = System.IO.Path.GetRelativePath(source, file);
