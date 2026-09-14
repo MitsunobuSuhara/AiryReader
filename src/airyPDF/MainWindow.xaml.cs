@@ -27,6 +27,7 @@ public partial class MainWindow : Window
     private bool changingLayout;
     private int renderVersion;
     private bool opening;
+    private long zoomPauseUntil;
 
     public MainWindow()
     {
@@ -170,6 +171,7 @@ public partial class MainWindow : Window
     {
         if (Current is not { } state) return;
         ++renderVersion;
+        zoomPauseUntil = 0;
         double old = state.Zoom; state.Zoom = Math.Clamp(old * factor, .1, 8);
         if (Math.Abs(state.Zoom - 1) < 1e-10) state.Zoom = 1;
         double ratio = state.Zoom / old;
@@ -199,16 +201,23 @@ public partial class MainWindow : Window
     }
     private void ZoomInputKeyDown(object s, KeyEventArgs e) { if (e.Key == Key.Enter) { ApplyZoomInput(); e.Handled = true; } }
     private void ZoomInputLostFocus(object s, KeyboardFocusChangedEventArgs e) => ApplyZoomInput();
-    private void ZoomInClick(object s, RoutedEventArgs e) => Zoom(1.2);
-    private void ZoomOutClick(object s, RoutedEventArgs e) => Zoom(1 / 1.2);
+    private void ZoomInClick(object s, RoutedEventArgs e) => StepZoom(1.2);
+    private void ZoomOutClick(object s, RoutedEventArgs e) => StepZoom(1 / 1.2);
     private void FitClick(object s, RoutedEventArgs e) { if (Current is not null && PageSurface.Width > 0) Zoom((Viewer.ViewportWidth - 56) / PageSurface.Width); }
+    private void StepZoom(double factor, Point? anchor = null)
+    {
+        if (Current is not { } state || Environment.TickCount64 < zoomPauseUntil) return;
+        double target = state.Zoom * factor;
+        bool stopAt100 = (state.Zoom < 1 && target >= 1) || (state.Zoom > 1 && target <= 1);
+        if (stopAt100) target = 1;
+        Zoom(target / state.Zoom, anchor);
+        // 連続ホイールやボタン連打でも原寸の停止を見失わない。
+        if (stopAt100) zoomPauseUntil = Environment.TickCount64 + 450;
+        ZoomText.Text = (state.Zoom * 100).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
+    }
     internal void ZoomByWheel(int delta, Point? anchor = null)
     {
-        if (delta == 0 || Current is not { } state) return;
-        double target = state.Zoom * (delta > 0 ? 1.12 : 1 / 1.12);
-        // 100％をまたぐ1回は原寸で止め、次の操作から先へ進む。
-        if ((state.Zoom < 1 && target >= 1) || (state.Zoom > 1 && target <= 1)) target = 1;
-        Zoom(target / state.Zoom, anchor);
+        if (delta != 0) StepZoom(delta > 0 ? 1.12 : 1 / 1.12, anchor);
     }
     private void ViewerWheel(object s, MouseWheelEventArgs e)
     {
