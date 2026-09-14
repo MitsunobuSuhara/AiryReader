@@ -72,6 +72,13 @@ public static class SelfTest
         Check(printButton.IsEnabled, "2アップのプレビュー更新後に印刷可能");
         Capture(print, "artifacts/print-two-up.png");
         var percentBox = (TextBox)print.FindName("PercentBox");
+        modeBox.SelectedIndex = 0;
+        percentBox.Text = "50";
+        for (int i = 0; i < 100 && !printButton.IsEnabled; i++) await Task.Delay(100);
+        Check(printButton.IsEnabled && ((TextBlock)print.FindName("SideLabel")).Text.Contains("50%"), "倍率変更が更新ボタンなしで自動反映");
+        percentBox.Text = "150"; percentBox.Text = "75";
+        for (int i = 0; i < 100 && !printButton.IsEnabled; i++) await Task.Delay(100);
+        Check(printButton.IsEnabled && ((TextBlock)print.FindName("SideLabel")).Text.Contains("75%"), "連続入力では最後の倍率を反映");
         percentBox.Text = "NaN";
         await print.RefreshAsync();
         Check(!printButton.IsEnabled, "不正な倍率入力で印刷を止める");
@@ -90,6 +97,22 @@ public static class SelfTest
             Check(printButton.IsEnabled, "プリンター切替・プレビュー: " + printerName);
         }
         print.Close();
+        using (var landscapeDoc = new PdfDocument(System.IO.Path.Combine(AppContext.BaseDirectory, "Samples", "print-check.pdf")))
+        {
+            var landscapePrint = new PrintWindow(landscapeDoc, 1, null) { Owner = window };
+            landscapePrint.Show();
+            var landscapeButton = (Button)landscapePrint.FindName("PrintButton");
+            for (int i = 0; i < 100 && !landscapeButton.IsEnabled; i++) await Task.Delay(100);
+            var previewCanvas = (Canvas)landscapePrint.FindName("Preview");
+            Check(((ComboBox)landscapePrint.FindName("OrientationBox")).SelectedIndex == 1 && previewCanvas.Width > previewCanvas.Height, "A4横PDFの初回プレビューを横向きにする");
+            landscapePrint.Close();
+            var a3Print = new PrintWindow(landscapeDoc, 2, null) { Owner = window };
+            a3Print.Show();
+            var a3Button = (Button)a3Print.FindName("PrintButton");
+            for (int i = 0; i < 100 && !a3Button.IsEnabled; i++) await Task.Delay(100);
+            Check(((PaperSize)((ComboBox)a3Print.FindName("PaperBox")).SelectedItem).Kind == PaperKind.A3 && ((ComboBox)a3Print.FindName("OrientationBox")).SelectedIndex == 1, "A3横原本は用紙サイズもA3横に合わせる");
+            a3Print.Close();
+        }
         if (File.Exists("artifacts/feature-tests/forms.pdf"))
         {
             string formPath = Environment.GetEnvironmentVariable("AIRYPDF_TOOL_PDF") ?? "artifacts/feature-tests/forms.pdf";

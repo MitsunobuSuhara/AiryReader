@@ -15,6 +15,7 @@ public partial class PrintWindow : Window
     private Rect? activeRegion;
     private PrintMode activeMode;
     private bool ready;
+    private readonly System.Windows.Threading.DispatcherTimer previewTimer = new() { Interval = TimeSpan.FromMilliseconds(250) };
     private int side, previewVersion, settingsVersion;
     public PrintWindow(PdfDocument doc, int page, Rect? region)
     {
@@ -28,9 +29,13 @@ public partial class PrintWindow : Window
         printer.PrinterSettings.Duplex = Duplex.Simplex;
         foreach (string name in PrinterSettings.InstalledPrinters) PrinterBox.Items.Add(name);
         PrinterBox.SelectedItem = printer.PrinterSettings.PrinterName;
-        LoadPapers(); ready = true;
+        LoadPapers();
+        Size sourceSize = doc.SizeMm(page);
+        OrientationBox.SelectedIndex = sourceSize.Width > sourceSize.Height ? 1 : 0;
+        previewTimer.Tick += (_, _) => { previewTimer.Stop(); Refresh(); };
+        ready = true;
         Loaded += (_, _) => Refresh();
-        Closed += (_, _) => { ++previewVersion; printer.Dispose(); };
+        Closed += (_, _) => { ready = false; previewTimer.Stop(); ++previewVersion; ++settingsVersion; printer.Dispose(); };
     }
     private void LoadPapers()
     {
@@ -39,13 +44,19 @@ public partial class PrintWindow : Window
         if (!printer.PrinterSettings.IsValid) return;
         foreach (PaperSize paper in printer.PrinterSettings.PaperSizes) PaperBox.Items.Add(paper);
         PaperBox.DisplayMemberPath = "PaperName";
-        PaperBox.SelectedItem = PaperBox.Items.Cast<PaperSize>().FirstOrDefault(p => p.Kind == PaperKind.A4) ?? PaperBox.Items.Cast<PaperSize>().FirstOrDefault();
+        Size original = document.SizeMm(currentPage);
+        double shortSide = Math.Min(original.Width, original.Height), longSide = Math.Max(original.Width, original.Height);
+        PaperBox.SelectedItem = PaperBox.Items.Cast<PaperSize>().FirstOrDefault(p =>
+            Math.Abs(Math.Min(p.Width, p.Height) * 25.4 / 100 - shortSide) < 2 &&
+            Math.Abs(Math.Max(p.Width, p.Height) * 25.4 / 100 - longSide) < 2)
+            ?? PaperBox.Items.Cast<PaperSize>().FirstOrDefault(p => p.Kind == PaperKind.A4) ?? PaperBox.Items.Cast<PaperSize>().FirstOrDefault();
     }
     private void SettingsChanged(object s, RoutedEventArgs e)
     {
         if (!ready) return;
         ++previewVersion; ++settingsVersion; PrintButton.IsEnabled = false;
-        Warning.Text = "設定が変わりました。「プレビューを更新」で配置を確認してください。";
+        Warning.Text = "プレビューを更新しています…";
+        previewTimer.Stop(); previewTimer.Start();
     }
     private void PrinterSelected(object s, SelectionChangedEventArgs e)
     {
@@ -80,6 +91,7 @@ public partial class PrintWindow : Window
     private async void Refresh() => await RefreshAsync();
     internal async Task RefreshAsync()
     {
+        previewTimer.Stop();
         int settings = ++settingsVersion;
         PrintButton.IsEnabled = false;
         try
@@ -111,7 +123,7 @@ public partial class PrintWindow : Window
             PrintButton.IsEnabled = document.CanPrint;
             if (!document.CanPrint) Warning.Text = "このPDFは高品質の印刷が制限されています。";
         }
-        catch (Exception ex) { Warning.Text = ex.Message; sheets = []; Preview.Children.Clear(); }
+        catch (Exception ex) { if (settings != settingsVersion || !ready) return; Warning.Text = ex.Message; sheets = []; Preview.Children.Clear(); }
     }
     private async Task ShowSide()
     {
