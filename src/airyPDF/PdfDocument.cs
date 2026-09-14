@@ -83,7 +83,7 @@ public sealed class PdfDocument : IDisposable
         return size;
     });
 
-    public BitmapSource Render(int index, int width, int height) => WithPage(index, page =>
+    public BitmapSource Render(int index, int width, int height, bool lcdText = false) => WithPage(index, page =>
     {
         if (width <= 0 || height <= 0 || (long)width * height > 24_000_000) throw new ArgumentOutOfRangeException(nameof(width));
         IntPtr bitmap = Native.FPDFBitmap_Create(width, height, 0);
@@ -91,8 +91,9 @@ public sealed class PdfDocument : IDisposable
         try
         {
             Native.FPDFBitmap_FillRect(bitmap, 0, 0, width, height, 0xFFFFFFFF);
-            Native.FPDF_RenderPageBitmap(bitmap, page, 0, 0, width, height, 0, 1);
-            if (formHandle != IntPtr.Zero) Native.FPDF_FFLDraw(formHandle, bitmap, page, 0, 0, width, height, 0, 1);
+            int flags = lcdText ? 1 | 2 : 1;
+            Native.FPDF_RenderPageBitmap(bitmap, page, 0, 0, width, height, 0, flags);
+            if (formHandle != IntPtr.Zero) Native.FPDF_FFLDraw(formHandle, bitmap, page, 0, 0, width, height, 0, flags);
             int stride = Native.FPDFBitmap_GetStride(bitmap);
             // ネイティブバッファ解放前にWPF側へコピーする。
             var image = BitmapSource.Create(width, height, 96, 96, PixelFormats.Bgr32, null,

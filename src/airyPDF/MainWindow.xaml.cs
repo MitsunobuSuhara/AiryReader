@@ -90,7 +90,7 @@ public partial class MainWindow : Window
             for (int i = 0; i < state.Document.Count; i++)
             {
                 var view = new PageView();
-                RenderOptions.SetBitmapScalingMode(view.Image, BitmapScalingMode.HighQuality);
+                RenderOptions.SetBitmapScalingMode(view.Image, BitmapScalingMode.NearestNeighbor);
                 view.Surface.Tag = i;
                 view.Surface.Children.Add(view.Image);
                 pageViews.Add(view); PagesHost.Children.Add(view.Surface);
@@ -148,10 +148,10 @@ public partial class MainWindow : Window
             {
                 var surface = item.View.Surface;
                 double dpi = VisualTreeHelper.GetDpi(this).DpiScaleX;
-                double factor = Math.Min(dpi * 2, Math.Sqrt(12_000_000.0 / Math.Max(1, visible.Length) / (surface.Width * surface.Height)));
-                int w = Math.Max(1, (int)Math.Ceiling(surface.Width * factor)), h = Math.Max(1, (int)Math.Ceiling(surface.Height * factor));
+                double factor = Math.Min(dpi, Math.Sqrt(12_000_000.0 / Math.Max(1, visible.Length) / (surface.ActualWidth * surface.ActualHeight)));
+                int w = Math.Max(1, (int)Math.Round(surface.ActualWidth * factor)), h = Math.Max(1, (int)Math.Round(surface.ActualHeight * factor));
                 if (item.View.RenderWidth == w && item.View.Image.Source != null) continue;
-                var bitmap = await Task.Run(() => state.Document.Render(item.Page, w, h));
+                var bitmap = await Task.Run(() => state.Document.Render(item.Page, w, h, lcdText: true));
                 if (version != renderVersion || Current != state) return;
                 item.View.Image.Source = bitmap; item.View.RenderWidth = w;
             }

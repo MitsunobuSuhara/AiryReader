@@ -32,7 +32,7 @@ public static class SelfTest
         Check(host.Children.Count == pageTotal, "PDFの全ページを連続して配置");
         var firstSurface = (Grid)host.Children[0];
         var firstBitmap = (BitmapSource)((Image)firstSurface.Children[0]).Source;
-        Check(firstBitmap.PixelWidth > firstSurface.ActualWidth * VisualTreeHelper.GetDpi(window).DpiScaleX, "100％表示を画面より高い解像度で描画");
+        Check(Math.Abs(firstBitmap.PixelWidth - firstSurface.ActualWidth * VisualTreeHelper.GetDpi(window).DpiScaleX) <= 1, "100％表示を画面画素に合わせて二重縮小を避ける");
         Check(Near(firstSurface.Width, uiDocument.SizeMm(0).Width * 96 / 25.4), "高解像度でも100％の表示寸法を保持");
         Check(host.Children.Cast<Grid>().Select(g => ((Image)g.Children[0]).Source).OfType<BitmapSource>().Sum(b => (long)b.PixelWidth * b.PixelHeight) < 12_100_000, "高解像度描画も画面付近の画像予算内");
         // ScrollToOffsetだけでは実際のホイール経路の不具合を見落とすため、入力イベントでも検証する。
