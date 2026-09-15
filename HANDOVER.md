@@ -331,3 +331,6 @@ Release・UI・PDF・印刷・画像・文章操作の自動テスト成功。�
 
 ## Markdown既定アプリ登録の修正（2026-09-15）
 利用者環境で.md/.markdownのアプリ選択に「一度だけ」しか出ない報告を受け、AiryReader 1.2.9で文書共通・画像共通のProgIDから拡張子ごとの専用ProgIDへ変更。`.md=AiryReader.md`、`.markdown=AiryReader.markdown`など10形式を独立登録し、CapabilitiesとOpenWithProgidsを一致させた。旧共通ProgIDは既存設定の互換用に残すが、OpenWith候補からは外す。MicrosoftのDefault Programs登録仕様に沿う構成。全テスト成功、警告0・エラー0。Program Filesへ導入し登録値を実機確認、既定アプリ画面を再表示。最終選択は利用者操作。配布ZIP: `artifacts/release/AiryReader-1.2.9-20260915-194947.zip`、SHA256 `6FA66F88D7D4F3306B49F89B6DF2ED1C73F3FB489E8A0C05B07FF2CFDAEA9CCF`。
+
+## 背景透明・白い鶴アイコン（2026-09-15）
+利用者が候補を採用し「全部に反映」と指示。左右反転済みスクリーンショットは白い角丸パネル外側に黒い余白を含んでいたため、外側と白背景を除去して鶴だけを抽出。1024角透明キャンバス中央へ白一色のシンボルとして配置し、`assets/icons/AiryReader-symbol-white-transparent.png`へ保存。旧アイコンは残す。16/24/32/48/64/128/256pxすべて同じ透明素材からICOを生成するようmake-iconを変更し、旧小サイズ用黒背景描画を削除。紹介資料用には濃色背景プレビューを使用。AiryReader 1.3.0として全テスト成功、警告0・エラー0。Program Filesへ導入し、アイコンキャッシュ更新通知済み。配布ZIP: `artifacts/release/AiryReader-1.3.0-20260915-200404.zip`、SHA256 `B9BDA36EA71D8FBDBE88294E0D18331535959C0C8B43981913DB43AA8CD3C613`。

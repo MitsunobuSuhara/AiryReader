@@ -68,7 +68,7 @@ p=doc.add_paragraph(style="Title"); p.alignment=WD_ALIGN_PARAGRAPH.CENTER
 p.add_run("AIとの会話から生まれた仕事の道具")
 p=doc.add_paragraph(); p.alignment=WD_ALIGN_PARAGRAPH.CENTER
 r=p.add_run("AiryReaderを一緒に作った記録"); r.bold=True; r.font.size=Pt(16)
-icon=ROOT/"assets"/"icons"/"AiryReader-crane.png"
+icon=ROOT/"assets"/"icons"/"AiryReader-symbol-preview.png"
 if icon.exists():
     p=doc.add_paragraph(); p.alignment=WD_ALIGN_PARAGRAPH.CENTER
     p.add_run().add_picture(str(icon), width=Inches(2.0))
