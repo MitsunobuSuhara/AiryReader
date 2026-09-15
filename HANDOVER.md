@@ -285,3 +285,7 @@ C:\dev\AGENTS.md適用。日本語、呼称NOBUさん。区切りでコミット
 ## タスクバー・エクスプローラーのアイコン統一（2026-09-15）
 利用者依頼で16〜64pxを見やすいツル専用図形へ統一。airyPDF-crane-v2.icoをアプリ直下へ同梱し、デスクトップ・スタートメニュー・既存のairyPDFピン留めリンク・Applications/airyPDF.exe/DefaultIcon・アンインストール表示が参照。登録後に関連付け変更通知。新たなピン留めや他アプリの関連付けは変更しない。確認時PDF UserChoiceはMSEdgePDFであり、PDFファイル自体のアイコンは既定アプリに従う。Releaseビルド警告0／エラー0、導入DLL一致、デスクトップとスタートメニューの専用ICO参照・レジストリ登録を照合。配布ZIP: artifacts/release/airyPDF-1.1-20260915-070936.zip、SHA256 CB4307E2DD9234A1B0611FBE60BE4AC23EA5B9BDDF8AAF3754068A5D294FCF05。
 
+
+## 軽量Markdown表示（2026-09-15）
+利用者希望で.md/.markdownをairyPDF内の読み物表示で開ける機能を追加。ブラウザエンジンや追加パッケージは使わずWPF標準FlowDocumentのみ。見出し、太字、箇条書き、引用、区切り線に対応し、選択・スクロール可。PDF処理には追加負荷なし。開くダイアログ、ドラッグ＆ドロップ、コマンドラインに対応。実画面をartifacts/markdown-window.pngで目視。既存UIテストのCanvasをstringへ直接castする不具合も修正し、PDF・印刷テストとMarkdown画面テスト成功。配布ZIP: artifacts/release/airyPDF-1.1-20260915-162521.zip、SHA256 E682BE0E5E5C2CED9DB886AF53BA066D01EFAD43822495CBAD789292905AC1A2。共有用Markdown: artifacts/share/airyPDF_AIとの会話から生まれたPDFアプリ.md。GitHub pushは自動承認で宛先所有者未確認として拒否されたためローカルcommitまで。
+

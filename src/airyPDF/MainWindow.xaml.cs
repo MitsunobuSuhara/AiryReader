@@ -44,6 +44,12 @@ public partial class MainWindow : Window
         {
             try
             {
+                if (string.Equals(System.IO.Path.GetExtension(path), ".md", StringComparison.OrdinalIgnoreCase) || string.Equals(System.IO.Path.GetExtension(path), ".markdown", StringComparison.OrdinalIgnoreCase))
+                {
+                    new MarkdownWindow(path) { Owner = this }.Show();
+                    Status.Text = $"Markdownを読みやすく表示しています: {System.IO.Path.GetFileName(path)}";
+                    continue;
+                }
                 Status.Text = "PDFを読み込んでいます…";
                 PdfDocument doc;
                 string? password = null;
@@ -66,12 +72,12 @@ public partial class MainWindow : Window
     }
     private void OpenClick(object sender, RoutedEventArgs e)
     {
-        var dialog = new Microsoft.Win32.OpenFileDialog { Filter = "PDFファイル|*.pdf", Multiselect = true };
+        var dialog = new Microsoft.Win32.OpenFileDialog { Filter = "PDF・Markdown|*.pdf;*.md;*.markdown|PDFファイル|*.pdf|Markdownファイル|*.md;*.markdown", Multiselect = true };
         if (dialog.ShowDialog(this) == true) OpenPaths(dialog.FileNames);
     }
     private void FilesDropped(object sender, DragEventArgs e)
     {
-        if (e.Data.GetData(DataFormats.FileDrop) is string[] files) OpenPaths(files.Where(x => string.Equals(System.IO.Path.GetExtension(x), ".pdf", StringComparison.OrdinalIgnoreCase)));
+        if (e.Data.GetData(DataFormats.FileDrop) is string[] files) OpenPaths(files.Where(x => new[] { ".pdf", ".md", ".markdown" }.Contains(System.IO.Path.GetExtension(x), StringComparer.OrdinalIgnoreCase)));
     }
     private async void TabChanged(object sender, SelectionChangedEventArgs e)
     {

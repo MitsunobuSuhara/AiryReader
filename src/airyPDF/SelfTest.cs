@@ -19,6 +19,12 @@ public static class SelfTest
         string fixture = System.IO.Path.GetFullPath("artifacts/dimension-check.pdf");
         CreateFixture(fixture, 5);
         var window = new MainWindow(); window.Show();
+        string markdownFixture = System.IO.Path.GetFullPath("artifacts/markdown-view.md");
+        File.WriteAllText(markdownFixture, "# 見出し\n\n本文と**太字**です。\n\n- 項目\n\n> 引用");
+        var markdownWindow = new MarkdownWindow(markdownFixture); markdownWindow.Show(); markdownWindow.UpdateLayout();
+        var markdownViewer = (System.Windows.Controls.FlowDocumentScrollViewer)markdownWindow.Content;
+        Check(markdownViewer.Document.Blocks.Count >= 4, "Markdownを追加部品なしで整形表示");
+        Capture(markdownWindow, "artifacts/markdown-window.png"); markdownWindow.Close();
         string uiPath = Environment.GetEnvironmentVariable("AIRYPDF_UI_PDF") ?? fixture;
         using var uiDocument = new PdfDocument(uiPath);
         int pageTotal = uiDocument.Count;
@@ -54,7 +60,7 @@ public static class SelfTest
         Check(pageNumber.Text == pageTotal.ToString(), "スクロールで最終ページに移動しページ番号を更新");
         Check(((Image)((Grid)host.Children[pageTotal - 1]).Children[0]).Source != null, "最終ページの内容を描画");
         Check(((Image)((Grid)host.Children[0]).Children[0]).Source == null, "画面から離れたページの画像を解放");
-        var zoomButton = FindButtons(window).First(b => (string?)b.Content == "＋");
+        var zoomButton = FindButtons(window).First(b => b.Content as string == "＋");
         double oldHeight = second.Height;
         zoomButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
         await Task.Delay(600); window.UpdateLayout();
@@ -83,7 +89,7 @@ public static class SelfTest
         await Task.Delay(500); window.ZoomByWheel(-120);
         Check(second.Height < oldHeight, "100％から次のホイールで縮小できる");
         EnterZoom("100");
-        Check(!FindButtons(window).Any(b => (string?)b.Content == "100%"), "100％ボタンを削除");
+        Check(!FindButtons(window).Any(b => b.Content as string == "100%"), "100％ボタンを削除");
         var fit = (Button)window.FindName("FitWidthButton");
         Check(((Panel)fit.Parent).Children[((Panel)fit.Parent).Children.Count - 1] == fit, "画面幅に合わせるを右端に配置");
         Check(window.FindName("SelectRegion") == null && fit.ToolTip?.ToString() == "画面幅に合わせて表示", "範囲選択を削除して画面幅の文言に変更");
@@ -97,7 +103,7 @@ public static class SelfTest
         for (int i = 0; i < 40 && !Near(second.Height, oldHeight); i++) zoomButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
         Check(Near(second.Height, oldHeight) && zoomInput.Text == "100", "画面幅調整後の＋ボタンも100％で停止");
         EnterZoom("105");
-        FindButtons(window).First(b => (string?)b.Content == "−").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        FindButtons(window).First(b => b.Content as string == "−").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
         Check(Near(second.Height, oldHeight), "−ボタンも100％で停止");
         Capture(window, "artifacts/continuous-last.png");
         viewer.ScrollToTop(); await Task.Delay(600); window.UpdateLayout();
@@ -222,7 +228,7 @@ public static class SelfTest
             for (int i = 0; i < 100 && tools.FieldCount < expectedFields; i++) await Task.Delay(100);
             tools.UpdateLayout();
             Check(tools.FieldCount == expectedFields && tools.StatusMessage.Contains("入力欄"), "フォーム欄としおりを読み込んで表示: " + tools.StatusMessage);
-            Check(FindButtons(tools).Any(b => (string?)b.Content == "入力内容を別名保存"), "フォーム編集画面を表示");
+            Check(FindButtons(tools).Any(b => b.Content as string == "入力内容を別名保存"), "フォーム編集画面を表示");
             Capture(tools, "artifacts/pdf-tools-window.png");
             tools.Close();
         }
