@@ -129,7 +129,7 @@ doc.add_paragraph("立派な企画書や完成図があったわけではあり�
 conversation("最初の相談", "仕事で使うPDFを、寸法どおりに印刷できるアプリが欲しいです。", True)
 
 doc.add_heading("現在のAiryReader", level=1)
-doc.add_paragraph("AiryReaderは、PDFの閲覧、複数ページのスクロール、倍率調整、原寸を意識した印刷、入力、注釈、検索、しおり、署名確認に加え、Markdown、テキスト、HTML、画像も同じタブで読めるWindowsアプリになりました。私はコードを一度も書いたことがありません。ただし、現場入力、測量、帳票作成、GISなどの実務ツールをAIとの会話で作り、仕事で試して直す経験は積んできました。その経験とAIの作業速度が合わさり、AiryReaderは空いた時間に話しかける形で、約1日でほぼ使えるところまで進みました。")
+doc.add_paragraph("AiryReaderは、PDFの閲覧、複数ページのスクロール、倍率調整、原寸を意識した印刷、入力、注釈、検索、しおり、署名確認に加え、Markdown、テキスト、画像も同じタブで読めるWindowsアプリになりました。私はコードを一度も書いたことがありません。ただし、現場入力、測量、帳票作成、GISなどの実務ツールをAIとの会話で作り、仕事で試して直す経験は積んできました。その経験とAIの作業速度が合わさり、AiryReaderは空いた時間に話しかける形で、約1日でほぼ使えるところまで進みました。")
 p=doc.add_paragraph(); p.alignment=WD_ALIGN_PARAGRAPH.CENTER
 r=p.add_run("これはチャットの逐語録ではなく、実際の開発経過をもとに読みやすく再構成した記録です。")
 r.font.size=Pt(8.5); r.font.color.rgb=RGBColor(90,90,90)

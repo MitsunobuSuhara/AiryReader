@@ -63,11 +63,10 @@ public partial class MainWindow : Window
             try
             {
                 string extension = System.IO.Path.GetExtension(path).ToLowerInvariant();
-                if (new[] { ".md", ".markdown", ".txt", ".html", ".htm" }.Contains(extension))
+                if (new[] { ".md", ".markdown", ".txt" }.Contains(extension))
                 {
                     string text = await ReadTextAsync(path);
-                    var document = extension is ".html" or ".htm" ? LightweightTextRenderer.BuildHtml(text) :
-                        extension == ".txt" ? LightweightTextRenderer.BuildPlain(text) : LightweightTextRenderer.Build(text);
+                    var document = extension == ".txt" ? LightweightTextRenderer.BuildPlain(text) : LightweightTextRenderer.Build(text);
                     var reader = new TextTabState(path, document);
                     var readerTab = new TabItem { Header = System.IO.Path.GetFileName(path), ToolTip = path, Tag = reader };
                     opening = true; Tabs.Items.Add(readerTab); Tabs.SelectedItem = readerTab; opening = false;
@@ -114,12 +113,12 @@ public partial class MainWindow : Window
         }
     }    private void OpenClick(object sender, RoutedEventArgs e)
     {
-        var dialog = new Microsoft.Win32.OpenFileDialog { Filter = "対応ファイル|*.pdf;*.md;*.markdown;*.txt;*.html;*.htm;*.jpg;*.jpeg;*.png;*.tif;*.tiff;*.bmp|PDF|*.pdf|文章|*.md;*.markdown;*.txt;*.html;*.htm|画像|*.jpg;*.jpeg;*.png;*.tif;*.tiff;*.bmp", Multiselect = true };
+        var dialog = new Microsoft.Win32.OpenFileDialog { Filter = "対応ファイル|*.pdf;*.md;*.markdown;*.txt;*.jpg;*.jpeg;*.png;*.tif;*.tiff;*.bmp|PDF|*.pdf|文章|*.md;*.markdown;*.txt|画像|*.jpg;*.jpeg;*.png;*.tif;*.tiff;*.bmp", Multiselect = true };
         if (dialog.ShowDialog(this) == true) OpenPaths(dialog.FileNames);
     }
     private void FilesDropped(object sender, DragEventArgs e)
     {
-        if (e.Data.GetData(DataFormats.FileDrop) is string[] files) OpenPaths(files.Where(x => new[] { ".pdf", ".md", ".markdown", ".txt", ".html", ".htm", ".jpg", ".jpeg", ".png", ".tif", ".tiff", ".bmp" }.Contains(System.IO.Path.GetExtension(x), StringComparer.OrdinalIgnoreCase)));
+        if (e.Data.GetData(DataFormats.FileDrop) is string[] files) OpenPaths(files.Where(x => new[] { ".pdf", ".md", ".markdown", ".txt", ".jpg", ".jpeg", ".png", ".tif", ".tiff", ".bmp" }.Contains(System.IO.Path.GetExtension(x), StringComparer.OrdinalIgnoreCase)));
     }
     private async void TabChanged(object sender, SelectionChangedEventArgs e)
     {
@@ -436,7 +435,7 @@ public partial class MainWindow : Window
     private void HelpClick(object s, RoutedEventArgs e)
     {
         MessageBox.Show(this,
-            "AiryReader 1.2.2\n\n対応形式：PDF、Markdown、TXT、HTML、JPEG、PNG、TIFF、BMP\nファイルを開く：Ctrl＋O、またはドラッグ＆ドロップ\nページ移動：ホイールで連続スクロール、ページ番号入力、左右のボタン\nPDF・画像の拡大縮小：Ctrl＋ホイール、＋／−、倍率入力、画面幅に合わせる\n画像：回転アイコン、ダブルクリックで100％／画面内表示\nMarkdown・TXT・HTML：Ctrl＋ホイールで文字倍率、Ctrl＋Fで検索、選択・コピー\n共通：Ctrl＋0で100％、Ctrl＋＋／－で倍率変更\n印刷：Ctrl＋P\nPDFの入力・注釈・検索・署名確認：Ctrl＋F\nパスワードはファイルを開く際に入力します。保存・ログには残しません。\n\n新しいPDFの印刷倍率は100%。指定倍率では自動縮小せず、欠けをプレビューで知らせます。\nドライバー側の拡大縮小・Nアップは無効にしてください。\n回転を保存するときは別名保存します。\n\n寸法確認用PDFには縦横100mmの基準線があります。\n会社での印刷は利用者評価で用途上合格（約0.1mmのずれに見えるとの報告）。",
+            "AiryReader 1.2.3\n\n対応形式：PDF、Markdown、TXT、JPEG、PNG、TIFF、BMP\nファイルを開く：Ctrl＋O、またはドラッグ＆ドロップ\nページ移動：ホイールで連続スクロール、ページ番号入力、左右のボタン\nPDF・画像の拡大縮小：Ctrl＋ホイール、＋／−、倍率入力、画面幅に合わせる\n画像：回転アイコン、ダブルクリックで100％／画面内表示\nMarkdown・TXT：Ctrl＋ホイールで文字倍率、Ctrl＋Fで検索、選択・コピー\n共通：Ctrl＋0で100％、Ctrl＋＋／－で倍率変更\n印刷：Ctrl＋P\nPDFの入力・注釈・検索・署名確認：Ctrl＋F\nパスワードはファイルを開く際に入力します。保存・ログには残しません。\n\n新しいPDFの印刷倍率は100%。指定倍率では自動縮小せず、欠けをプレビューで知らせます。\nドライバー側の拡大縮小・Nアップは無効にしてください。\n回転を保存するときは別名保存します。\n\n寸法確認用PDFには縦横100mmの基準線があります。\n会社での印刷は利用者評価で用途上合格（約0.1mmのずれに見えるとの報告）。",
             "AiryReader — 使い方", MessageBoxButton.OK, MessageBoxImage.Information);
     }
     private void ToolsClick(object sender, RoutedEventArgs e)

@@ -34,22 +34,6 @@ public static class LightweightTextRenderer
         for (int i = 0; i < lines.Length; i++) { paragraph.Inlines.Add(new Run(lines[i])); if (i + 1 < lines.Length) paragraph.Inlines.Add(new LineBreak()); }
         doc.Blocks.Add(paragraph); return doc;
     }
-    public static FlowDocument BuildHtml(string html)
-    {
-        string safe = Regex.Replace(html, "<(script|style|iframe|object)[^>]*>.*?</\\1>", "", RegexOptions.IgnoreCase | RegexOptions.Singleline);
-        safe = Regex.Replace(safe, "<h1[^>]*>", "\n# ", RegexOptions.IgnoreCase);
-        safe = Regex.Replace(safe, "<h2[^>]*>", "\n## ", RegexOptions.IgnoreCase);
-        safe = Regex.Replace(safe, "<h3[^>]*>", "\n### ", RegexOptions.IgnoreCase);
-        safe = Regex.Replace(safe, "<li[^>]*>", "\n- ", RegexOptions.IgnoreCase);
-        safe = Regex.Replace(safe, "<(br|/p|/div|/h1|/h2|/h3|/li)[^>]*>", "\n", RegexOptions.IgnoreCase);
-        safe = Regex.Replace(safe, "<blockquote[^>]*>", "\n> ", RegexOptions.IgnoreCase);
-        safe = Regex.Replace(safe, "<[^>]+>", " ");
-        safe = WebUtility.HtmlDecode(safe);
-        safe = Regex.Replace(safe, "[ \\t]+", " ");
-        safe = Regex.Replace(safe, "\\n[ \\t]+", "\n");
-        safe = Regex.Replace(safe, "\\n{3,}", "\n\n");
-        return Build(safe.Trim());
-    }
     private static FlowDocument NewDocument() => new()
     {
         PagePadding = new Thickness(54, 42, 54, 60), FontFamily = new FontFamily("Yu Gothic UI"), FontSize = 16,

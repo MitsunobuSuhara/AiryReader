@@ -26,7 +26,7 @@ public static class SelfTest
         Check(markdownViewer.Visibility == Visibility.Visible && markdownViewer.Document.Blocks.Count >= 4, "MarkdownをPDFと同じタブ内で整形表示");
         Check(((FrameworkElement)window.FindName("DocumentToolbar")).Visibility == Visibility.Visible && ((FrameworkElement)window.FindName("PageControls")).Visibility == Visibility.Collapsed && ((FrameworkElement)window.FindName("PrintButton")).Visibility == Visibility.Collapsed, "Markdownは文章用の倍率操作だけを表示");
         double markdownZoom = window.ActiveZoomForTest; window.ZoomByWheel(120); window.UpdateLayout();
-        Check(window.ActiveZoomForTest > markdownZoom && markdownViewer.Zoom > 100, "Markdown・TXT・HTMLをCtrlホイール相当で文字拡大");
+        Check(window.ActiveZoomForTest > markdownZoom && markdownViewer.Zoom > 100, "Markdown・TXTをCtrlホイール相当で文字拡大");
         Check(window.SearchTextForTest("本文") >= 1 && ((FrameworkElement)window.FindName("TextSearchBar")).Visibility == Visibility.Visible, "Ctrl＋F用の文章検索と強調表示");
         window.ScrollMarkdownByWheel(-120); window.UpdateLayout();
         Check(window.MarkdownOffset >= 170, "Markdownのホイール1段で十分な距離をスクロール");
@@ -34,11 +34,6 @@ public static class SelfTest
         File.WriteAllText(textFixture, "1行目\n2行目", Encoding.UTF8);
         await window.OpenPathsAsync([textFixture]); window.UpdateLayout();
         Check(markdownViewer.Visibility == Visibility.Visible, "TXTを同じタブで読み取り表示");
-        string htmlFixture = System.IO.Path.GetFullPath("artifacts/html-view.html");
-        File.WriteAllText(htmlFixture, "<h1>安全な見出し</h1><script>alert('x')</script><p>本文</p>", Encoding.UTF8);
-        await window.OpenPathsAsync([htmlFixture]); window.UpdateLayout();
-        string htmlText = new System.Windows.Documents.TextRange(markdownViewer.Document.ContentStart, markdownViewer.Document.ContentEnd).Text;
-        Check(htmlText.Contains("安全な見出し") && htmlText.Contains("本文") && !htmlText.Contains("alert"), "HTMLはスクリプトを実行せず本文だけ表示");
         string imageFixture = System.IO.Path.GetFullPath("artifacts/image-view.png");
         var testBitmap = new System.Windows.Media.Imaging.WriteableBitmap(12, 8, 96, 96, PixelFormats.Bgra32, null);
         byte[] pixels = Enumerable.Repeat((byte)180, 12 * 8 * 4).ToArray(); testBitmap.WritePixels(new Int32Rect(0, 0, 12, 8), pixels, 12 * 4, 0);

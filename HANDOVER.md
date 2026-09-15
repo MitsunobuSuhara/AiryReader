@@ -310,3 +310,6 @@ Release・UI・PDF・印刷・画像・文章操作の自動テスト成功。�
 利用者のPDFコメントにより、共有文書では過去に作った具体的なアプリ名を出さない方針へ変更。「現場入力」「測量」「帳票作成」「GIS」「地域別規程対応」という仕事内容だけを示し、コードは書かないがAIとの会話で複数の実務ツールを作って試す経験がある、という主旨は維持。Markdown、Word、PDFを再生成し、PDF全文に個別名がないこと、6ページすべてに本文があり描画範囲が正常なことを検査。
 ## Windows既定アプリ登録（2026-09-15）
 利用者依頼によりAiryReader 1.2.2へ更新。WindowsのRegisteredApplications／Capabilities／FileAssociationsと専用ProgIDを登録し、「設定」→「アプリ」→「既定のアプリ」→「AiryReader」にPDF、Markdown、TXT、HTML、JPEG、PNG、TIFF、BMPの12拡張子が表示されるようにした。Program Filesへ1.2.2を導入し、登録値を確認。Windowsの保護仕様により最終的な既定選択は利用者が設定画面で行う。Release・UI・PDF・印刷テスト成功、警告0・エラー0。配布ZIP: `artifacts/release/AiryReader-1.2.2-20260915-185058.zip`、SHA256 `EBAC6035F4AE94DB920C6E2F8D7CE4517129B266A632355F3281E1B5A9C28630`。
+
+## HTML対応を対象外へ変更（2026-09-15）
+利用者がHTMLは通常ブラウザで閲覧すると整理したため、AiryReader 1.2.3でHTML/HTMの読込、ファイル選択、ドラッグ＆ドロップ、案内、自己検証を削除。既存1.2.2のCapabilities、SupportedTypes、OpenWithProgidsに残るHTML/HTM登録もインストール時に除去する。HTML処理は小さく、削除による起動速度・容量の差はほぼないが、対応範囲と既定アプリ選択が明確になった。Program Filesへ導入し、HTML/HTM登録なし、PDF・Markdown・TXT・主要画像10拡張子の登録を確認。全テスト成功、警告0・エラー0。配布ZIP: `artifacts/release/AiryReader-1.2.3-20260915-190336.zip`、SHA256 `D7313A50DDF182616CA094F49BDB7C22F8AD1687C5C823871E62C0820DA3462C`。
