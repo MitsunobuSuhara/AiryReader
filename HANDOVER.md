@@ -345,3 +345,9 @@ Release・UI・PDF・印刷・画像・文章操作の自動テスト成功。�
 文章は64MB、画像は256MB・2億画素を上限とし、画像は本体展開前に画素数を検査。タブ列を横スクロール対応。配布ICOは透明な白い鶴の内側デザインを維持しつつ濃色円を敷き、明るい背景での判別性を確保。AiryReader登録時に旧Applications/airyPDF.exeと旧ProgIDを削除する。Windows既定アプリの最終選択はOS保護仕様により利用者操作だが、PDF/MD/Markdown/TXT/画像のCapabilitiesと拡張子別ProgID登録を実機確認。
 
 複数未保存TXTの切替・個別保存、安全な置換、UTF-16、外部変更、TXT印刷、タブ横スクロールを回帰テストへ追加。全PDF・印刷・UIテスト合格、ビルド警告0・エラー0。Program Files導入版 `1.4.0+2853f0c5065735548e8190c4d946e9189040f16f` を確認。配布ZIP: `artifacts/release/AiryReader-1.4.0-20260916-042803.zip`（112522607バイト）、SHA256 `1A4D8442200850D4852ACDA5655C0D6595FEBCB1FDEA4B504F0AFA9E978097A3`。
+
+## 紹介PDF更新・画像の単一ウィンドウ化（2026-09-16）
+
+`artifacts/share/AiryReader_AIとの会話から生まれたPDFアプリ.pdf` をAiryReader 1.4の現状へ更新。複数TXTタブ、安全な置換保存、外部変更警告、UTF-16/32、TXT印刷、大容量保護、タブ横移動、Windows登録整理を「現在のAiryReader」へ追加。PDFは6ページ、必須文言、全文字のページ内座標、全ページPNGの余白を検査。元のMarkdownとDOCXも同内容へ更新（成果物はGit対象外、生成元スクリプトをGit保存）。
+
+AiryReader 1.4.1では通常起動を1プロセスに集約。エクスプローラーから後続のPDF・PNG・JPEG等を開くと、同じWindows利用者の起動中AiryReaderへ名前付きパイプでパスを渡し、既存ウィンドウのタブへ追加する。全既存テスト合格、ビルド警告0・エラー0。Program Files版 `1.4.1+ee3ed5ec4fa99f4ed39e090a8c965582399c6153` を確認。PNGとJPEGを別起動する実機試験で、後続プロセス終了・AiryReaderプロセス1・画面上タブ2を確認。配布ZIP: `artifacts/release/AiryReader-1.4.1-20260916-051240.zip`、SHA256 `CDCD4C61F94B971E74321808DC06AF7169664DA4C0510E643A2A348F30572A8F`。
