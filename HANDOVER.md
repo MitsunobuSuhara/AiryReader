@@ -313,3 +313,6 @@ Release・UI・PDF・印刷・画像・文章操作の自動テスト成功。�
 
 ## HTML対応を対象外へ変更（2026-09-15）
 利用者がHTMLは通常ブラウザで閲覧すると整理したため、AiryReader 1.2.3でHTML/HTMの読込、ファイル選択、ドラッグ＆ドロップ、案内、自己検証を削除。既存1.2.2のCapabilities、SupportedTypes、OpenWithProgidsに残るHTML/HTM登録もインストール時に除去する。HTML処理は小さく、削除による起動速度・容量の差はほぼないが、対応範囲と既定アプリ選択が明確になった。Program Filesへ導入し、HTML/HTM登録なし、PDF・Markdown・TXT・主要画像10拡張子の登録を確認。全テスト成功、警告0・エラー0。配布ZIP: `artifacts/release/AiryReader-1.2.3-20260915-190336.zip`、SHA256 `D7313A50DDF182616CA094F49BDB7C22F8AD1687C5C823871E62C0820DA3462C`。
+
+## TXT直接編集（2026-09-15）
+利用者依頼によりAiryReader 1.2.4でTXTを閲覧専用から直接編集へ変更。TXTタブでは編集欄と保存ボタンを表示し、Ctrl+Sで元ファイルへ上書き保存する。UTF-8とShift-JISを読込時に判定し、元の文字コードを保って保存。変更中はタブ名に`*`を表示し、タブ／ウィンドウを閉じる際に保存・破棄・取消を確認する。Markdownは閲覧専用を維持。TXTの追記・実ファイル保存を含む全テスト成功、警告0・エラー0。Program Filesへ1.2.4導入済み。配布ZIP: `artifacts/release/AiryReader-1.2.4-20260915-191617.zip`、SHA256 `96108EEACDBC6AF229AD4C0B1355BF7B59C0194EA2C2600F45E3EF6C448CA502`。

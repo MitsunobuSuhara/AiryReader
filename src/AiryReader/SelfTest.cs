@@ -33,7 +33,10 @@ public static class SelfTest
         Capture(window, "artifacts/markdown-window.png");        string textFixture = System.IO.Path.GetFullPath("artifacts/text-view.txt");
         File.WriteAllText(textFixture, "1行目\n2行目", Encoding.UTF8);
         await window.OpenPathsAsync([textFixture]); window.UpdateLayout();
-        Check(markdownViewer.Visibility == Visibility.Visible, "TXTを同じタブで読み取り表示");
+        var textEditor = (TextBox)window.FindName("TextEditor");
+        Check(textEditor.Visibility == Visibility.Visible && textEditor.IsReadOnly == false, "TXTを同じタブで編集表示");
+        textEditor.Text += "\n追記"; window.SaveTextForTest();
+        Check(File.ReadAllText(textFixture, Encoding.UTF8).Contains("追記"), "TXTをCtrl＋S相当で上書き保存");
         string imageFixture = System.IO.Path.GetFullPath("artifacts/image-view.png");
         var testBitmap = new System.Windows.Media.Imaging.WriteableBitmap(12, 8, 96, 96, PixelFormats.Bgra32, null);
         byte[] pixels = Enumerable.Repeat((byte)180, 12 * 8 * 4).ToArray(); testBitmap.WritePixels(new Int32Rect(0, 0, 12, 8), pixels, 12 * 4, 0);

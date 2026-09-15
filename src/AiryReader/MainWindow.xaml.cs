@@ -16,10 +16,14 @@ public partial class MainWindow : Window
 
         public double ScrollOffset;
     }
-    private sealed class TextTabState(string path, System.Windows.Documents.FlowDocument document)
+    private sealed class TextTabState(string path, System.Windows.Documents.FlowDocument document, string text, Encoding encoding, bool editable)
     {
         public string Path = path;
         public System.Windows.Documents.FlowDocument Document = document;
+        public string Text = text;
+        public Encoding Encoding = encoding;
+        public bool Editable = editable;
+        public bool Dirty;
         public double Zoom = 1;
     }
     private TabState? Current => (Tabs.SelectedItem as TabItem)?.Tag as TabState;
@@ -65,9 +69,10 @@ public partial class MainWindow : Window
                 string extension = System.IO.Path.GetExtension(path).ToLowerInvariant();
                 if (new[] { ".md", ".markdown", ".txt" }.Contains(extension))
                 {
-                    string text = await ReadTextAsync(path);
+                    var loaded = await ReadTextAsync(path);
+                    string text = loaded.Text;
                     var document = extension == ".txt" ? LightweightTextRenderer.BuildPlain(text) : LightweightTextRenderer.Build(text);
-                    var reader = new TextTabState(path, document);
+                    var reader = new TextTabState(path, document, text, loaded.Encoding, extension == ".txt");
                     var readerTab = new TabItem { Header = System.IO.Path.GetFileName(path), ToolTip = path, Tag = reader };
                     opening = true; Tabs.Items.Add(readerTab); Tabs.SelectedItem = readerTab; opening = false;
                     await RenderCurrent(); continue;
@@ -102,14 +107,14 @@ public partial class MainWindow : Window
             catch (Exception ex) { Error(ex); Status.Text = "ファイルを開けませんでした。"; }
         }
     }
-    private static async Task<string> ReadTextAsync(string path)
+    private static async Task<(string Text, Encoding Encoding)> ReadTextAsync(string path)
     {
         byte[] bytes = await File.ReadAllBytesAsync(path);
-        try { return new UTF8Encoding(false, true).GetString(bytes); }
+        try { var encoding = new UTF8Encoding(false, true); return (encoding.GetString(bytes), new UTF8Encoding(false)); }
         catch (DecoderFallbackException)
         {
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
-            return Encoding.GetEncoding(932).GetString(bytes);
+            var encoding = Encoding.GetEncoding(932); return (encoding.GetString(bytes), encoding);
         }
     }    private void OpenClick(object sender, RoutedEventArgs e)
     {
@@ -136,7 +141,9 @@ public partial class MainWindow : Window
         TextSearchBar.Visibility = Visibility.Collapsed;
         Welcome.Visibility = state == null && textDocument == null && image == null ? Visibility.Visible : Visibility.Collapsed;
         Viewer.Visibility = state != null ? Visibility.Visible : Visibility.Collapsed;
-        MarkdownViewer.Visibility = textDocument != null ? Visibility.Visible : Visibility.Collapsed;
+        MarkdownViewer.Visibility = textDocument != null && !textDocument.Editable ? Visibility.Visible : Visibility.Collapsed;
+        TextEditor.Visibility = textDocument?.Editable == true ? Visibility.Visible : Visibility.Collapsed;
+        SaveTextButton.Visibility = textDocument?.Editable == true ? Visibility.Visible : Visibility.Collapsed;
         ImageViewer.Visibility = image != null ? Visibility.Visible : Visibility.Collapsed;
         DocumentToolbar.Visibility = state != null || textDocument != null || image != null ? Visibility.Visible : Visibility.Collapsed;
         PageControls.Visibility = state != null ? Visibility.Visible : Visibility.Collapsed;
@@ -144,9 +151,10 @@ public partial class MainWindow : Window
         FitWidthButton.Visibility = state != null || image != null ? Visibility.Visible : Visibility.Collapsed;
         PrintButton.Visibility = state != null ? Visibility.Visible : Visibility.Collapsed;
         ContentGrid.Background = textDocument != null || image != null ? Brushes.White : new SolidColorBrush(Color.FromRgb(188, 195, 204));
-        MarkdownViewer.Document = textDocument?.Document;
+        MarkdownViewer.Document = textDocument?.Editable == false ? textDocument.Document : null;
+        if (textDocument?.Editable == true && TextEditor.Text != textDocument.Text) TextEditor.Text = textDocument.Text;
         ReaderImage.Source = image?.Image;
-        if (textDocument != null) MarkdownViewer.Zoom = textDocument.Zoom * 100;
+        if (textDocument != null) { MarkdownViewer.Zoom = textDocument.Zoom * 100; TextEditor.FontSize = 15 * textDocument.Zoom; }
         if (image != null) ApplyImageLayout(image);
         if (!ZoomText.IsKeyboardFocusWithin && (state != null || textDocument != null || image != null)) ZoomText.Text = (ActiveZoom * 100).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
         try
@@ -246,6 +254,7 @@ public partial class MainWindow : Window
             text.Zoom = Math.Clamp(text.Zoom * factor, .1, 8);
             if (Math.Abs(text.Zoom - 1) < 1e-10) text.Zoom = 1;
             MarkdownViewer.Zoom = text.Zoom * 100;
+            TextEditor.FontSize = 15 * text.Zoom;
             if (!ZoomText.IsKeyboardFocusWithin) ZoomText.Text = (text.Zoom * 100).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
             UpdateNonPdfStatus();
         }
@@ -293,7 +302,7 @@ public partial class MainWindow : Window
     }
     private void UpdateNonPdfStatus()
     {
-        if (CurrentText is { } text) Status.Text = $"{System.IO.Path.GetFileName(text.Path)}  ·  表示 {text.Zoom * 100:0.##}%  ·  Ctrl＋Fで検索";
+        if (CurrentText is { } text) Status.Text = text.Editable ? $"{System.IO.Path.GetFileName(text.Path)}  ·  編集可能  ·  Ctrl＋Sで保存" : $"{System.IO.Path.GetFileName(text.Path)}  ·  表示 {text.Zoom * 100:0.##}%  ·  Ctrl＋Fで検索";
         else if (CurrentImage is { } image) Status.Text = $"{System.IO.Path.GetFileName(image.Path)}  ·  {image.Image.PixelWidth} × {image.Image.PixelHeight} px  ·  表示 {image.Zoom * 100:0.##}%";
     }
     private void ZoomInputGotFocus(object s, KeyboardFocusChangedEventArgs e) => ZoomText.SelectAll();
@@ -399,7 +408,38 @@ public partial class MainWindow : Window
         try { state.Document.SaveCopy(dialog.FileName); UpdateTabTitle(state); Status.Text = $"保存しました: {dialog.FileName}"; return true; }
         catch (Exception ex) { Error(ex); return false; }
     }
-    private void SaveClick(object s, RoutedEventArgs e) { if (Current is { } state) Save(state); }
+    private void SaveClick(object s, RoutedEventArgs e)
+    {
+        if (Current is { } state) Save(state);
+        else if (CurrentText is { Editable: true } text) SaveText(text);
+    }
+    private void SaveTextClick(object s, RoutedEventArgs e) { if (CurrentText is { Editable: true } text) SaveText(text); }
+    internal bool SaveTextForTest() => CurrentText is { Editable: true } text && SaveText(text);
+    private bool SaveText(TextTabState state)
+    {
+        try
+        {
+            File.WriteAllText(state.Path, TextEditor.Text, state.Encoding);
+            state.Text = TextEditor.Text; state.Dirty = false; UpdateTextTabTitle(state);
+            Status.Text = $"保存しました: {state.Path}"; return true;
+        }
+        catch (Exception ex) { Error(ex); return false; }
+    }
+    private void TextEditorChanged(object s, TextChangedEventArgs e)
+    {
+        if (opening || CurrentText is not { Editable: true } state) return;
+        state.Dirty = TextEditor.Text != state.Text; UpdateTextTabTitle(state);
+    }
+    private void UpdateTextTabTitle(TextTabState state)
+    {
+        foreach (TabItem tab in Tabs.Items) if (tab.Tag == state) tab.Header = System.IO.Path.GetFileName(state.Path) + (state.Dirty ? " *" : "");
+    }
+    private bool CanClose(TextTabState state)
+    {
+        if (!state.Editable || !state.Dirty) return true;
+        var result = MessageBox.Show(this, $"{System.IO.Path.GetFileName(state.Path)} の変更を保存しますか？", "未保存の変更", MessageBoxButton.YesNoCancel);
+        return result == MessageBoxResult.No || result == MessageBoxResult.Yes && SaveText(state);
+    }
     private bool CanClose(TabState state)
     {
         if (!state.Document.Dirty) return true;
@@ -410,13 +450,15 @@ public partial class MainWindow : Window
     {
         if (Tabs.SelectedItem is not TabItem tab) return;
         if (tab.Tag is TabState state && !CanClose(state)) return;
+        if (tab.Tag is TextTabState text && !CanClose(text)) return;
         ++renderVersion; Tabs.Items.Remove(tab);
         if (tab.Tag is TabState pdf) pdf.Document.Dispose();
     }
     private void WindowClosing(object? s, CancelEventArgs e)
     {
         var states = Tabs.Items.Cast<TabItem>().Select(t => t.Tag).OfType<TabState>().ToArray();
-        if (states.Any(state => !CanClose(state))) { e.Cancel = true; return; }
+        var textStates = Tabs.Items.Cast<TabItem>().Select(t => t.Tag).OfType<TextTabState>().ToArray();
+        if (states.Any(state => !CanClose(state)) || textStates.Any(state => !CanClose(state))) { e.Cancel = true; return; }
         WindowPreferences.Save(this);
         ++renderVersion; zoomTimer.Stop(); foreach (var state in states) state.Document.Dispose();
     }
@@ -435,7 +477,7 @@ public partial class MainWindow : Window
     private void HelpClick(object s, RoutedEventArgs e)
     {
         MessageBox.Show(this,
-            "AiryReader 1.2.3\n\n対応形式：PDF、Markdown、TXT、JPEG、PNG、TIFF、BMP\nファイルを開く：Ctrl＋O、またはドラッグ＆ドロップ\nページ移動：ホイールで連続スクロール、ページ番号入力、左右のボタン\nPDF・画像の拡大縮小：Ctrl＋ホイール、＋／−、倍率入力、画面幅に合わせる\n画像：回転アイコン、ダブルクリックで100％／画面内表示\nMarkdown・TXT：Ctrl＋ホイールで文字倍率、Ctrl＋Fで検索、選択・コピー\n共通：Ctrl＋0で100％、Ctrl＋＋／－で倍率変更\n印刷：Ctrl＋P\nPDFの入力・注釈・検索・署名確認：Ctrl＋F\nパスワードはファイルを開く際に入力します。保存・ログには残しません。\n\n新しいPDFの印刷倍率は100%。指定倍率では自動縮小せず、欠けをプレビューで知らせます。\nドライバー側の拡大縮小・Nアップは無効にしてください。\n回転を保存するときは別名保存します。\n\n寸法確認用PDFには縦横100mmの基準線があります。\n会社での印刷は利用者評価で用途上合格（約0.1mmのずれに見えるとの報告）。",
+            "AiryReader 1.2.4\n\n対応形式：PDF、Markdown、TXT、JPEG、PNG、TIFF、BMP\nファイルを開く：Ctrl＋O、またはドラッグ＆ドロップ\nページ移動：ホイールで連続スクロール、ページ番号入力、左右のボタン\nPDF・画像の拡大縮小：Ctrl＋ホイール、＋／−、倍率入力、画面幅に合わせる\n画像：回転アイコン、ダブルクリックで100％／画面内表示\nMarkdown：Ctrl＋ホイールで文字倍率、Ctrl＋Fで検索、選択・コピー\nTXT：直接編集、Ctrl＋Sで上書き保存\n共通：Ctrl＋0で100％、Ctrl＋＋／－で倍率変更\n印刷：Ctrl＋P\nPDFの入力・注釈・検索・署名確認：Ctrl＋F\nパスワードはファイルを開く際に入力します。保存・ログには残しません。\n\n新しいPDFの印刷倍率は100%。指定倍率では自動縮小せず、欠けをプレビューで知らせます。\nドライバー側の拡大縮小・Nアップは無効にしてください。\n回転を保存するときは別名保存します。\n\n寸法確認用PDFには縦横100mmの基準線があります。\n会社での印刷は利用者評価で用途上合格（約0.1mmのずれに見えるとの報告）。",
             "AiryReader — 使い方", MessageBoxButton.OK, MessageBoxImage.Information);
     }
     private void ToolsClick(object sender, RoutedEventArgs e)
