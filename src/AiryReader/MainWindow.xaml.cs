@@ -124,9 +124,14 @@ public partial class MainWindow : Window
                 {
                     if (new FileInfo(path).Length > MaxImageBytes) throw new IOException("画像が大きすぎます（上限256MB）。");
                     byte[] bytes = await File.ReadAllBytesAsync(path);
+                    using (var probe = new MemoryStream(bytes, writable: false))
+                    {
+                        var decoder = BitmapDecoder.Create(probe, BitmapCreateOptions.PreservePixelFormat, BitmapCacheOption.None);
+                        var frame = decoder.Frames[0];
+                        if ((long)frame.PixelWidth * frame.PixelHeight > MaxImagePixels) throw new IOException("画像の画素数が大きすぎます（上限2億画素）。");
+                    }
                     var bitmap = new BitmapImage(); bitmap.BeginInit(); bitmap.CacheOption = BitmapCacheOption.OnLoad;
                     using (var stream = new MemoryStream(bytes)) { bitmap.StreamSource = stream; bitmap.EndInit(); }
-                    if ((long)bitmap.PixelWidth * bitmap.PixelHeight > MaxImagePixels) throw new IOException("画像の画素数が大きすぎます（上限2億画素）。");
                     bitmap.Freeze();
                     var image = new ImageTabState(path, bitmap);
                     var imageTab = CreateTab(System.IO.Path.GetFileName(path), path, image);
