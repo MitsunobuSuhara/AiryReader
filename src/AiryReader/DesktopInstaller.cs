@@ -125,19 +125,15 @@ public static class DesktopInstaller
             using (var openWith = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(@"Software\Classes\" + extension + @"\OpenWithProgids", true))
                 openWith?.DeleteValue("AiryReader.Document", false);
 
-        // Windowsの既定アプリが旧実行名を記憶していても、新しい実行ファイルへ安全につなぐ。
-        using (var legacy = Microsoft.Win32.Registry.CurrentUser.CreateSubKey(@"Software\Classes\Applications\airyPDF.exe"))
-        {
-            legacy.SetValue("FriendlyAppName", "AiryReader");
-            using (var command = legacy.CreateSubKey(@"shell\open\command")) command.SetValue("", "\"" + exe + "\" \"%1\"");
-            using var types = legacy.CreateSubKey("SupportedTypes");
-            foreach (string extension in supportedExtensions) types.SetValue(extension, "");
-            foreach (string extension in retiredExtensions) types.DeleteValue(extension, false);
-        }
+        // 旧名が「プログラムから開く」に残らないよう、AiryReader登録時に整理する。
+        Microsoft.Win32.Registry.CurrentUser.DeleteSubKeyTree(@"Software\Classes\Applications\airyPDF.exe", false);
+        Microsoft.Win32.Registry.CurrentUser.DeleteSubKeyTree(@"Software\Classes\airyPDF.Document", false);
+        Microsoft.Win32.Registry.CurrentUser.DeleteSubKeyTree(@"Software\Classes\airyPDF.Image", false);
+        using (var oldRegistered = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(@"Software\RegisteredApplications", true)) oldRegistered?.DeleteValue("airyPDF", false);
         Microsoft.Win32.Registry.CurrentUser.DeleteSubKeyTree(@"Software\Microsoft\Windows\CurrentVersion\Uninstall\airyPDF", false);
         using var uninstall = Microsoft.Win32.Registry.CurrentUser.CreateSubKey(@"Software\Microsoft\Windows\CurrentVersion\Uninstall\AiryReader");
         uninstall.SetValue("DisplayName", "AiryReader");
-        uninstall.SetValue("DisplayVersion", "1.3.1");
+        uninstall.SetValue("DisplayVersion", "1.4.0");
         uninstall.SetValue("Publisher", "AiryReader");
         uninstall.SetValue("InstallLocation", folder);
         uninstall.SetValue("DisplayIcon", IconLocation(exe));

@@ -5,6 +5,7 @@ using System.Text;
 using System.Windows.Media.Imaging;
 using System.Windows.Input;
 using System.Windows.Threading;
+using System.Security.Cryptography;
 
 namespace AiryReader;
 
@@ -23,10 +24,12 @@ public partial class MainWindow : Window
         public string Path = path;
         public System.Windows.Documents.FlowDocument Document = document;
         public string Text = text;
+        public string LiveText = text;
         public Encoding Encoding = encoding;
         public bool Editable = editable;
         public bool Dirty;
         public double Zoom = 1;
+        public byte[]? FileHash = File.Exists(path) ? SHA256.HashData(File.ReadAllBytes(path)) : null;
     }
     private TabState? Current => (Tabs.SelectedItem as TabItem)?.Tag as TabState;
     private TextTabState? CurrentText => (Tabs.SelectedItem as TabItem)?.Tag as TextTabState;
@@ -54,6 +57,9 @@ public partial class MainWindow : Window
     private readonly List<int> textEditorMatches = [];
     private int textEditorQueryLength;
     private int textMatchIndex = -1;
+    private const long MaxTextBytes = 64L * 1024 * 1024;
+    private const long MaxImageBytes = 256L * 1024 * 1024;
+    private const long MaxImagePixels = 200_000_000;
 
     public MainWindow()
     {
@@ -116,9 +122,11 @@ public partial class MainWindow : Window
                 }
                 if (new[] { ".jpg", ".jpeg", ".png", ".tif", ".tiff", ".bmp" }.Contains(extension))
                 {
+                    if (new FileInfo(path).Length > MaxImageBytes) throw new IOException("画像が大きすぎます（上限256MB）。");
                     byte[] bytes = await File.ReadAllBytesAsync(path);
                     var bitmap = new BitmapImage(); bitmap.BeginInit(); bitmap.CacheOption = BitmapCacheOption.OnLoad;
                     using (var stream = new MemoryStream(bytes)) { bitmap.StreamSource = stream; bitmap.EndInit(); }
+                    if ((long)bitmap.PixelWidth * bitmap.PixelHeight > MaxImagePixels) throw new IOException("画像の画素数が大きすぎます（上限2億画素）。");
                     bitmap.Freeze();
                     var image = new ImageTabState(path, bitmap);
                     var imageTab = CreateTab(System.IO.Path.GetFileName(path), path, image);
@@ -146,7 +154,13 @@ public partial class MainWindow : Window
     }
     private static async Task<(string Text, Encoding Encoding)> ReadTextAsync(string path)
     {
+        if (new FileInfo(path).Length > MaxTextBytes) throw new IOException("文章ファイルが大きすぎます（上限64MB）。");
         byte[] bytes = await File.ReadAllBytesAsync(path);
+        if (bytes.AsSpan().StartsWith(new byte[] { 0xEF, 0xBB, 0xBF })) return (new UTF8Encoding(true, true).GetString(bytes, 3, bytes.Length - 3), new UTF8Encoding(true));
+        if (bytes.AsSpan().StartsWith(new byte[] { 0xFF, 0xFE, 0x00, 0x00 })) return (new UTF32Encoding(false, true, true).GetString(bytes, 4, bytes.Length - 4), new UTF32Encoding(false, true));
+        if (bytes.AsSpan().StartsWith(new byte[] { 0x00, 0x00, 0xFE, 0xFF })) return (new UTF32Encoding(true, true, true).GetString(bytes, 4, bytes.Length - 4), new UTF32Encoding(true, true));
+        if (bytes.AsSpan().StartsWith(new byte[] { 0xFF, 0xFE })) return (new UnicodeEncoding(false, true, true).GetString(bytes, 2, bytes.Length - 2), new UnicodeEncoding(false, true));
+        if (bytes.AsSpan().StartsWith(new byte[] { 0xFE, 0xFF })) return (new UnicodeEncoding(true, true, true).GetString(bytes, 2, bytes.Length - 2), new UnicodeEncoding(true, true));
         try { var encoding = new UTF8Encoding(false, true); return (encoding.GetString(bytes), new UTF8Encoding(false)); }
         catch (DecoderFallbackException)
         {
@@ -186,10 +200,10 @@ public partial class MainWindow : Window
         PageControls.Visibility = state != null ? Visibility.Visible : Visibility.Collapsed;
         RotationControls.Visibility = state != null || image != null ? Visibility.Visible : Visibility.Collapsed;
         FitWidthButton.Visibility = state != null || image != null ? Visibility.Visible : Visibility.Collapsed;
-        PrintButton.Visibility = state != null ? Visibility.Visible : Visibility.Collapsed;
+        PrintButton.Visibility = state != null || textDocument?.Editable == true ? Visibility.Visible : Visibility.Collapsed;
         ContentGrid.Background = textDocument != null || image != null ? Brushes.White : new SolidColorBrush(Color.FromRgb(188, 195, 204));
         MarkdownViewer.Document = textDocument?.Editable == false ? textDocument.Document : null;
-        if (textDocument?.Editable == true && TextEditor.Text != textDocument.Text) TextEditor.Text = textDocument.Text;
+        if (textDocument?.Editable == true && TextEditor.Text != textDocument.LiveText) { opening = true; TextEditor.Text = textDocument.LiveText; opening = false; }
         ReaderImage.Source = image?.Image;
         if (textDocument != null) { MarkdownViewer.Zoom = textDocument.Zoom * 100; TextEditor.FontSize = 15 * textDocument.Zoom; }
         if (image != null) ApplyImageLayout(image);
@@ -463,12 +477,27 @@ public partial class MainWindow : Window
         }
         return SaveTextToPath(state, destination);
     }
+    private static bool HasExternalTextChange(TextTabState state, string destination) =>
+        string.Equals(destination, state.Path, StringComparison.OrdinalIgnoreCase) && state.FileHash != null && File.Exists(destination) &&
+        !SHA256.HashData(File.ReadAllBytes(destination)).SequenceEqual(state.FileHash);
+    internal bool CurrentTextHasExternalChangeForTest() => CurrentText is { Editable: true } text && HasExternalTextChange(text, text.Path);
     private bool SaveTextToPath(TextTabState state, string destination)
     {
         try
         {
-            File.WriteAllText(destination, TextEditor.Text, state.Encoding);
-            state.Path = destination; state.Text = TextEditor.Text; state.Dirty = false; UpdateTextTabTitle(state);
+            if (HasExternalTextChange(state, destination) &&
+                MessageBox.Show(this, "このファイルは別のアプリで変更されています。AiryReaderの内容で上書きしますか？", "外部で変更されています", MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes) return false;
+            string folder = System.IO.Path.GetDirectoryName(System.IO.Path.GetFullPath(destination))!;
+            Directory.CreateDirectory(folder);
+            string temporary = System.IO.Path.Combine(folder, "." + System.IO.Path.GetFileName(destination) + "." + Guid.NewGuid().ToString("N") + ".tmp");
+            try
+            {
+                File.WriteAllText(temporary, state.LiveText, state.Encoding);
+                if (File.Exists(destination)) File.Replace(temporary, destination, null);
+                else File.Move(temporary, destination);
+            }
+            finally { if (File.Exists(temporary)) File.Delete(temporary); }
+            state.Path = destination; state.Text = state.LiveText; state.FileHash = SHA256.HashData(File.ReadAllBytes(destination)); state.Dirty = false; UpdateTextTabTitle(state);
             foreach (TabItem tab in Tabs.Items) if (tab.Tag == state) tab.ToolTip = destination;
             Status.Text = $"保存しました: {destination}"; return true;
         }
@@ -478,7 +507,8 @@ public partial class MainWindow : Window
     private void TextEditorChanged(object s, TextChangedEventArgs e)
     {
         if (opening || CurrentText is not { Editable: true } state) return;
-        state.Dirty = TextEditor.Text != state.Text; UpdateTextTabTitle(state);
+        state.LiveText = TextEditor.Text;
+        state.Dirty = state.LiveText != state.Text; UpdateTextTabTitle(state);
     }
     private void UpdateTextTabTitle(TextTabState state)
     {
@@ -522,8 +552,21 @@ public partial class MainWindow : Window
     }
     private void PrintClick(object s, RoutedEventArgs e)
     {
-        if (Current is not { } state) return;
-        try { new PrintWindow(state.Document, state.Page, null) { Owner = this }.ShowDialog(); }
+        try
+        {
+            if (Current is { } state) new PrintWindow(state.Document, state.Page, null) { Owner = this }.ShowDialog();
+            else if (CurrentText is { Editable: true } text)
+            {
+                var dialog = new System.Windows.Controls.PrintDialog();
+                if (dialog.ShowDialog() == true)
+                {
+                    var document = LightweightTextRenderer.BuildPlain(text.LiveText);
+                    document.PagePadding = new Thickness(48); document.ColumnWidth = double.PositiveInfinity;
+                    document.PageWidth = dialog.PrintableAreaWidth; document.PageHeight = dialog.PrintableAreaHeight;
+                    dialog.PrintDocument(((System.Windows.Documents.IDocumentPaginatorSource)document).DocumentPaginator, string.IsNullOrEmpty(text.Path) ? "無題.txt" : System.IO.Path.GetFileName(text.Path));
+                }
+            }
+        }
         catch (Exception ex) { Error(ex); }
     }
     private void CalibrationClick(object s, RoutedEventArgs e)
@@ -535,7 +578,7 @@ public partial class MainWindow : Window
     private void HelpClick(object s, RoutedEventArgs e)
     {
         MessageBox.Show(this,
-            "AiryReader 1.3.1\n\n対応形式：PDF、Markdown、TXT、JPEG、PNG、TIFF、BMP\nファイルを開く：Ctrl＋O、またはドラッグ＆ドロップ\nページ移動：ホイールで連続スクロール、ページ番号入力、左右のボタン\nPDF・画像の拡大縮小：Ctrl＋ホイール、＋／−、倍率入力、画面幅に合わせる\n画像：回転アイコン、ダブルクリックで100％／画面内表示\nMarkdown：Ctrl＋ホイールで文字倍率、Ctrl＋Fで検索、選択・コピー\nTXT：単体起動で新しいメモ、＋またはCtrl＋Tでタブ追加、×またはCtrl＋Wで閉じる、Ctrl＋Sで保存、Ctrl＋Fで検索\n共通：Ctrl＋0で100％、Ctrl＋＋／－で倍率変更\n印刷：Ctrl＋P\nPDFの入力・注釈・検索・署名確認：Ctrl＋F\nパスワードはファイルを開く際に入力します。保存・ログには残しません。\n\n新しいPDFの印刷倍率は100%。指定倍率では自動縮小せず、欠けをプレビューで知らせます。\nドライバー側の拡大縮小・Nアップは無効にしてください。\n回転を保存するときは別名保存します。\n\n寸法確認用PDFには縦横100mmの基準線があります。\n会社での印刷は利用者評価で用途上合格（約0.1mmのずれに見えるとの報告）。",
+            "AiryReader 1.4\n\n対応形式：PDF、Markdown、TXT、JPEG、PNG、TIFF、BMP\nファイルを開く：Ctrl＋O、またはドラッグ＆ドロップ\nページ移動：ホイールで連続スクロール、ページ番号入力、左右のボタン\nPDF・画像の拡大縮小：Ctrl＋ホイール、＋／−、倍率入力、画面幅に合わせる\n画像：回転アイコン、ダブルクリックで100％／画面内表示\nMarkdown：Ctrl＋ホイールで文字倍率、Ctrl＋Fで検索、選択・コピー\nTXT：単体起動で新しいメモ、＋またはCtrl＋Tでタブ追加、×またはCtrl＋Wで閉じる、Ctrl＋Sで安全に保存、Ctrl＋Fで検索、Ctrl＋Pで印刷\n共通：Ctrl＋0で100％、Ctrl＋＋／－で倍率変更\n印刷：Ctrl＋P\nPDFの入力・注釈・検索・署名確認：Ctrl＋F\nパスワードはファイルを開く際に入力します。保存・ログには残しません。\n\n新しいPDFの印刷倍率は100%。指定倍率では自動縮小せず、欠けをプレビューで知らせます。\nドライバー側の拡大縮小・Nアップは無効にしてください。\n回転を保存するときは別名保存します。\n\n寸法確認用PDFには縦横100mmの基準線があります。\n会社での印刷は利用者評価で用途上合格（約0.1mmのずれに見えるとの報告）。",
             "AiryReader — 使い方", MessageBoxButton.OK, MessageBoxImage.Information);
     }
     private void ToolsClick(object sender, RoutedEventArgs e)
