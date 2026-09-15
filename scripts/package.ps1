@@ -3,7 +3,7 @@ $ErrorActionPreference = "Stop"
 $taskRoot = Split-Path -Parent $PSScriptRoot
 Set-Location $taskRoot
 if (!(Test-Path "artifacts/app/Helper/airy-pdf-helper.exe")) { throw "Run build-pdf-helper.ps1 and build.ps1 -Test -Publish first." }
-$taskRelease = Join-Path $taskRoot ("artifacts/release/AiryReader-1.3.0-" + (Get-Date -Format "yyyyMMdd-HHmmss"))
+$taskRelease = Join-Path $taskRoot ("artifacts/release/AiryReader-1.3.1-" + (Get-Date -Format "yyyyMMdd-HHmmss"))
 New-Item -ItemType Directory -Path $taskRelease -Force | Out-Null
 Copy-Item -LiteralPath "artifacts/app" -Destination (Join-Path $taskRelease "app") -Recurse
 $taskSetup = @"

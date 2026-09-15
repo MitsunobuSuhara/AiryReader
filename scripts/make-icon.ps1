@@ -12,7 +12,8 @@ try {
         try {
             $taskGraphics.InterpolationMode = [Drawing.Drawing2D.InterpolationMode]::HighQualityBicubic
             $taskGraphics.Clear([Drawing.Color]::Transparent)
-            $taskGraphics.DrawImage($taskSource,0,0,$taskSize,$taskSize)
+            $taskInset = if ($taskSize -le 64) { -0.15 * $taskSize } else { 0 }
+            $taskGraphics.DrawImage($taskSource,$taskInset,$taskInset,$taskSize-2*$taskInset,$taskSize-2*$taskInset)
             $taskBitmap.Save($taskMemory,[Drawing.Imaging.ImageFormat]::Png)
             $taskPngs.Add($taskMemory.ToArray())
         } finally { $taskMemory.Dispose(); $taskGraphics.Dispose(); $taskBitmap.Dispose() }

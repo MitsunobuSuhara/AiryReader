@@ -1,4 +1,6 @@
 using System.ComponentModel;
+using System.Runtime.InteropServices;
+using System.Windows.Interop;
 using System.Text;
 using System.Windows.Media.Imaging;
 using System.Windows.Input;
@@ -56,19 +58,29 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        SourceInitialized += (_, _) => ApplyDarkTitleBar();
         WindowPreferences.Restore(this);
         zoomTimer.Tick += async (_, _) => { zoomTimer.Stop(); await RenderVisible(); };
         DpiChanged += (_, _) => { zoomTimer.Stop(); zoomTimer.Start(); };
+    }
+    [DllImport("dwmapi.dll")]
+    private static extern int DwmSetWindowAttribute(IntPtr hwnd, int attribute, ref int value, int size);
+    private void ApplyDarkTitleBar()
+    {
+        int enabled = 1;
+        IntPtr handle = new WindowInteropHelper(this).Handle;
+        if (DwmSetWindowAttribute(handle, 20, ref enabled, sizeof(int)) != 0)
+            DwmSetWindowAttribute(handle, 19, ref enabled, sizeof(int));
     }
     private void Error(Exception ex) => MessageBox.Show(this, ex.Message, "AiryReader", MessageBoxButton.OK, MessageBoxImage.Warning);
     public async void NewText() => await NewTextAsync();
     private void NewTextClick(object s, RoutedEventArgs e) => NewText();
     private TabItem CreateTab(string title, string toolTip, object state)
     {
-        var tab = new TabItem { ToolTip = toolTip, Tag = state };
+        var tab = new TabItem { ToolTip = toolTip, Tag = state, Padding = new Thickness(12, 6, 7, 6), MinHeight = 42 };
         var header = new StackPanel { Orientation = Orientation.Horizontal };
-        header.Children.Add(new TextBlock { Text = title, VerticalAlignment = VerticalAlignment.Center });
-        var close = new Button { Content = "×", Tag = tab, ToolTip = "タブを閉じる  Ctrl+W", FontSize = 14, Padding = new Thickness(5, 0, 5, 1), Margin = new Thickness(7, 0, -3, 0), Background = Brushes.Transparent, BorderThickness = new Thickness(0) };
+        header.Children.Add(new TextBlock { Text = title, VerticalAlignment = VerticalAlignment.Center, FontSize = 15 });
+        var close = new Button { Content = "×", Tag = tab, ToolTip = "タブを閉じる  Ctrl+W", FontSize = 19, FontWeight = FontWeights.SemiBold, Width = 30, Height = 28, Padding = new Thickness(0, -2, 0, 1), Margin = new Thickness(9, 0, -2, 0), Background = Brushes.Transparent, BorderThickness = new Thickness(0) };
         close.Click += CloseTabClick; header.Children.Add(close); tab.Header = header;
         return tab;
     }
@@ -523,7 +535,7 @@ public partial class MainWindow : Window
     private void HelpClick(object s, RoutedEventArgs e)
     {
         MessageBox.Show(this,
-            "AiryReader 1.3.0\n\n対応形式：PDF、Markdown、TXT、JPEG、PNG、TIFF、BMP\nファイルを開く：Ctrl＋O、またはドラッグ＆ドロップ\nページ移動：ホイールで連続スクロール、ページ番号入力、左右のボタン\nPDF・画像の拡大縮小：Ctrl＋ホイール、＋／−、倍率入力、画面幅に合わせる\n画像：回転アイコン、ダブルクリックで100％／画面内表示\nMarkdown：Ctrl＋ホイールで文字倍率、Ctrl＋Fで検索、選択・コピー\nTXT：単体起動で新しいメモ、＋またはCtrl＋Tでタブ追加、×またはCtrl＋Wで閉じる、Ctrl＋Sで保存、Ctrl＋Fで検索\n共通：Ctrl＋0で100％、Ctrl＋＋／－で倍率変更\n印刷：Ctrl＋P\nPDFの入力・注釈・検索・署名確認：Ctrl＋F\nパスワードはファイルを開く際に入力します。保存・ログには残しません。\n\n新しいPDFの印刷倍率は100%。指定倍率では自動縮小せず、欠けをプレビューで知らせます。\nドライバー側の拡大縮小・Nアップは無効にしてください。\n回転を保存するときは別名保存します。\n\n寸法確認用PDFには縦横100mmの基準線があります。\n会社での印刷は利用者評価で用途上合格（約0.1mmのずれに見えるとの報告）。",
+            "AiryReader 1.3.1\n\n対応形式：PDF、Markdown、TXT、JPEG、PNG、TIFF、BMP\nファイルを開く：Ctrl＋O、またはドラッグ＆ドロップ\nページ移動：ホイールで連続スクロール、ページ番号入力、左右のボタン\nPDF・画像の拡大縮小：Ctrl＋ホイール、＋／−、倍率入力、画面幅に合わせる\n画像：回転アイコン、ダブルクリックで100％／画面内表示\nMarkdown：Ctrl＋ホイールで文字倍率、Ctrl＋Fで検索、選択・コピー\nTXT：単体起動で新しいメモ、＋またはCtrl＋Tでタブ追加、×またはCtrl＋Wで閉じる、Ctrl＋Sで保存、Ctrl＋Fで検索\n共通：Ctrl＋0で100％、Ctrl＋＋／－で倍率変更\n印刷：Ctrl＋P\nPDFの入力・注釈・検索・署名確認：Ctrl＋F\nパスワードはファイルを開く際に入力します。保存・ログには残しません。\n\n新しいPDFの印刷倍率は100%。指定倍率では自動縮小せず、欠けをプレビューで知らせます。\nドライバー側の拡大縮小・Nアップは無効にしてください。\n回転を保存するときは別名保存します。\n\n寸法確認用PDFには縦横100mmの基準線があります。\n会社での印刷は利用者評価で用途上合格（約0.1mmのずれに見えるとの報告）。",
             "AiryReader — 使い方", MessageBoxButton.OK, MessageBoxImage.Information);
     }
     private void ToolsClick(object sender, RoutedEventArgs e)
