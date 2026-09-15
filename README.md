@@ -6,6 +6,8 @@ Windows 11 x64用の軽量ファイルリーダー。PDFは文字のドラッグ
 
 ## インストール・起動
 
+初めて使う場合は、GitHubの [Releases](https://github.com/MitsunobuSuhara/AiryReader/releases/latest) から最新の `AiryReader-*.zip` をダウンロードします。
+
 セットアップ一式を展開し、Setup.cmdを実行します。Windowsの管理者確認後に C:\Program Files\AiryReader へ.NETとPDF編集エンジンを同梱して登録します。AiryReaderのデスクトップ・スタートメニュー・既存のタスクバーピンを更新します。実行ファイルは C:\Program Files\AiryReader\AiryReader.exe です。更新時はAiryReaderを閉じてからSetup.cmdを実行します。Windowsの「設定」→「アプリ」→「既定のアプリ」→「AiryReader」から、PDF、Markdown、文章、画像の各形式を既定にできます。ファイルを右クリック→「プログラムから開く」から個別に設定することもできます。
 
 PDF・Markdown・TXT・JPEG・PNG・TIFF・BMPの「プログラムから開く」にAiryReaderを追加します。 画像はCtrl＋ホイールで拡大縮小し、画面内表示と左右回転ができます。MarkdownはCtrl＋ホイールで文字倍率を変え、Ctrl＋Fで本文検索できます。TXTは単体起動時に白紙で開き、Ctrl＋Z／Y、切り取り・コピー・貼り付け・全選択などWindows標準の編集操作を使えます。最後のタブの隣にある＋またはCtrl＋Tで新しいメモを追加し、Ctrl＋Sで保存できます。各タブ内の×またはCtrl＋Wで閉じられます。Ctrl＋Nでも新規作成できます。Ctrl＋Shift＋Sで別名保存できます。共通の倍率操作はCtrl＋0、Ctrl＋＋、Ctrl＋－にも対応します。既定のPDFアプリは変更しません。設定はユーザーのLocalAppData/AiryReaderに保存します。登録解除はWindowsのアプリ一覧から行います。登録と自分のリンクを解除し、実行ファイルと設定は復旧用に残す方式です。
