@@ -2,6 +2,8 @@ using System.Runtime.InteropServices;
 
 namespace AiryReader;
 
+public readonly record struct PdfTextCharacter(char Character, Rect RelativeBox);
+
 // PDFiumは全ドキュメント間で直列化する。描画中の回転・解放との競合も防ぐ。
 public sealed class PdfDocument : IDisposable
 {
@@ -167,6 +169,30 @@ public sealed class PdfDocument : IDisposable
         finally { if (File.Exists(temporary)) File.Delete(temporary); }
     }
 
+    public IReadOnlyList<PdfTextCharacter> TextCharacters(int index) => WithPage(index, page =>
+    {
+        IntPtr text = Native.FPDFText_LoadPage(page);
+        if (text == IntPtr.Zero) return (IReadOnlyList<PdfTextCharacter>)Array.Empty<PdfTextCharacter>();
+        try
+        {
+            int count = Native.FPDFText_CountChars(text);
+            var result = new List<PdfTextCharacter>(Math.Max(0, count));
+            for (int i = 0; i < count; i++)
+            {
+                uint code = Native.FPDFText_GetUnicode(text, i);
+                if (code > char.MaxValue) continue;
+                Rect box = Rect.Empty;
+                if (Native.FPDFText_GetCharBox(text, i, out double left, out double right, out double bottom, out double top) &&
+                    Native.FPDF_PageToDevice(page, 0, 0, 10000, 10000, 0, left, top, out int x1, out int y1) != 0 &&
+                    Native.FPDF_PageToDevice(page, 0, 0, 10000, 10000, 0, right, bottom, out int x2, out int y2) != 0)
+                    box = new Rect(Math.Min(x1, x2) / 10000.0, Math.Min(y1, y2) / 10000.0,
+                        Math.Abs(x2 - x1) / 10000.0, Math.Abs(y2 - y1) / 10000.0);
+                result.Add(new PdfTextCharacter((char)code, box));
+            }
+            return result;
+        }
+        finally { Native.FPDFText_ClosePage(text); }
+    });
     public string PageText(int index) => WithPage(index, page =>
     {
         IntPtr text = Native.FPDFText_LoadPage(page);
@@ -208,6 +234,9 @@ public sealed class PdfDocument : IDisposable
         [DllImport(Dll)] internal static extern void FPDFText_ClosePage(IntPtr text);
         [DllImport(Dll)] internal static extern int FPDFText_CountChars(IntPtr text);
         [DllImport(Dll)] internal static extern int FPDFText_GetText(IntPtr text, int start, int count, [Out] byte[] result);
+        [DllImport(Dll)] internal static extern uint FPDFText_GetUnicode(IntPtr text, int index);
+        [DllImport(Dll)] [return: MarshalAs(UnmanagedType.Bool)] internal static extern bool FPDFText_GetCharBox(IntPtr text, int index, out double left, out double right, out double bottom, out double top);
+        [DllImport(Dll)] internal static extern int FPDF_PageToDevice(IntPtr page, int startX, int startY, int sizeX, int sizeY, int rotate, double pageX, double pageY, out int deviceX, out int deviceY);
         [DllImport(Dll)] internal static extern void FPDF_InitLibrary();
         [DllImport(Dll)] internal static extern IntPtr FPDF_LoadMemDocument64(IntPtr data, UIntPtr size, IntPtr password);
         [DllImport(Dll)] internal static extern uint FPDF_GetLastError();

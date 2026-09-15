@@ -81,6 +81,14 @@ public static class SelfTest
         Check(window.ActiveZoomForTest > imageZoom && ((Image)window.FindName("ReaderImage")).Width > 12, "画像をCtrlホイール相当で拡大");
         Check(((FrameworkElement)window.FindName("RotationControls")).Visibility == Visibility.Visible && ((FrameworkElement)window.FindName("FitWidthButton")).Visibility == Visibility.Visible, "画像の回転と画面内フィットを表示");
         Capture(window, "artifacts/image-window.png");
+        string selectablePath = System.IO.Path.Combine(AppContext.BaseDirectory, "Samples", "print-check.pdf");
+        await window.OpenPathsAsync([selectablePath]); window.UpdateLayout();
+        string selectedPdfText = window.SelectPdfTextForTest(0, 0, 100);
+        Check(!string.IsNullOrWhiteSpace(selectedPdfText), "PDFの文字情報を選択対象として取得");
+        var selectionCanvas = (Canvas)((Grid)((StackPanel)window.FindName("PagesHost")).Children[0]).Children[1];
+        Check(selectionCanvas.Children.Count > 0, "PDFの選択範囲を青い層で表示");
+        Check(window.CopySelectedPdfForTest() && Clipboard.GetText() == selectedPdfText, "選択したPDF文字をクリップボードへコピー");
+        using (var selectableDocument = new PdfDocument(selectablePath)) Check(selectableDocument.TextCharacters(0).Any(c => !c.RelativeBox.IsEmpty), "PDF文字の画面座標を取得");
         string uiPath = Environment.GetEnvironmentVariable("AIRYPDF_UI_PDF") ?? fixture;
         using var uiDocument = new PdfDocument(uiPath);
         int pageTotal = uiDocument.Count;

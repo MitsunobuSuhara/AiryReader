@@ -10,7 +10,7 @@
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <AssemblyName>AiryReader</AssemblyName>
     <ApplicationIcon>../../assets/icons/AiryReader.ico</ApplicationIcon>
-    <Version>1.4.1</Version>
+    <Version>1.4.2</Version>
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
   </PropertyGroup>
   <ItemGroup>

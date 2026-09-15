@@ -45,6 +45,9 @@ public partial class MainWindow : Window
     {
         public Grid Surface = new() { Background = Brushes.White, HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 0, 0, 24), UseLayoutRounding = true, SnapsToDevicePixels = true };
         public Image Image = new() { Stretch = Stretch.Fill, SnapsToDevicePixels = true };
+        public Canvas Selection = new() { Background = Brushes.Transparent, Cursor = Cursors.IBeam };
+        public IReadOnlyList<PdfTextCharacter>? Characters;
+        public int Page;
         public int RenderWidth;
     }
     private readonly List<PageView> pageViews = [];
@@ -57,6 +60,9 @@ public partial class MainWindow : Window
     private readonly List<int> textEditorMatches = [];
     private int textEditorQueryLength;
     private int textMatchIndex = -1;
+    private PageView? selectingPage;
+    private int selectionAnchor = -1;
+    private string selectedPdfText = "";
     private const long MaxTextBytes = 64L * 1024 * 1024;
     private const long MaxImageBytes = 256L * 1024 * 1024;
     private const long MaxImagePixels = 200_000_000;
@@ -192,6 +198,7 @@ public partial class MainWindow : Window
         var textDocument = CurrentText;
         var image = CurrentImage;
         changingLayout = true;
+        ClearPdfSelection();
         PagesHost.Children.Clear(); pageViews.Clear();
         ClearTextSearch();
         TextSearchBar.Visibility = Visibility.Collapsed;
@@ -220,10 +227,13 @@ public partial class MainWindow : Window
             if (state == null) return;
             for (int i = 0; i < state.Document.Count; i++)
             {
-                var view = new PageView();
+                var view = new PageView { Page = i };
                 RenderOptions.SetBitmapScalingMode(view.Image, BitmapScalingMode.NearestNeighbor);
-                view.Surface.Tag = i;
-                view.Surface.Children.Add(view.Image);
+                view.Surface.Tag = i; view.Selection.Tag = view;
+                view.Selection.MouseLeftButtonDown += PdfSelectionStarted;
+                view.Selection.MouseMove += PdfSelectionMoved;
+                view.Selection.MouseLeftButtonUp += PdfSelectionEnded;
+                view.Surface.Children.Add(view.Image); view.Surface.Children.Add(view.Selection);
                 pageViews.Add(view); PagesHost.Children.Add(view.Surface);
             }
             SizePages(); Viewer.UpdateLayout();
@@ -317,6 +327,7 @@ public partial class MainWindow : Window
     }
     private void ZoomPdf(TabState state, double factor, Point? anchor)
     {
+        ClearPdfSelection();
         ++renderVersion;
         zoomPauseUntil = 0;
         double old = state.Zoom; state.Zoom = Math.Clamp(old * factor, .1, 8);
@@ -432,6 +443,78 @@ public partial class MainWindow : Window
     {
         if (e.ClickCount == 2 && CurrentImage is { } image) { if (Math.Abs(image.Zoom - 1) < .001) FitClick(s, e); else Zoom(1 / image.Zoom, e.GetPosition(ImageViewer)); e.Handled = true; }
     }
+    private static int PdfCharacterAt(PageView view, Point point)
+    {
+        if (view.Characters == null || view.Surface.ActualWidth <= 0 || view.Surface.ActualHeight <= 0) return -1;
+        int nearest = -1; double nearestDistance = double.MaxValue;
+        for (int i = 0; i < view.Characters.Count; i++)
+        {
+            Rect relative = view.Characters[i].RelativeBox;
+            if (relative.IsEmpty) continue;
+            var box = new Rect(relative.X * view.Surface.ActualWidth, relative.Y * view.Surface.ActualHeight,
+                Math.Max(1, relative.Width * view.Surface.ActualWidth), Math.Max(1, relative.Height * view.Surface.ActualHeight));
+            if (box.Contains(point)) return i;
+            double dx = point.X < box.Left ? box.Left - point.X : point.X > box.Right ? point.X - box.Right : 0;
+            double dy = point.Y < box.Top ? box.Top - point.Y : point.Y > box.Bottom ? point.Y - box.Bottom : 0;
+            double distance = dx * dx + dy * dy;
+            if (distance < nearestDistance) { nearestDistance = distance; nearest = i; }
+        }
+        return nearestDistance <= 40 * 40 ? nearest : -1;
+    }
+    private void PdfSelectionStarted(object s, MouseButtonEventArgs e)
+    {
+        if (Current is not { } state || s is not Canvas { Tag: PageView view }) return;
+        view.Characters ??= state.Document.TextCharacters(view.Page);
+        int hit = PdfCharacterAt(view, e.GetPosition(view.Selection));
+        ClearPdfSelection();
+        if (hit < 0) return;
+        selectingPage = view; selectionAnchor = hit;
+        view.Selection.CaptureMouse(); UpdatePdfSelection(view, hit); e.Handled = true;
+    }
+    private void PdfSelectionMoved(object s, MouseEventArgs e)
+    {
+        if (e.LeftButton != MouseButtonState.Pressed || selectingPage == null || s != selectingPage.Selection) return;
+        int hit = PdfCharacterAt(selectingPage, e.GetPosition(selectingPage.Selection));
+        if (hit >= 0) UpdatePdfSelection(selectingPage, hit);
+    }
+    private void PdfSelectionEnded(object s, MouseButtonEventArgs e)
+    {
+        if (selectingPage != null) selectingPage.Selection.ReleaseMouseCapture();
+        selectingPage = null; selectionAnchor = -1; e.Handled = true;
+    }
+    private void UpdatePdfSelection(PageView view, int end)
+    {
+        if (view.Characters == null || selectionAnchor < 0) return;
+        int first = Math.Min(selectionAnchor, end), last = Math.Max(selectionAnchor, end);
+        selectedPdfText = new string(view.Characters.Skip(first).Take(last - first + 1).Select(x => x.Character).ToArray()).TrimEnd('\0');
+        view.Selection.Children.Clear();
+        foreach (PdfTextCharacter character in view.Characters.Skip(first).Take(Math.Min(last - first + 1, 10000)))
+        {
+            Rect box = character.RelativeBox; if (box.IsEmpty || char.IsWhiteSpace(character.Character)) continue;
+            var mark = new System.Windows.Shapes.Rectangle { Width = Math.Max(1, box.Width * view.Surface.ActualWidth), Height = Math.Max(1, box.Height * view.Surface.ActualHeight), Fill = new SolidColorBrush(Color.FromArgb(95, 40, 125, 245)), IsHitTestVisible = false };
+            Canvas.SetLeft(mark, box.X * view.Surface.ActualWidth); Canvas.SetTop(mark, box.Y * view.Surface.ActualHeight); view.Selection.Children.Add(mark);
+        }
+        Status.Text = $"{selectedPdfText.Length}文字を選択  ·  Ctrl＋Cでコピー";
+    }
+    private void ClearPdfSelection()
+    {
+        foreach (PageView view in pageViews) view.Selection.Children.Clear();
+        selectedPdfText = ""; selectingPage = null; selectionAnchor = -1;
+    }
+    internal string SelectPdfTextForTest(int page, int first, int last)
+    {
+        if (Current is not { } state) return "";
+        var characters = state.Document.TextCharacters(page);
+        if (characters.Count == 0) return "";
+        first = Math.Clamp(first, 0, characters.Count - 1); last = Math.Clamp(last, first, characters.Count - 1);
+        pageViews[page].Characters = characters; selectionAnchor = first; UpdatePdfSelection(pageViews[page], last); return selectedPdfText;
+    }
+    internal bool CopySelectedPdfForTest()
+    {
+        if (string.IsNullOrEmpty(selectedPdfText)) return false;
+        Clipboard.SetText(selectedPdfText); return Clipboard.GetText() == selectedPdfText;
+    }
+
     private void ViewerWheel(object s, MouseWheelEventArgs e)
     {
         if ((Keyboard.Modifiers & ModifierKeys.Control) != 0) { ZoomByWheel(e.Delta, e.GetPosition(Viewer)); e.Handled = true; }
@@ -583,7 +666,7 @@ public partial class MainWindow : Window
     private void HelpClick(object s, RoutedEventArgs e)
     {
         MessageBox.Show(this,
-            "AiryReader 1.4.1\n\n対応形式：PDF、Markdown、TXT、JPEG、PNG、TIFF、BMP\nファイルを開く：Ctrl＋O、またはドラッグ＆ドロップ\nページ移動：ホイールで連続スクロール、ページ番号入力、左右のボタン\nPDF・画像の拡大縮小：Ctrl＋ホイール、＋／−、倍率入力、画面幅に合わせる\n画像：回転アイコン、ダブルクリックで100％／画面内表示\nMarkdown：Ctrl＋ホイールで文字倍率、Ctrl＋Fで検索、選択・コピー\nTXT：単体起動で新しいメモ、＋またはCtrl＋Tでタブ追加、×またはCtrl＋Wで閉じる、Ctrl＋Sで安全に保存、Ctrl＋Fで検索、Ctrl＋Pで印刷\n共通：Ctrl＋0で100％、Ctrl＋＋／－で倍率変更\n印刷：Ctrl＋P\nPDFの入力・注釈・検索・署名確認：Ctrl＋F\nパスワードはファイルを開く際に入力します。保存・ログには残しません。\n\n新しいPDFの印刷倍率は100%。指定倍率では自動縮小せず、欠けをプレビューで知らせます。\nドライバー側の拡大縮小・Nアップは無効にしてください。\n回転を保存するときは別名保存します。\n\n寸法確認用PDFには縦横100mmの基準線があります。\n会社での印刷は利用者評価で用途上合格（約0.1mmのずれに見えるとの報告）。",
+            "AiryReader 1.4.2\n\n対応形式：PDF、Markdown、TXT、JPEG、PNG、TIFF、BMP\nファイルを開く：Ctrl＋O、またはドラッグ＆ドロップ\nページ移動：ホイールで連続スクロール、ページ番号入力、左右のボタン\nPDF・画像の拡大縮小：Ctrl＋ホイール、＋／−、倍率入力、画面幅に合わせる\n画像：回転アイコン、ダブルクリックで100％／画面内表示\nMarkdown：Ctrl＋ホイールで文字倍率、Ctrl＋Fで検索、選択・コピー\nTXT：単体起動で新しいメモ、＋またはCtrl＋Tでタブ追加、×またはCtrl＋Wで閉じる、Ctrl＋Sで安全に保存、Ctrl＋Fで検索、Ctrl＋Pで印刷\n共通：Ctrl＋0で100％、Ctrl＋＋／－で倍率変更\nPDF文字の選択：文字をドラッグ、Ctrl＋Cでコピー\n印刷：Ctrl＋P\nPDFの入力・注釈・検索・署名確認：Ctrl＋F\nパスワードはファイルを開く際に入力します。保存・ログには残しません。\n\n新しいPDFの印刷倍率は100%。指定倍率では自動縮小せず、欠けをプレビューで知らせます。\nドライバー側の拡大縮小・Nアップは無効にしてください。\n回転を保存するときは別名保存します。\n\n寸法確認用PDFには縦横100mmの基準線があります。\n会社での印刷は利用者評価で用途上合格（約0.1mmのずれに見えるとの報告）。",
             "AiryReader — 使い方", MessageBoxButton.OK, MessageBoxImage.Information);
     }
     private void ToolsClick(object sender, RoutedEventArgs e)
@@ -677,6 +760,7 @@ public partial class MainWindow : Window
         }
         if (Keyboard.Modifiers == ModifierKeys.Control)
         {
+            if (e.Key == Key.C && Current != null && CopySelectedPdfForTest()) { Status.Text = $"{selectedPdfText.Length}文字をコピーしました。"; e.Handled = true; return; }
             if (e.Key is Key.N or Key.T) { NewText(); e.Handled = true; }
             if (e.Key == Key.O) { OpenClick(s, e); e.Handled = true; }
             if (e.Key == Key.P) { PrintClick(s, e); e.Handled = true; }
