@@ -19,6 +19,11 @@ public static class SelfTest
         string fixture = System.IO.Path.GetFullPath("artifacts/dimension-check.pdf");
         CreateFixture(fixture, 5);
         var window = new MainWindow(); window.Show();
+        await window.NewTextAsync(); window.UpdateLayout();
+        var blankEditor = (TextBox)window.FindName("TextEditor");
+        blankEditor.Text = "新しいメモ";
+        string blankPath = System.IO.Path.GetFullPath("artifacts/new-note.txt");
+        Check(window.SaveTextToPathForTest(blankPath) && File.ReadAllText(blankPath, Encoding.UTF8) == "新しいメモ", "単体起動用の白紙TXTを作成して保存");
         string markdownFixture = System.IO.Path.GetFullPath("artifacts/markdown-view.md");
         File.WriteAllText(markdownFixture, "# 見出し\n\n本文と**太字**です。\n\n- 項目\n\n> 引用\n\n" + string.Join("\n\n", Enumerable.Repeat("スクロール確認用の本文です。", 80)));
         await window.OpenPathsAsync([markdownFixture]); window.UpdateLayout();

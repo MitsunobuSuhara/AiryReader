@@ -316,3 +316,6 @@ Release・UI・PDF・印刷・画像・文章操作の自動テスト成功。�
 
 ## TXT直接編集（2026-09-15）
 利用者依頼によりAiryReader 1.2.4でTXTを閲覧専用から直接編集へ変更。TXTタブでは編集欄と保存ボタンを表示し、Ctrl+Sで元ファイルへ上書き保存する。UTF-8とShift-JISを読込時に判定し、元の文字コードを保って保存。変更中はタブ名に`*`を表示し、タブ／ウィンドウを閉じる際に保存・破棄・取消を確認する。Markdownは閲覧専用を維持。TXTの追記・実ファイル保存を含む全テスト成功、警告0・エラー0。Program Filesへ1.2.4導入済み。配布ZIP: `artifacts/release/AiryReader-1.2.4-20260915-191617.zip`、SHA256 `96108EEACDBC6AF229AD4C0B1355BF7B59C0194EA2C2600F45E3EF6C448CA502`。
+
+## 単体起動をメモ帳化（2026-09-15）
+利用者依頼によりAiryReader 1.2.5では、ファイル指定なしで単体起動すると編集可能な`無題.txt`タブを自動作成する。Ctrl+Nで新しいメモ、Ctrl+Sで初回は保存先選択・以降上書き、Ctrl+Shift+Sで別名保存。未保存マークと終了確認、UTF-8/Shift-JIS保持は継続。ファイル指定起動時は余分な白紙タブを作らない。白紙作成・保存を含む全テスト成功、警告0・エラー0。Program Filesへ1.2.5導入済み。配布ZIP: `artifacts/release/AiryReader-1.2.5-20260915-192358.zip`、SHA256 `FA8F92F47B43EC6D8A2D1D1D620E3414B68F8DEFDDD7EB0EFC67963B66E8DC87`。

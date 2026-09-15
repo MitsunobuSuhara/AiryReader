@@ -56,6 +56,8 @@ public partial class App : System.Windows.Application
         var window = new MainWindow();
         MainWindow = window;
         window.Show();
-        window.OpenPaths(e.Args.Where(File.Exists));
+        string[] files = e.Args.Where(File.Exists).ToArray();
+        if (files.Length == 0) window.NewText();
+        else window.OpenPaths(files);
     }
 }

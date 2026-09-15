@@ -59,6 +59,14 @@ public partial class MainWindow : Window
         DpiChanged += (_, _) => { zoomTimer.Stop(); zoomTimer.Start(); };
     }
     private void Error(Exception ex) => MessageBox.Show(this, ex.Message, "AiryReader", MessageBoxButton.OK, MessageBoxImage.Warning);
+    public async void NewText() => await NewTextAsync();
+    internal async Task NewTextAsync()
+    {
+        var state = new TextTabState("", LightweightTextRenderer.BuildPlain(""), "", new UTF8Encoding(false), true);
+        var tab = new TabItem { Header = "無題.txt", ToolTip = "新しいテキスト", Tag = state };
+        opening = true; Tabs.Items.Add(tab); Tabs.SelectedItem = tab; opening = false;
+        await RenderCurrent(); TextEditor.Focus();
+    }
     public async void OpenPaths(IEnumerable<string> paths) => await OpenPathsAsync(paths);
     public async Task OpenPathsAsync(IEnumerable<string> paths)
     {
@@ -302,7 +310,7 @@ public partial class MainWindow : Window
     }
     private void UpdateNonPdfStatus()
     {
-        if (CurrentText is { } text) Status.Text = text.Editable ? $"{System.IO.Path.GetFileName(text.Path)}  ·  編集可能  ·  Ctrl＋Sで保存" : $"{System.IO.Path.GetFileName(text.Path)}  ·  表示 {text.Zoom * 100:0.##}%  ·  Ctrl＋Fで検索";
+        if (CurrentText is { } text) Status.Text = text.Editable ? $"{(string.IsNullOrEmpty(text.Path) ? "無題.txt" : System.IO.Path.GetFileName(text.Path))}  ·  編集可能  ·  Ctrl＋Sで保存" : $"{System.IO.Path.GetFileName(text.Path)}  ·  表示 {text.Zoom * 100:0.##}%  ·  Ctrl＋Fで検索";
         else if (CurrentImage is { } image) Status.Text = $"{System.IO.Path.GetFileName(image.Path)}  ·  {image.Image.PixelWidth} × {image.Image.PixelHeight} px  ·  表示 {image.Zoom * 100:0.##}%";
     }
     private void ZoomInputGotFocus(object s, KeyboardFocusChangedEventArgs e) => ZoomText.SelectAll();
@@ -415,16 +423,29 @@ public partial class MainWindow : Window
     }
     private void SaveTextClick(object s, RoutedEventArgs e) { if (CurrentText is { Editable: true } text) SaveText(text); }
     internal bool SaveTextForTest() => CurrentText is { Editable: true } text && SaveText(text);
-    private bool SaveText(TextTabState state)
+    private bool SaveText(TextTabState state, bool saveAs = false)
+    {
+        string destination = state.Path;
+        if (saveAs || string.IsNullOrEmpty(destination))
+        {
+            var dialog = new Microsoft.Win32.SaveFileDialog { Filter = "テキストファイル|*.txt", FileName = string.IsNullOrEmpty(destination) ? "無題.txt" : System.IO.Path.GetFileName(destination), OverwritePrompt = true };
+            if (dialog.ShowDialog(this) != true) return false;
+            destination = dialog.FileName;
+        }
+        return SaveTextToPath(state, destination);
+    }
+    private bool SaveTextToPath(TextTabState state, string destination)
     {
         try
         {
-            File.WriteAllText(state.Path, TextEditor.Text, state.Encoding);
-            state.Text = TextEditor.Text; state.Dirty = false; UpdateTextTabTitle(state);
-            Status.Text = $"保存しました: {state.Path}"; return true;
+            File.WriteAllText(destination, TextEditor.Text, state.Encoding);
+            state.Path = destination; state.Text = TextEditor.Text; state.Dirty = false; UpdateTextTabTitle(state);
+            foreach (TabItem tab in Tabs.Items) if (tab.Tag == state) tab.ToolTip = destination;
+            Status.Text = $"保存しました: {destination}"; return true;
         }
         catch (Exception ex) { Error(ex); return false; }
     }
+    internal bool SaveTextToPathForTest(string destination) => CurrentText is { Editable: true } text && SaveTextToPath(text, destination);
     private void TextEditorChanged(object s, TextChangedEventArgs e)
     {
         if (opening || CurrentText is not { Editable: true } state) return;
@@ -432,7 +453,7 @@ public partial class MainWindow : Window
     }
     private void UpdateTextTabTitle(TextTabState state)
     {
-        foreach (TabItem tab in Tabs.Items) if (tab.Tag == state) tab.Header = System.IO.Path.GetFileName(state.Path) + (state.Dirty ? " *" : "");
+        foreach (TabItem tab in Tabs.Items) if (tab.Tag == state) tab.Header = (string.IsNullOrEmpty(state.Path) ? "無題.txt" : System.IO.Path.GetFileName(state.Path)) + (state.Dirty ? " *" : "");
     }
     private bool CanClose(TextTabState state)
     {
@@ -477,7 +498,7 @@ public partial class MainWindow : Window
     private void HelpClick(object s, RoutedEventArgs e)
     {
         MessageBox.Show(this,
-            "AiryReader 1.2.4\n\n対応形式：PDF、Markdown、TXT、JPEG、PNG、TIFF、BMP\nファイルを開く：Ctrl＋O、またはドラッグ＆ドロップ\nページ移動：ホイールで連続スクロール、ページ番号入力、左右のボタン\nPDF・画像の拡大縮小：Ctrl＋ホイール、＋／−、倍率入力、画面幅に合わせる\n画像：回転アイコン、ダブルクリックで100％／画面内表示\nMarkdown：Ctrl＋ホイールで文字倍率、Ctrl＋Fで検索、選択・コピー\nTXT：直接編集、Ctrl＋Sで上書き保存\n共通：Ctrl＋0で100％、Ctrl＋＋／－で倍率変更\n印刷：Ctrl＋P\nPDFの入力・注釈・検索・署名確認：Ctrl＋F\nパスワードはファイルを開く際に入力します。保存・ログには残しません。\n\n新しいPDFの印刷倍率は100%。指定倍率では自動縮小せず、欠けをプレビューで知らせます。\nドライバー側の拡大縮小・Nアップは無効にしてください。\n回転を保存するときは別名保存します。\n\n寸法確認用PDFには縦横100mmの基準線があります。\n会社での印刷は利用者評価で用途上合格（約0.1mmのずれに見えるとの報告）。",
+            "AiryReader 1.2.5\n\n対応形式：PDF、Markdown、TXT、JPEG、PNG、TIFF、BMP\nファイルを開く：Ctrl＋O、またはドラッグ＆ドロップ\nページ移動：ホイールで連続スクロール、ページ番号入力、左右のボタン\nPDF・画像の拡大縮小：Ctrl＋ホイール、＋／−、倍率入力、画面幅に合わせる\n画像：回転アイコン、ダブルクリックで100％／画面内表示\nMarkdown：Ctrl＋ホイールで文字倍率、Ctrl＋Fで検索、選択・コピー\nTXT：単体起動で新しいメモ、Ctrl＋Nで新規作成、Ctrl＋Sで保存\n共通：Ctrl＋0で100％、Ctrl＋＋／－で倍率変更\n印刷：Ctrl＋P\nPDFの入力・注釈・検索・署名確認：Ctrl＋F\nパスワードはファイルを開く際に入力します。保存・ログには残しません。\n\n新しいPDFの印刷倍率は100%。指定倍率では自動縮小せず、欠けをプレビューで知らせます。\nドライバー側の拡大縮小・Nアップは無効にしてください。\n回転を保存するときは別名保存します。\n\n寸法確認用PDFには縦横100mmの基準線があります。\n会社での印刷は利用者評価で用途上合格（約0.1mmのずれに見えるとの報告）。",
             "AiryReader — 使い方", MessageBoxButton.OK, MessageBoxImage.Information);
     }
     private void ToolsClick(object sender, RoutedEventArgs e)
@@ -544,8 +565,14 @@ public partial class MainWindow : Window
 
     private void WindowKeyDown(object s, KeyEventArgs e)
     {
+        if (Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift) && e.Key == Key.S)
+        {
+            if (CurrentText is { Editable: true } text) SaveText(text, true);
+            e.Handled = true; return;
+        }
         if (Keyboard.Modifiers == ModifierKeys.Control)
         {
+            if (e.Key == Key.N) { NewText(); e.Handled = true; }
             if (e.Key == Key.O) { OpenClick(s, e); e.Handled = true; }
             if (e.Key == Key.P) { PrintClick(s, e); e.Handled = true; }
             if (e.Key == Key.S) { SaveClick(s, e); e.Handled = true; }
