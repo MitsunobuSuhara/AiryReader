@@ -82,31 +82,8 @@ p.add_run("2026年9月  制作記録").italic=True
 doc.add_page_break()
 doc.add_heading("始まりは仕事の困りごと", level=1)
 doc.add_paragraph("私は、仕事で使う1/5000の図面を正確に出力したいと考えていました。Adobe Acrobat Readerでは、1/5000の図面を原寸どおりに印刷でき、図面上の1cmが現地の50mを表すスケールも正確に合っていました。ただ、私の環境では立ち上がりが重く感じられ、案内や広告も多いことが気になっていました。反対に、ブラウザは立ち上がりが速く、軽くて使いやすいのですが、原寸どおりに出力する設定を選んでも、印刷した紙の1cmが正確に合わないことが何度もありました。そこで、Adobeのように寸法を正確に出力でき、ブラウザのように軽くて簡単な、自分向けのオリジナルなアプリが欲しいと思いました。そこでAIに、仕様書ではなく普段の言葉で相談しました。")
-doc.add_heading("朝に枠組みができ、その後に育っていった", level=2)
-doc.add_paragraph("Gitに残っている記録を見ると、9月13日の朝、短い会話と確認を繰り返す中でPDFリーダーの基本的な枠組みができていました。")
-timeline = [
-    ("8:23", "欲しいPDFリーダーの条件を整理し、見た目の方向を決める"),
-    ("8:54", "PDFを開いて閲覧し、原寸を保つ印刷プレビューの最初の試作が動く"),
-    ("9:24", "Windowsのデスクトップアプリとして動かし、会社の複合機で印刷確認できる準備を整える"),
-    ("9:51", "複数ページを縦に並べ、ホイールで続けて読めるようにする"),
-    ("9:59", "タスクバーから古い版が開く問題を直し、普段使いできる起動先へ揃える"),
-]
-table = doc.add_table(rows=0, cols=2)
-table.autofit = False
-table.columns[0].width = Inches(.85)
-table.columns[1].width = Inches(6.1)
-for i, (time, event) in enumerate(timeline):
-    cells = table.add_row().cells
-    cells[0].width, cells[1].width = Inches(.85), Inches(6.1)
-    shade(cells[0], "202020")
-    shade(cells[1], "F3F4F6" if i % 2 == 0 else "FFFFFF")
-    for c in cells:
-        margins(c, top=75, bottom=75)
-        c.vertical_alignment = WD_CELL_VERTICAL_ALIGNMENT.CENTER
-    p = cells[0].paragraphs[0]; p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-    r = p.add_run(time); r.bold = True; r.font.color.rgb = RGBColor(255,255,255)
-    cells[1].paragraphs[0].add_run(event)
-doc.add_paragraph("この朝の時点で、『PDFを開く → 複数ページをスクロールして見る → 原寸を意識した印刷プレビューを出す → デスクトップアプリとして起動する』ところまで形になっていました。その後、実際に使いながら細かな調整やメモ機能などを追加しました。私が実際にAIと会話していた時間は、肌感覚では合計2〜3時間ほどです。仕事や用事の合間に少し話しかけ、AIが作成や修正、確認を進め、できたものを私が触って感想を返す。その繰り返しで、使えるアプリが少しずつ出来上がっていきました。")
+doc.add_heading("話しているうちに形になった", level=2)
+doc.add_paragraph("9月13日の朝に、『寸法を正確に印刷できて、軽くて使いやすいPDFリーダーが欲しい』とAIへ話しました。すると、その日の朝のうちに基本的な形ができ、実際にPDFを開いて試せるようになりました。私はコードを書かず、できたものを触って、気づいたことを普段の言葉で返しただけです。その後も同じやり取りを重ね、細かな使い勝手やメモ機能などを追加していきました。私が実際にAIと会話していた時間は、肌感覚では合計2〜3時間ほどです。特別な知識がなくても、欲しいものを話し、試した感想を伝えていくことで、使えるアプリが短い時間で形になりました。")
 doc.add_paragraph("昨夜は晩酌をしながら、思いついた機能を会話で少しずつ追加していました。まとまった開発時間を確保したというより、普段の時間の中で楽しみながら形にしていった、という感覚です。")
 conversation("私", "Adobe Acrobat Readerと同じくらい、寸法に正確に出力できるPDFリーダーを作りたいです。", True)
 conversation("AI", "まず、原寸や指定倍率では勝手に縮小せず、用紙からはみ出す場合はプレビューで分かるようにしましょう。")
