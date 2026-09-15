@@ -131,7 +131,7 @@ public static class DesktopInstaller
         Microsoft.Win32.Registry.CurrentUser.DeleteSubKeyTree(@"Software\Microsoft\Windows\CurrentVersion\Uninstall\airyPDF", false);
         using var uninstall = Microsoft.Win32.Registry.CurrentUser.CreateSubKey(@"Software\Microsoft\Windows\CurrentVersion\Uninstall\AiryReader");
         uninstall.SetValue("DisplayName", "AiryReader");
-        uninstall.SetValue("DisplayVersion", "1.2.5");
+        uninstall.SetValue("DisplayVersion", "1.2.6");
         uninstall.SetValue("Publisher", "AiryReader");
         uninstall.SetValue("InstallLocation", folder);
         uninstall.SetValue("DisplayIcon", IconLocation(exe));

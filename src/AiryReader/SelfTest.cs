@@ -20,6 +20,9 @@ public static class SelfTest
         CreateFixture(fixture, 5);
         var window = new MainWindow(); window.Show();
         await window.NewTextAsync(); window.UpdateLayout();
+        int firstTabCount = window.TabCountForTest;
+        await window.NewTextAsync(); window.UpdateLayout();
+        Check(window.TabCountForTest == firstTabCount + 1, "＋／Ctrl＋T相当で新しいメモタブを追加");
         var blankEditor = (TextBox)window.FindName("TextEditor");
         blankEditor.Text = "新しいメモ";
         string blankPath = System.IO.Path.GetFullPath("artifacts/new-note.txt");
@@ -88,7 +91,7 @@ public static class SelfTest
         Check(pageNumber.Text == pageTotal.ToString(), "スクロールで最終ページに移動しページ番号を更新");
         Check(((Image)((Grid)host.Children[pageTotal - 1]).Children[0]).Source != null, "最終ページの内容を描画");
         Check(((Image)((Grid)host.Children[0]).Children[0]).Source == null, "画面から離れたページの画像を解放");
-        var zoomButton = FindButtons(window).First(b => b.Content as string == "＋");
+        var zoomButton = FindButtons((DependencyObject)window.FindName("DocumentToolbar")).First(b => b.Content as string == "＋");
         double oldHeight = second.Height;
         zoomButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
         await Task.Delay(600); window.UpdateLayout();
