@@ -23,6 +23,7 @@ public static class SelfTest
         int firstTabCount = window.TabCountForTest;
         await window.NewTextAsync(); window.UpdateLayout();
         Check(window.TabCountForTest == firstTabCount + 1, "＋／Ctrl＋T相当で新しいメモタブを追加");
+        Check(FindButtons((DependencyObject)((TabControl)window.FindName("Tabs")).SelectedItem).Any(b => b.Content as string == "×"), "各タブ内に閉じる×を表示");
         var blankEditor = (TextBox)window.FindName("TextEditor");
         blankEditor.Text = "新しいメモ";
         string blankPath = System.IO.Path.GetFullPath("artifacts/new-note.txt");

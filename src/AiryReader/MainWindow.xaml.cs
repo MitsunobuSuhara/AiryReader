@@ -61,11 +61,24 @@ public partial class MainWindow : Window
     private void Error(Exception ex) => MessageBox.Show(this, ex.Message, "AiryReader", MessageBoxButton.OK, MessageBoxImage.Warning);
     public async void NewText() => await NewTextAsync();
     private void NewTextClick(object s, RoutedEventArgs e) => NewText();
+    private TabItem CreateTab(string title, string toolTip, object state)
+    {
+        var tab = new TabItem { ToolTip = toolTip, Tag = state };
+        var header = new StackPanel { Orientation = Orientation.Horizontal };
+        header.Children.Add(new TextBlock { Text = title, VerticalAlignment = VerticalAlignment.Center });
+        var close = new Button { Content = "×", Tag = tab, ToolTip = "タブを閉じる  Ctrl+W", FontSize = 14, Padding = new Thickness(5, 0, 5, 1), Margin = new Thickness(7, 0, -3, 0), Background = Brushes.Transparent, BorderThickness = new Thickness(0) };
+        close.Click += CloseTabClick; header.Children.Add(close); tab.Header = header;
+        return tab;
+    }
+    private static void SetTabTitle(TabItem tab, string title)
+    {
+        if (tab.Header is StackPanel header && header.Children.OfType<TextBlock>().FirstOrDefault() is { } label) label.Text = title;
+    }
     internal int TabCountForTest => Tabs.Items.Count;
     internal async Task NewTextAsync()
     {
         var state = new TextTabState("", LightweightTextRenderer.BuildPlain(""), "", new UTF8Encoding(false), true);
-        var tab = new TabItem { Header = "無題.txt", ToolTip = "新しいテキスト", Tag = state };
+        var tab = CreateTab("無題.txt", "新しいテキスト", state);
         opening = true; Tabs.Items.Add(tab); Tabs.SelectedItem = tab; opening = false;
         await RenderCurrent(); TextEditor.Focus();
     }
@@ -83,7 +96,7 @@ public partial class MainWindow : Window
                     string text = loaded.Text;
                     var document = extension == ".txt" ? LightweightTextRenderer.BuildPlain(text) : LightweightTextRenderer.Build(text);
                     var reader = new TextTabState(path, document, text, loaded.Encoding, extension == ".txt");
-                    var readerTab = new TabItem { Header = System.IO.Path.GetFileName(path), ToolTip = path, Tag = reader };
+                    var readerTab = CreateTab(System.IO.Path.GetFileName(path), path, reader);
                     opening = true; Tabs.Items.Add(readerTab); Tabs.SelectedItem = readerTab; opening = false;
                     await RenderCurrent(); continue;
                 }
@@ -94,7 +107,7 @@ public partial class MainWindow : Window
                     using (var stream = new MemoryStream(bytes)) { bitmap.StreamSource = stream; bitmap.EndInit(); }
                     bitmap.Freeze();
                     var image = new ImageTabState(path, bitmap);
-                    var imageTab = new TabItem { Header = System.IO.Path.GetFileName(path), ToolTip = path, Tag = image };
+                    var imageTab = CreateTab(System.IO.Path.GetFileName(path), path, image);
                     opening = true; Tabs.Items.Add(imageTab); Tabs.SelectedItem = imageTab; opening = false;
                     await RenderCurrent(); continue;
                 }                Status.Text = "PDFを読み込んでいます…";
@@ -110,7 +123,7 @@ public partial class MainWindow : Window
                     }
                 }
                 var state = new TabState(doc);
-                var tab = new TabItem { Header = System.IO.Path.GetFileName(path), ToolTip = path, Tag = state };
+                var tab = CreateTab(System.IO.Path.GetFileName(path), path, state);
                 opening = true; Tabs.Items.Add(tab); Tabs.SelectedItem = tab; opening = false;
                 await RenderCurrent();
             }
@@ -409,7 +422,7 @@ public partial class MainWindow : Window
     private void RotateRightClick(object s, RoutedEventArgs e) => Rotate(1);
     private void UpdateTabTitle(TabState state)
     {
-        foreach (TabItem tab in Tabs.Items) if (tab.Tag == state) tab.Header = System.IO.Path.GetFileName(state.Document.Path) + (state.Document.Dirty ? " *" : "");
+        foreach (TabItem tab in Tabs.Items) if (tab.Tag == state) SetTabTitle(tab, System.IO.Path.GetFileName(state.Document.Path) + (state.Document.Dirty ? " *" : ""));
     }
     private bool Save(TabState state)
     {
@@ -455,7 +468,7 @@ public partial class MainWindow : Window
     }
     private void UpdateTextTabTitle(TextTabState state)
     {
-        foreach (TabItem tab in Tabs.Items) if (tab.Tag == state) tab.Header = (string.IsNullOrEmpty(state.Path) ? "無題.txt" : System.IO.Path.GetFileName(state.Path)) + (state.Dirty ? " *" : "");
+        foreach (TabItem tab in Tabs.Items) if (tab.Tag == state) SetTabTitle(tab, (string.IsNullOrEmpty(state.Path) ? "無題.txt" : System.IO.Path.GetFileName(state.Path)) + (state.Dirty ? " *" : ""));
     }
     private bool CanClose(TextTabState state)
     {
@@ -469,9 +482,17 @@ public partial class MainWindow : Window
         var result = MessageBox.Show(this, $"{System.IO.Path.GetFileName(state.Document.Path)} の変更を保存しますか？", "未保存の変更", MessageBoxButton.YesNoCancel);
         return result == MessageBoxResult.No || result == MessageBoxResult.Yes && Save(state);
     }
+    private void CloseTabClick(object s, RoutedEventArgs e)
+    {
+        if (s is Button { Tag: TabItem tab }) CloseTab(tab);
+        e.Handled = true;
+    }
     private void CloseClick(object s, RoutedEventArgs e)
     {
-        if (Tabs.SelectedItem is not TabItem tab) return;
+        if (Tabs.SelectedItem is TabItem tab) CloseTab(tab);
+    }
+    private void CloseTab(TabItem tab)
+    {
         if (tab.Tag is TabState state && !CanClose(state)) return;
         if (tab.Tag is TextTabState text && !CanClose(text)) return;
         ++renderVersion; Tabs.Items.Remove(tab);
@@ -500,7 +521,7 @@ public partial class MainWindow : Window
     private void HelpClick(object s, RoutedEventArgs e)
     {
         MessageBox.Show(this,
-            "AiryReader 1.2.6\n\n対応形式：PDF、Markdown、TXT、JPEG、PNG、TIFF、BMP\nファイルを開く：Ctrl＋O、またはドラッグ＆ドロップ\nページ移動：ホイールで連続スクロール、ページ番号入力、左右のボタン\nPDF・画像の拡大縮小：Ctrl＋ホイール、＋／−、倍率入力、画面幅に合わせる\n画像：回転アイコン、ダブルクリックで100％／画面内表示\nMarkdown：Ctrl＋ホイールで文字倍率、Ctrl＋Fで検索、選択・コピー\nTXT：単体起動で新しいメモ、＋またはCtrl＋Tでタブ追加、×またはCtrl＋Wで閉じる、Ctrl＋Sで保存\n共通：Ctrl＋0で100％、Ctrl＋＋／－で倍率変更\n印刷：Ctrl＋P\nPDFの入力・注釈・検索・署名確認：Ctrl＋F\nパスワードはファイルを開く際に入力します。保存・ログには残しません。\n\n新しいPDFの印刷倍率は100%。指定倍率では自動縮小せず、欠けをプレビューで知らせます。\nドライバー側の拡大縮小・Nアップは無効にしてください。\n回転を保存するときは別名保存します。\n\n寸法確認用PDFには縦横100mmの基準線があります。\n会社での印刷は利用者評価で用途上合格（約0.1mmのずれに見えるとの報告）。",
+            "AiryReader 1.2.7\n\n対応形式：PDF、Markdown、TXT、JPEG、PNG、TIFF、BMP\nファイルを開く：Ctrl＋O、またはドラッグ＆ドロップ\nページ移動：ホイールで連続スクロール、ページ番号入力、左右のボタン\nPDF・画像の拡大縮小：Ctrl＋ホイール、＋／−、倍率入力、画面幅に合わせる\n画像：回転アイコン、ダブルクリックで100％／画面内表示\nMarkdown：Ctrl＋ホイールで文字倍率、Ctrl＋Fで検索、選択・コピー\nTXT：単体起動で新しいメモ、＋またはCtrl＋Tでタブ追加、×またはCtrl＋Wで閉じる、Ctrl＋Sで保存\n共通：Ctrl＋0で100％、Ctrl＋＋／－で倍率変更\n印刷：Ctrl＋P\nPDFの入力・注釈・検索・署名確認：Ctrl＋F\nパスワードはファイルを開く際に入力します。保存・ログには残しません。\n\n新しいPDFの印刷倍率は100%。指定倍率では自動縮小せず、欠けをプレビューで知らせます。\nドライバー側の拡大縮小・Nアップは無効にしてください。\n回転を保存するときは別名保存します。\n\n寸法確認用PDFには縦横100mmの基準線があります。\n会社での印刷は利用者評価で用途上合格（約0.1mmのずれに見えるとの報告）。",
             "AiryReader — 使い方", MessageBoxButton.OK, MessageBoxImage.Information);
     }
     private void ToolsClick(object sender, RoutedEventArgs e)
