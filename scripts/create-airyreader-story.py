@@ -73,7 +73,7 @@ if icon.exists():
     p=doc.add_paragraph(); p.alignment=WD_ALIGN_PARAGRAPH.CENTER
     p.add_run().add_picture(str(icon), width=Inches(2.0))
 p=doc.add_paragraph(); p.alignment=WD_ALIGN_PARAGRAPH.CENTER
-r=p.add_run("私はプログラムコードを一度も書いたことがありません。\nそれでもAIとの会話を通じて、仕事用のアプリやプラグインをいくつか作ってきました。\nこれまではClaudeを使い、最近はChatGPTのCodexを中心に開発しています。AiryReaderは、9月13日の朝にPDFリーダーの枠組みができ、その後、細かな改善やメモ機能などを追加しました。私が実際に会話していた時間は、肌感覚では合計2〜3時間ほどです。")
+r=p.add_run("私はプログラムコードを一度も書いたことがありません。\nそれでもAIとの会話を通じて、仕事用のアプリやプラグインをいくつか作ってきました。\nこれまではClaudeを使い、最近はChatGPTのCodexを中心に開発しています。AiryReaderは、9月13日の朝にPDFリーダーの枠組みができ、その後、細かな改善やメモ機能などを追加しました。")
 r.font.size=Pt(13)
 p=doc.add_paragraph(); p.alignment=WD_ALIGN_PARAGRAPH.CENTER
 p.paragraph_format.space_before=Pt(22)
@@ -155,7 +155,7 @@ conversation("最初の相談", "仕事で使うPDFを、寸法どおりに印�
 
 doc.add_heading("現在のAiryReader", level=1)
 doc.add_paragraph("AiryReader 1.4は、PDFの閲覧、複数ページのスクロール、倍率調整、原寸を意識した印刷、入力、注釈、検索、しおり、署名確認に加え、Markdown、画像、テキストを同じ画面のタブで扱えるWindowsアプリになりました。テキストは新規作成、複数タブ編集、検索、保存、印刷ができ、UTF-8、Shift-JIS、UTF-16、UTF-32にも対応しています。保存中の事故で原本を壊しにくい置換方式や、別のアプリで変更されたときの警告、大きすぎる文章・画像を無理に開かない保護も加わりました。タブが増えたときは横へ移動でき、Windowsの既定アプリ候補もAiryReaderへ整理されています。")
-doc.add_paragraph("私はコードを一度も書いたことがありません。ただ、AIとの会話で仕事用のアプリやプラグインをいくつか作り、実際に試して直してきました。その経験とAIの作業速度が合わさり、AiryReaderの中心となるPDF閲覧・原寸印刷は、空いた時間に合計2〜3時間ほど話しかける形で仕事に使えるところまで進み、その後も実際に使って見つけた問題を会話で直し続けています。")
+doc.add_paragraph("私はコードを一度も書いたことがありません。ただ、AIとの会話で仕事用のアプリやプラグインをいくつか作り、実際に試して直してきました。その経験とAIの作業速度が合わさり、AiryReaderの中心となるPDF閲覧・原寸印刷は短い会話の積み重ねで仕事に使えるところまで進み、その後も実際に使って見つけた問題を会話で直し続けています。")
 p=doc.add_paragraph(); p.alignment=WD_ALIGN_PARAGRAPH.CENTER
 r=p.add_run("これはチャットの逐語録ではなく、実際の開発経過をもとに読みやすく再構成した記録です。")
 r.font.size=Pt(8.5); r.font.color.rgb=RGBColor(90,90,90)
