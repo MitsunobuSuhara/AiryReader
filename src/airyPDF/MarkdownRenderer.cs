@@ -4,23 +4,9 @@ using System.Windows.Documents;
 
 namespace AiryPdf;
 
-public sealed class MarkdownWindow : Window
+public static class MarkdownRenderer
 {
-    public MarkdownWindow(string path)
-    {
-        Title = System.IO.Path.GetFileName(path) + " — airyPDF";
-        Width = 900; Height = 820; MinWidth = 560; MinHeight = 420;
-        FontFamily = new FontFamily("Yu Gothic UI");
-        Icon = new System.Windows.Media.Imaging.BitmapImage(new Uri("pack://application:,,,/Assets/icon.ico"));
-        Content = new FlowDocumentScrollViewer
-        {
-            Document = Build(File.ReadAllText(path)),
-            VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
-            IsSelectionEnabled = true,
-            Background = Brushes.White
-        };
-    }
-    private static FlowDocument Build(string markdown)
+   public static FlowDocument Build(string markdown)
     {
         var doc = new FlowDocument { PagePadding = new Thickness(54, 42, 54, 60), FontFamily = new FontFamily("Yu Gothic UI"), FontSize = 16, Foreground = new SolidColorBrush(Color.FromRgb(32, 38, 46)), LineHeight = 27, ColumnWidth = 760 };
         var paragraph = new List<string>(); var list = new List();

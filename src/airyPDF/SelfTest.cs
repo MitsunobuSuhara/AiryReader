@@ -21,10 +21,11 @@ public static class SelfTest
         var window = new MainWindow(); window.Show();
         string markdownFixture = System.IO.Path.GetFullPath("artifacts/markdown-view.md");
         File.WriteAllText(markdownFixture, "# 見出し\n\n本文と**太字**です。\n\n- 項目\n\n> 引用");
-        var markdownWindow = new MarkdownWindow(markdownFixture); markdownWindow.Show(); markdownWindow.UpdateLayout();
-        var markdownViewer = (System.Windows.Controls.FlowDocumentScrollViewer)markdownWindow.Content;
-        Check(markdownViewer.Document.Blocks.Count >= 4, "Markdownを追加部品なしで整形表示");
-        Capture(markdownWindow, "artifacts/markdown-window.png"); markdownWindow.Close();
+        await window.OpenPathsAsync([markdownFixture]); window.UpdateLayout();
+        var markdownViewer = (System.Windows.Controls.FlowDocumentScrollViewer)window.FindName("MarkdownViewer");
+        Check(markdownViewer.Visibility == Visibility.Visible && markdownViewer.Document.Blocks.Count >= 4, "MarkdownをPDFと同じタブ内で整形表示");
+        Check(((FrameworkElement)window.FindName("DocumentToolbar")).Visibility == Visibility.Collapsed && ((FrameworkElement)window.FindName("PrintButton")).Visibility == Visibility.Collapsed, "Markdownは読むための本文だけを表示");
+        Capture(window, "artifacts/markdown-window.png");
         string uiPath = Environment.GetEnvironmentVariable("AIRYPDF_UI_PDF") ?? fixture;
         using var uiDocument = new PdfDocument(uiPath);
         int pageTotal = uiDocument.Count;

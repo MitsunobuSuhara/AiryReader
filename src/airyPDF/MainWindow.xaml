@@ -5,24 +5,25 @@
   <Border DockPanel.Dock="Top" Background="White" BorderBrush="#DEE4EA" BorderThickness="0,0,0,1" Padding="14,10">
    <WrapPanel>
     <Button Click="OpenClick" ToolTip="開く&#10;Ctrl+O" ToolTipService.InitialShowDelay="250" AutomationProperties.Name="PDFを開く" Padding="10,7"><Canvas Width="24" Height="20"><Path Data="M2,16 L2,5 Q2,3 4,3 L9,3 Q10,3 11,4 L13,6 L20,6 Q22,6 22,8 L22,15 Q22,18 19,18 L5,18 Q2,18 2,16 Z" Fill="#F1F1F1" Stroke="#454545" StrokeThickness="1.5" StrokeLineJoin="Round"/><Path Data="M3,17 L5,10 Q5.5,8.5 7,8.5 L21,8.5 Q23,8.5 22.5,10.5 L21,16 Q20.5,18 18,18 L5,18 Q3,18 3,17 Z" Fill="#DDDDDD" Stroke="#454545" StrokeThickness="1.5" StrokeLineJoin="Round"/></Canvas></Button>
-    <Button Click="PrintClick" ToolTip="印刷&#10;Ctrl+P" ToolTipService.InitialShowDelay="250" AutomationProperties.Name="印刷プレビュー" Padding="10,7"><Canvas Width="24" Height="20"><Rectangle Canvas.Left="6" Canvas.Top="1" Width="12" Height="9" RadiusX="1.8" RadiusY="1.8" Fill="#FFFFFF" Stroke="#454545" StrokeThickness="1.5"/><Rectangle Canvas.Left="2" Canvas.Top="6" Width="20" Height="10" RadiusX="3" RadiusY="3" Fill="#E6E6E6" Stroke="#454545" StrokeThickness="1.5"/><Rectangle Canvas.Left="6" Canvas.Top="12" Width="12" Height="7" RadiusX="1.5" RadiusY="1.5" Fill="#FFFFFF" Stroke="#454545" StrokeThickness="1.5"/><Ellipse Canvas.Left="17.5" Canvas.Top="8.5" Width="2.5" Height="2.5" Fill="#777777"/><Path Data="M9,15 L15,15" Stroke="#999999" StrokeThickness="1.2" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/></Canvas></Button>
+    <Button x:Name="PrintButton" Click="PrintClick" ToolTip="印刷&#10;Ctrl+P" ToolTipService.InitialShowDelay="250" AutomationProperties.Name="印刷プレビュー" Padding="10,7"><Canvas Width="24" Height="20"><Rectangle Canvas.Left="6" Canvas.Top="1" Width="12" Height="9" RadiusX="1.8" RadiusY="1.8" Fill="#FFFFFF" Stroke="#454545" StrokeThickness="1.5"/><Rectangle Canvas.Left="2" Canvas.Top="6" Width="20" Height="10" RadiusX="3" RadiusY="3" Fill="#E6E6E6" Stroke="#454545" StrokeThickness="1.5"/><Rectangle Canvas.Left="6" Canvas.Top="12" Width="12" Height="7" RadiusX="1.5" RadiusY="1.5" Fill="#FFFFFF" Stroke="#454545" StrokeThickness="1.5"/><Ellipse Canvas.Left="17.5" Canvas.Top="8.5" Width="2.5" Height="2.5" Fill="#777777"/><Path Data="M9,15 L15,15" Stroke="#999999" StrokeThickness="1.2" StrokeStartLineCap="Round" StrokeEndLineCap="Round"/></Canvas></Button>
    </WrapPanel>
   </Border>
   <Border DockPanel.Dock="Bottom" Background="White" Padding="16,8"><TextBlock x:Name="Status" Text="PDFを開くか、この画面にドラッグしてください。" TextWrapping="Wrap"/></Border>
   <StackPanel DockPanel.Dock="Top">
    <TabControl x:Name="Tabs" SelectionChanged="TabChanged" Margin="12,8,12,0" MinHeight="35"/>
-   <WrapPanel Margin="12,5">
+   <WrapPanel x:Name="DocumentToolbar" Margin="12,5">
     <Button Content="‹" Click="PreviousClick"/><TextBox x:Name="PageNumber" Text="1" Width="48" KeyDown="PageNumberKeyDown"/><TextBlock x:Name="PageCount" Text="/ —" Margin="3,0,10,0"/><Button Content="›" Click="NextClick"/>
     <Button Content="−" Click="ZoomOutClick"/><TextBox x:Name="ZoomText" Text="100" Width="66" TextAlignment="Right" KeyDown="ZoomInputKeyDown" LostKeyboardFocus="ZoomInputLostFocus" GotKeyboardFocus="ZoomInputGotFocus" ToolTip="表示倍率（10～800％）。入力してEnterで確定" AutomationProperties.Name="表示倍率"/><TextBlock Text="%"/><Button Content="＋" Click="ZoomInClick"/>
     <Button Content="↶" FontFamily="Segoe UI Symbol" FontSize="21" Padding="10,2" Click="RotateLeftClick" ToolTip="左に90度回転" AutomationProperties.Name="左に90度回転"/><Button Content="↷" FontFamily="Segoe UI Symbol" FontSize="21" Padding="10,2" Click="RotateRightClick" ToolTip="右に90度回転" AutomationProperties.Name="右に90度回転"/><Button x:Name="FitWidthButton" Click="FitClick" ToolTip="画面幅に合わせて表示" ToolTipService.InitialShowDelay="250" AutomationProperties.Name="画面幅に合わせる" Padding="10,7"><Canvas Width="24" Height="18"><Path Data="M2,2 L2,16 M22,2 L22,16 M5,9 L19,9 M8,6 L5,9 L8,12 M16,6 L19,9 L16,12" Stroke="#192432" StrokeThickness="1.6" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round"/></Canvas></Button>
 
    </WrapPanel>
   </StackPanel>
-  <Grid Background="#BCC3CC">
+  <Grid x:Name="ContentGrid" Background="#BCC3CC">
    <StackPanel x:Name="Welcome" VerticalAlignment="Center" HorizontalAlignment="Center">
     <TextBlock Text="軽やかに開く。寸法を守って印刷する。" FontSize="25" Foreground="#334155" HorizontalAlignment="Center"/>
     <TextBlock Text="PDFをドラッグするか、「開く」を選んでください。" Margin="0,18" Foreground="#64748B" HorizontalAlignment="Center"/>
    </StackPanel>
+   <FlowDocumentScrollViewer x:Name="MarkdownViewer" Visibility="Collapsed" Background="White" VerticalScrollBarVisibility="Auto" IsSelectionEnabled="True"/>
    <ScrollViewer x:Name="Viewer" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" PreviewMouseWheel="ViewerWheel" ScrollChanged="ViewerScrolled">
     <StackPanel x:Name="PagesHost" Margin="24" HorizontalAlignment="Center" VerticalAlignment="Top"/>
    </ScrollViewer>

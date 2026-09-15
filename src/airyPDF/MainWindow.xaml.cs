@@ -14,7 +14,13 @@ public partial class MainWindow : Window
 
         public double ScrollOffset;
     }
+    private sealed class MarkdownTabState(string path, System.Windows.Documents.FlowDocument document)
+    {
+        public string Path = path;
+        public System.Windows.Documents.FlowDocument Document = document;
+    }
     private TabState? Current => (Tabs.SelectedItem as TabItem)?.Tag as TabState;
+    private MarkdownTabState? CurrentMarkdown => (Tabs.SelectedItem as TabItem)?.Tag as MarkdownTabState;
     private readonly DispatcherTimer zoomTimer = new() { Interval = TimeSpan.FromMilliseconds(140) };
     private sealed class PageView
     {
@@ -46,8 +52,10 @@ public partial class MainWindow : Window
             {
                 if (string.Equals(System.IO.Path.GetExtension(path), ".md", StringComparison.OrdinalIgnoreCase) || string.Equals(System.IO.Path.GetExtension(path), ".markdown", StringComparison.OrdinalIgnoreCase))
                 {
-                    new MarkdownWindow(path) { Owner = this }.Show();
-                    Status.Text = $"Markdownを読みやすく表示しています: {System.IO.Path.GetFileName(path)}";
+                    var markdown = new MarkdownTabState(path, MarkdownRenderer.Build(await File.ReadAllTextAsync(path)));
+                    var markdownTab = new TabItem { Header = System.IO.Path.GetFileName(path), ToolTip = path, Tag = markdown };
+                    opening = true; Tabs.Items.Add(markdownTab); Tabs.SelectedItem = markdownTab; opening = false;
+                    await RenderCurrent();
                     continue;
                 }
                 Status.Text = "PDFを読み込んでいます…";
@@ -87,11 +95,19 @@ public partial class MainWindow : Window
     {
         ++renderVersion;
         var state = Current;
+        var markdown = CurrentMarkdown;
         changingLayout = true;
         PagesHost.Children.Clear(); pageViews.Clear();
-        Welcome.Visibility = state == null ? Visibility.Visible : Visibility.Collapsed;
+        Welcome.Visibility = state == null && markdown == null ? Visibility.Visible : Visibility.Collapsed;
+        Viewer.Visibility = state != null ? Visibility.Visible : Visibility.Collapsed;
+        MarkdownViewer.Visibility = markdown != null ? Visibility.Visible : Visibility.Collapsed;
+        DocumentToolbar.Visibility = state != null ? Visibility.Visible : Visibility.Collapsed;
+        PrintButton.Visibility = markdown == null ? Visibility.Visible : Visibility.Collapsed;
+        ContentGrid.Background = markdown != null ? Brushes.White : new SolidColorBrush(Color.FromRgb(188, 195, 204));
+        MarkdownViewer.Document = markdown?.Document;
         try
         {
+            if (markdown != null) { Status.Text = $"{System.IO.Path.GetFileName(markdown.Path)}  ·  読み取り専用"; return; }
             if (state == null) return;
             for (int i = 0; i < state.Document.Count; i++)
             {
@@ -263,11 +279,14 @@ public partial class MainWindow : Window
     }
     private void CloseClick(object s, RoutedEventArgs e)
     {
-        if (Current is { } state && CanClose(state)) { var tab = Tabs.SelectedItem; ++renderVersion; Tabs.Items.Remove(tab); state.Document.Dispose(); }
+        if (Tabs.SelectedItem is not TabItem tab) return;
+        if (tab.Tag is TabState state && !CanClose(state)) return;
+        ++renderVersion; Tabs.Items.Remove(tab);
+        if (tab.Tag is TabState pdf) pdf.Document.Dispose();
     }
     private void WindowClosing(object? s, CancelEventArgs e)
     {
-        var states = Tabs.Items.Cast<TabItem>().Select(t => (TabState)t.Tag).ToArray();
+        var states = Tabs.Items.Cast<TabItem>().Select(t => t.Tag).OfType<TabState>().ToArray();
         if (states.Any(state => !CanClose(state))) { e.Cancel = true; return; }
         WindowPreferences.Save(this);
         ++renderVersion; zoomTimer.Stop(); foreach (var state in states) state.Document.Dispose();
