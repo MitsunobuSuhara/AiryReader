@@ -328,3 +328,6 @@ Release・UI・PDF・印刷・画像・文章操作の自動テスト成功。�
 
 ## シンプルなメモ帳代替（2026-09-15）
 利用者はWindowsメモ帳の役割をAiryReaderへ移しつつ、画面をシンプルに保つ方針。AiryReader 1.2.8でTXTのCtrl+F検索を編集欄へ正式対応し、F3で次、Shift+F3で前へ移動。TextBox標準のCtrl+Z/Y、切り取り、コピー、貼り付け、全選択を利用し、専用ボタンは増やさない。新規・タブ・保存・別名保存・未保存確認は既存機能を継続。TXT検索を含む全テスト成功、警告0・エラー0。Program Filesへ1.2.8導入済みで、AiryReaderのWindows既定アプリ画面を表示。`.txt`の最終選択はWindowsの保護仕様により利用者操作。配布ZIP: `artifacts/release/AiryReader-1.2.8-20260915-193707.zip`、SHA256 `E96E2695F05D63A5FD6D88D7DD878C5A5A57DD1E602FC1FF853FDE10FD73FCB0`。
+
+## Markdown既定アプリ登録の修正（2026-09-15）
+利用者環境で.md/.markdownのアプリ選択に「一度だけ」しか出ない報告を受け、AiryReader 1.2.9で文書共通・画像共通のProgIDから拡張子ごとの専用ProgIDへ変更。`.md=AiryReader.md`、`.markdown=AiryReader.markdown`など10形式を独立登録し、CapabilitiesとOpenWithProgidsを一致させた。旧共通ProgIDは既存設定の互換用に残すが、OpenWith候補からは外す。MicrosoftのDefault Programs登録仕様に沿う構成。全テスト成功、警告0・エラー0。Program Filesへ導入し登録値を実機確認、既定アプリ画面を再表示。最終選択は利用者操作。配布ZIP: `artifacts/release/AiryReader-1.2.9-20260915-194947.zip`、SHA256 `6FA66F88D7D4F3306B49F89B6DF2ED1C73F3FB489E8A0C05B07FF2CFDAEA9CCF`。
