@@ -8,9 +8,9 @@
     <ImplicitUsings>disable</ImplicitUsings>
     <PlatformTarget>x64</PlatformTarget>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
-    <AssemblyName>airyPDF</AssemblyName>
-    <ApplicationIcon>../../assets/icons/airyPDF.ico</ApplicationIcon>
-    <Version>1.1.0</Version>
+    <AssemblyName>AiryReader</AssemblyName>
+    <ApplicationIcon>../../assets/icons/AiryReader.ico</ApplicationIcon>
+    <Version>1.2.0</Version>
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
   </PropertyGroup>
   <ItemGroup>
@@ -18,7 +18,7 @@
     <Content Include="../../THIRD-PARTY/**/*" Link="THIRD-PARTY/%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="../../assets/checks/*.pdf" Link="Samples/print-check.pdf" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="../../artifacts/helper/airy-pdf-helper/**/*" Link="Helper/%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
-    <Content Include="../../assets/icons/airyPDF.ico" Link="airyPDF-crane-v2.ico" CopyToOutputDirectory="PreserveNewest" />
-    <Resource Include="../../assets/icons/airyPDF.ico" Link="Assets/icon.ico" />
+    <Content Include="../../assets/icons/AiryReader.ico" Link="AiryReader.ico" CopyToOutputDirectory="PreserveNewest" />
+    <Resource Include="../../assets/icons/AiryReader.ico" Link="Assets/icon.ico" />
   </ItemGroup>
 </Project>

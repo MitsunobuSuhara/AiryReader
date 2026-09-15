@@ -1,4 +1,4 @@
-﻿param(
+param(
     [Parameter(Mandatory=$true)][string]$Address,
     [Parameter(Mandatory=$true)][string]$DriverInf,
     [Parameter(Mandatory=$true)][string]$LogPath

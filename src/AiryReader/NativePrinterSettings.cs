@@ -2,7 +2,7 @@ using System.Drawing.Printing;
 using System.Runtime.InteropServices;
 using System.Windows.Interop;
 
-namespace AiryPdf;
+namespace AiryReader;
 
 public static class NativePrinterSettings
 {

@@ -1,4 +1,4 @@
-# airyPDF 開発引き継ぎ
+# AiryReader 開発引き継ぎ
 
 更新日: 2026-09-14
 開発場所: C:\dev\airyPDF
@@ -297,3 +297,7 @@ C:\dev\AGENTS.md適用。日本語、呼称NOBUさん。区切りでコミット
 ## Markdownのホイールスクロール高速化（2026-09-15）
 利用者が長文Markdownでホイールスクロールが遅いと指摘。Windows標準の行単位移動を上書きし、1ノッチ180pxの一定移動へ変更。ブラウザや追加部品なし、PDFスクロールは変更なし。Markdownは読むだけの方針を維持し、印刷ボタンは非表示。印刷はレイアウトの確定したPDF版を使用。80段落の長文UIテストで1ノッチ170px以上、PDF/印刷・UI全検証成功。このPCへ導入DLL一致。利用者のDesktop/airyPDF一発作成プロンプト.mdを更新版で起動。配布ZIP: artifacts/release/airyPDF-1.1-20260915-164426.zip、SHA256 5F2B1563A4C0A358214025583E5A5D3035C65508B7A4363EC90BE6046D231152。
 
+
+## AiryReaderへ完全統一（2026-09-15）
+利用者の明示指示で正式表記を `AiryReader` に統一。実行ファイルは `C:\Program Files\AiryReader\AiryReader.exe`、デスクトップ／スタートメニューは `AiryReader.lnk`、設定は `LocalAppData\AiryReader`、配布ZIP・共有資料・プロジェクト・名前空間・アイコンも同じ表記。旧 `C:\Program Files\airyPDF` は新DLLとの一致確認後に削除済み。旧既定アプリ設定を壊さないため、旧名を検出して新実行ファイルへ移す互換処理だけを内部に保持する。
+PDF、Markdown、TXT、HTML、JPEG、PNG、TIFF、BMPの同一タブ閲覧を維持。CSV・Word・JSON・XMLは対象外。Release、PDF／印刷、UI、Markdown／TXT／HTML／画像の全テストは警告0・エラー0。寸法確認PDFの見出しもAiryReaderで再生成。共有資料は `artifacts/share/AiryReader_AIとの会話から生まれたPDFアプリ.{md,docx,pdf}` に統一。

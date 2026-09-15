@@ -1,20 +1,20 @@
 using System.Security.Cryptography;
 using System.Runtime.InteropServices;
 
-namespace AiryPdf;
+namespace AiryReader;
 
 public static class DesktopInstaller
 {
     public static string Install()
     {
         string source = AppContext.BaseDirectory.TrimEnd(System.IO.Path.DirectorySeparatorChar);
-        string dll = System.IO.Path.Combine(source, "airyPDF.dll");
+        string dll = System.IO.Path.Combine(source, "AiryReader.dll");
         if (!File.Exists(dll) || !File.Exists(System.IO.Path.Combine(source, "coreclr.dll")))
             throw new IOException(".NET同梱の実行用フォルダから登録してください。");
         if (!new System.Security.Principal.WindowsPrincipal(System.Security.Principal.WindowsIdentity.GetCurrent()).IsInRole(System.Security.Principal.WindowsBuiltInRole.Administrator))
             throw new IOException("Program Filesへの登録には管理者権限が必要です。");
-        string root = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "airyPDF");
-        string target = root;
+        string root = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "AiryReader");
+        string target = NormalizeDirectoryCase(root);
         Directory.CreateDirectory(target);
         if (!string.Equals(source, target, StringComparison.OrdinalIgnoreCase))
         {
@@ -24,7 +24,7 @@ public static class DesktopInstaller
                 string incoming = System.IO.Path.Combine(source, System.IO.Path.GetRelativePath(target, existing));
                 if (!File.Exists(incoming) || SHA256.HashData(File.ReadAllBytes(existing)).SequenceEqual(SHA256.HashData(File.ReadAllBytes(incoming)))) continue;
                 try { using var check = File.Open(existing, FileMode.Open, FileAccess.ReadWrite, FileShare.None); }
-                catch (IOException) { throw new IOException("airyPDFを閉じてから、もう一度セットアップしてください。"); }
+                catch (IOException) { throw new IOException("AiryReaderを閉じてから、もう一度セットアップしてください。"); }
             }
             foreach (string file in Directory.EnumerateFiles(source, "*", SearchOption.AllDirectories))
             {
@@ -36,29 +36,71 @@ public static class DesktopInstaller
                 File.Copy(file, destination, true);
             }
         }
-        string exe = ResolveShellPath(System.IO.Path.Combine(target, "airyPDF.exe"));
+        foreach (string name in new[] { "AiryReader.exe", "AiryReader.dll", "AiryReader.deps.json", "AiryReader.runtimeconfig.json", "AiryReader.pdb", "AiryReader.ico" }) NormalizeFileCase(target, name);
+        string exe = ResolveShellPath(System.IO.Path.Combine(target, "AiryReader.exe"));
         target = System.IO.Path.GetDirectoryName(exe)!;
         // 元の版は残す。更新中や実行中のファイルを削除しない。
         CreateShortcut(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), exe, target);
         CreateShortcut(Environment.GetFolderPath(Environment.SpecialFolder.Programs), exe, target);
         string pinnedFolder = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Microsoft", "Internet Explorer", "Quick Launch", "User Pinned", "TaskBar");
         // 既にピン留めされた自分のリンクのみ更新する。新たなピン留めは行わない。
-        if (File.Exists(System.IO.Path.Combine(pinnedFolder, "airyPDF.lnk")))
+        if (File.Exists(System.IO.Path.Combine(pinnedFolder, "airyPDF.lnk")) || File.Exists(System.IO.Path.Combine(pinnedFolder, "AiryReader.lnk")))
             CreateShortcut(pinnedFolder, exe, target);
+        foreach (string folder in new[] { Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), Environment.GetFolderPath(Environment.SpecialFolder.Programs), pinnedFolder }) RemoveLegacyShortcut(folder);
         RegisterApplication(exe, target);
+        RemoveLegacyInstall(source);
         return exe;
+    }
+    private static string NormalizeDirectoryCase(string desired)
+    {
+        string parent = System.IO.Path.GetDirectoryName(desired)!;
+        string? existing = Directory.EnumerateDirectories(parent).FirstOrDefault(path =>
+            string.Equals(System.IO.Path.GetFileName(path), System.IO.Path.GetFileName(desired), StringComparison.OrdinalIgnoreCase));
+        if (existing == null || string.Equals(existing, desired, StringComparison.Ordinal)) return desired;
+        string temporary = System.IO.Path.Combine(parent, ".AiryReader-case-" + Guid.NewGuid().ToString("N"));
+        Directory.Move(existing, temporary);
+        Directory.Move(temporary, desired);
+        return desired;
+    }
+    private static void NormalizeFileCase(string folder, string desiredName)
+    {
+        string desired = System.IO.Path.Combine(folder, desiredName);
+        string? existing = Directory.EnumerateFiles(folder).FirstOrDefault(path =>
+            string.Equals(System.IO.Path.GetFileName(path), desiredName, StringComparison.OrdinalIgnoreCase));
+        if (existing == null || string.Equals(existing, desired, StringComparison.Ordinal)) return;
+        string temporary = System.IO.Path.Combine(folder, ".AiryReader-case-" + Guid.NewGuid().ToString("N"));
+        File.Move(existing, temporary);
+        File.Move(temporary, desired);
+    }
+    private static void RemoveLegacyInstall(string source)
+    {
+        string legacy = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "airyPDF");
+        if (!Directory.Exists(legacy) || source.StartsWith(legacy + System.IO.Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase)) return;
+        if (!File.Exists(System.IO.Path.Combine(legacy, "airyPDF.exe")) || !File.Exists(System.IO.Path.Combine(legacy, "coreclr.dll"))) return;
+        foreach (string entry in Directory.EnumerateFileSystemEntries(legacy, "*", SearchOption.AllDirectories))
+            if ((File.GetAttributes(entry) & FileAttributes.ReparsePoint) != 0) return;
+        Directory.Delete(legacy, true);
     }
     private static void RegisterApplication(string exe, string folder)
     {
-        using var app = Microsoft.Win32.Registry.CurrentUser.CreateSubKey(@"Software\Classes\Applications\airyPDF.exe");
-        app.SetValue("FriendlyAppName", "airyPDF");
+        using var app = Microsoft.Win32.Registry.CurrentUser.CreateSubKey(@"Software\Classes\Applications\AiryReader.exe");
+        app.SetValue("FriendlyAppName", "AiryReader");
         using (var icon = app.CreateSubKey("DefaultIcon")) icon.SetValue("", IconLocation(exe));
         using (var command = app.CreateSubKey(@"shell\open\command")) command.SetValue("", "\"" + exe + "\" \"%1\"");
-        using (var types = app.CreateSubKey("SupportedTypes")) types.SetValue(".pdf", "");
-        using var uninstall = Microsoft.Win32.Registry.CurrentUser.CreateSubKey(@"Software\Microsoft\Windows\CurrentVersion\Uninstall\airyPDF");
-        uninstall.SetValue("DisplayName", "airyPDF");
-        uninstall.SetValue("DisplayVersion", "1.1.0");
-        uninstall.SetValue("Publisher", "airyPDF");
+        using (var types = app.CreateSubKey("SupportedTypes")) foreach (string extension in new[] { ".pdf", ".md", ".markdown", ".txt", ".html", ".htm", ".jpg", ".jpeg", ".png", ".tif", ".tiff", ".bmp" }) types.SetValue(extension, "");
+        // Windowsの既定アプリが旧実行名を記憶していても、新しい実行ファイルへ安全につなぐ。
+        using (var legacy = Microsoft.Win32.Registry.CurrentUser.CreateSubKey(@"Software\Classes\Applications\airyPDF.exe"))
+        {
+            legacy.SetValue("FriendlyAppName", "AiryReader");
+            using (var command = legacy.CreateSubKey(@"shell\open\command")) command.SetValue("", "\"" + exe + "\" \"%1\"");
+            using var types = legacy.CreateSubKey("SupportedTypes");
+            foreach (string extension in new[] { ".pdf", ".md", ".markdown", ".txt", ".html", ".htm", ".jpg", ".jpeg", ".png", ".tif", ".tiff", ".bmp" }) types.SetValue(extension, "");
+        }
+        Microsoft.Win32.Registry.CurrentUser.DeleteSubKeyTree(@"Software\Microsoft\Windows\CurrentVersion\Uninstall\airyPDF", false);
+        using var uninstall = Microsoft.Win32.Registry.CurrentUser.CreateSubKey(@"Software\Microsoft\Windows\CurrentVersion\Uninstall\AiryReader");
+        uninstall.SetValue("DisplayName", "AiryReader");
+        uninstall.SetValue("DisplayVersion", "1.2.0");
+        uninstall.SetValue("Publisher", "AiryReader");
         uninstall.SetValue("InstallLocation", folder);
         uninstall.SetValue("DisplayIcon", IconLocation(exe));
         uninstall.SetValue("UninstallString", "\"" + exe + "\" --unregister");
@@ -67,12 +109,12 @@ public static class DesktopInstaller
     }
     public static void Unregister()
     {
-        Microsoft.Win32.Registry.CurrentUser.DeleteSubKeyTree(@"Software\Classes\Applications\airyPDF.exe", false);
-        Microsoft.Win32.Registry.CurrentUser.DeleteSubKeyTree(@"Software\Microsoft\Windows\CurrentVersion\Uninstall\airyPDF", false);
+        Microsoft.Win32.Registry.CurrentUser.DeleteSubKeyTree(@"Software\Classes\Applications\AiryReader.exe", false);
+        Microsoft.Win32.Registry.CurrentUser.DeleteSubKeyTree(@"Software\Microsoft\Windows\CurrentVersion\Uninstall\AiryReader", false);
         foreach (string folder in new[] { Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), Environment.GetFolderPath(Environment.SpecialFolder.Programs),
             System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Microsoft", "Internet Explorer", "Quick Launch", "User Pinned", "TaskBar") })
         {
-            string link = System.IO.Path.Combine(folder, "airyPDF.lnk");
+            string link = System.IO.Path.Combine(folder, "AiryReader.lnk");
             if (!File.Exists(link)) continue;
             Type shellType = Type.GetTypeFromProgID("WScript.Shell")!;
             dynamic shell = Activator.CreateInstance(shellType)!;
@@ -101,14 +143,23 @@ public static class DesktopInstaller
     internal static bool IsOwnInstall(string path)
     {
         string local = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
-        string direct = System.IO.Path.Combine(local, "Programs", "airyPDF") + System.IO.Path.DirectorySeparatorChar;
-        string programFiles = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "airyPDF") + System.IO.Path.DirectorySeparatorChar;
+        string direct = System.IO.Path.Combine(local, "Programs", "AiryReader") + System.IO.Path.DirectorySeparatorChar;
+        string programFiles = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "AiryReader") + System.IO.Path.DirectorySeparatorChar;
+        string legacyProgramFiles = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "airyPDF") + System.IO.Path.DirectorySeparatorChar;
         string packages = System.IO.Path.Combine(local, "Packages") + System.IO.Path.DirectorySeparatorChar;
-        return string.Equals(System.IO.Path.GetFileName(path), "airyPDF.exe", StringComparison.OrdinalIgnoreCase) &&
-            (path.StartsWith(programFiles, StringComparison.OrdinalIgnoreCase) || path.StartsWith(direct, StringComparison.OrdinalIgnoreCase) ||
+        return (string.Equals(System.IO.Path.GetFileName(path), "AiryReader.exe", StringComparison.OrdinalIgnoreCase) || string.Equals(System.IO.Path.GetFileName(path), "airyPDF.exe", StringComparison.OrdinalIgnoreCase)) &&
+            (path.StartsWith(programFiles, StringComparison.OrdinalIgnoreCase) || path.StartsWith(legacyProgramFiles, StringComparison.OrdinalIgnoreCase) || path.StartsWith(direct, StringComparison.OrdinalIgnoreCase) ||
              path.StartsWith(packages, StringComparison.OrdinalIgnoreCase) && path.Contains("\\LocalCache\\Local\\Programs\\airyPDF\\", StringComparison.OrdinalIgnoreCase));
     }
-    private static string IconLocation(string exe) => System.IO.Path.Combine(System.IO.Path.GetDirectoryName(exe)!, "airyPDF-crane-v2.ico") + ",0";
+    private static void RemoveLegacyShortcut(string folder)
+    {
+        string path = System.IO.Path.Combine(folder, "airyPDF.lnk");
+        if (!File.Exists(path)) return;
+        Type shellType = Type.GetTypeFromProgID("WScript.Shell")!; dynamic shell = Activator.CreateInstance(shellType)!; object? item = null;
+        try { dynamic shortcut = shell.CreateShortcut(path); item = shortcut; if (IsOwnInstall((string)shortcut.TargetPath)) { File.Delete(path); SHChangeNotify(0x4, 0x1005, path, IntPtr.Zero); } }
+        finally { if (item != null) Marshal.FinalReleaseComObject(item); Marshal.FinalReleaseComObject(shell); }
+    }
+    private static string IconLocation(string exe) => System.IO.Path.Combine(System.IO.Path.GetDirectoryName(exe)!, "AiryReader.ico") + ",0";
     private static void CreateShortcut(string folder, string exe, string working)
     {
         Directory.CreateDirectory(folder);
@@ -117,13 +168,15 @@ public static class DesktopInstaller
         object? shortcutObject = null;
         try
         {
-            string path = System.IO.Path.Combine(folder, "airyPDF.lnk");
+            string path = System.IO.Path.Combine(folder, "AiryReader.lnk");
             dynamic shortcut = shell.CreateShortcut(path); shortcutObject = shortcut;
             if (File.Exists(path) && !string.IsNullOrEmpty((string)shortcut.TargetPath) && !IsOwnInstall((string)shortcut.TargetPath))
-                throw new IOException("既存のairyPDFショートカットが別の場所を指しています。上書きせず停止しました。");
+                throw new IOException("既存のAiryReaderショートカットが別の場所を指しています。上書きせず停止しました。");
             shortcut.TargetPath = exe; shortcut.WorkingDirectory = working; shortcut.IconLocation = IconLocation(exe);
-            shortcut.Description = "airyPDF — PDF閲覧・印刷チェック";
+            shortcut.Description = "AiryReader — 軽量ファイル閲覧・PDF印刷";
             shortcut.Save();
+            NormalizeFileCase(folder, "AiryReader.lnk");
+            path = System.IO.Path.Combine(folder, "AiryReader.lnk");
             SHChangeNotify(0x2000, 0x1005, path, IntPtr.Zero);
         }
         finally

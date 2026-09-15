@@ -2,7 +2,7 @@ using System.Diagnostics;
 using System.Drawing.Printing;
 using System.Text;
 
-namespace AiryPdf;
+namespace AiryReader;
 
 public static class SelfTest
 {
@@ -27,7 +27,23 @@ public static class SelfTest
         Check(((FrameworkElement)window.FindName("DocumentToolbar")).Visibility == Visibility.Collapsed && ((FrameworkElement)window.FindName("PrintButton")).Visibility == Visibility.Collapsed, "Markdownは読むための本文だけを表示");
         window.ScrollMarkdownByWheel(-120); window.UpdateLayout();
         Check(window.MarkdownOffset >= 170, "Markdownのホイール1段で十分な距離をスクロール");
-        Capture(window, "artifacts/markdown-window.png");
+        Capture(window, "artifacts/markdown-window.png");        string textFixture = System.IO.Path.GetFullPath("artifacts/text-view.txt");
+        File.WriteAllText(textFixture, "1行目\n2行目", Encoding.UTF8);
+        await window.OpenPathsAsync([textFixture]); window.UpdateLayout();
+        Check(markdownViewer.Visibility == Visibility.Visible, "TXTを同じタブで読み取り表示");
+        string htmlFixture = System.IO.Path.GetFullPath("artifacts/html-view.html");
+        File.WriteAllText(htmlFixture, "<h1>安全な見出し</h1><script>alert('x')</script><p>本文</p>", Encoding.UTF8);
+        await window.OpenPathsAsync([htmlFixture]); window.UpdateLayout();
+        string htmlText = new System.Windows.Documents.TextRange(markdownViewer.Document.ContentStart, markdownViewer.Document.ContentEnd).Text;
+        Check(htmlText.Contains("安全な見出し") && htmlText.Contains("本文") && !htmlText.Contains("alert"), "HTMLはスクリプトを実行せず本文だけ表示");
+        string imageFixture = System.IO.Path.GetFullPath("artifacts/image-view.png");
+        var testBitmap = new System.Windows.Media.Imaging.WriteableBitmap(12, 8, 96, 96, PixelFormats.Bgra32, null);
+        byte[] pixels = Enumerable.Repeat((byte)180, 12 * 8 * 4).ToArray(); testBitmap.WritePixels(new Int32Rect(0, 0, 12, 8), pixels, 12 * 4, 0);
+        var encoder = new System.Windows.Media.Imaging.PngBitmapEncoder(); encoder.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(testBitmap));
+        using (var imageFile = File.Create(imageFixture)) encoder.Save(imageFile);
+        await window.OpenPathsAsync([imageFixture]); window.UpdateLayout();
+        Check(((FrameworkElement)window.FindName("ImageViewer")).Visibility == Visibility.Visible && ((Image)window.FindName("ReaderImage")).Source is BitmapSource source && source.PixelWidth == 12, "PNG画像を同じタブで表示");
+        Capture(window, "artifacts/image-window.png");
         string uiPath = Environment.GetEnvironmentVariable("AIRYPDF_UI_PDF") ?? fixture;
         using var uiDocument = new PdfDocument(uiPath);
         int pageTotal = uiDocument.Count;

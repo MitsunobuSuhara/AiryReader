@@ -1,15 +1,17 @@
 using System.Text.Json;
-namespace AiryPdf;
+namespace AiryReader;
 public static class WindowPreferences
 {
     private sealed record Preferences(double Width, double Height, bool Maximized);
-    private static string SettingsPath => System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "airyPDF", "window.json");
+    private static string SettingsPath => System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "AiryReader", "window.json");
+    private static string LegacySettingsPath => System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "airyPDF", "window.json");
     public static void Restore(Window window)
     {
         try
         {
-            if (!File.Exists(SettingsPath)) return;
-            var saved = JsonSerializer.Deserialize<Preferences>(File.ReadAllText(SettingsPath));
+            var path = File.Exists(SettingsPath) ? SettingsPath : LegacySettingsPath;
+            if (!File.Exists(path)) return;
+            var saved = JsonSerializer.Deserialize<Preferences>(File.ReadAllText(path));
             if (saved == null || !double.IsFinite(saved.Width) || !double.IsFinite(saved.Height)) return;
             window.Width = Math.Clamp(saved.Width, window.MinWidth, Math.Max(window.MinWidth, SystemParameters.WorkArea.Width));
             window.Height = Math.Clamp(saved.Height, window.MinHeight, Math.Max(window.MinHeight, SystemParameters.WorkArea.Height));

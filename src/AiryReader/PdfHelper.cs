@@ -1,7 +1,7 @@
 using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
-namespace AiryPdf;
+namespace AiryReader;
 public static class PdfHelper
 {
     public static async Task<JsonElement> RunAsync(Dictionary<string,object?> request)

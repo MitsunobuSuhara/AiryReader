@@ -3,7 +3,7 @@ using System.Globalization;
 using System.Runtime.InteropServices;
 
 
-namespace AiryPdf;
+namespace AiryReader;
 
 public partial class PrintWindow : Window
 {

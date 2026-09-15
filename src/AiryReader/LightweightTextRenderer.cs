@@ -2,13 +2,13 @@ using System.Net;
 using System.Text.RegularExpressions;
 using System.Windows.Documents;
 
-namespace AiryPdf;
+namespace AiryReader;
 
-public static class MarkdownRenderer
+public static class LightweightTextRenderer
 {
    public static FlowDocument Build(string markdown)
     {
-        var doc = new FlowDocument { PagePadding = new Thickness(54, 42, 54, 60), FontFamily = new FontFamily("Yu Gothic UI"), FontSize = 16, Foreground = new SolidColorBrush(Color.FromRgb(32, 38, 46)), LineHeight = 27, ColumnWidth = 760 };
+        var doc = NewDocument();
         var paragraph = new List<string>(); var list = new List();
         void FlushParagraph() { if (paragraph.Count == 0) return; var p = new Paragraph { Margin = new Thickness(0, 0, 0, 14) }; AddInline(p.Inlines, string.Join(" ", paragraph)); doc.Blocks.Add(p); paragraph.Clear(); }
         void FlushList() { if (list.ListItems.Count == 0) return; list.MarkerStyle = TextMarkerStyle.Disc; list.Margin = new Thickness(20, 0, 0, 14); doc.Blocks.Add(list); list = new List(); }
@@ -26,6 +26,35 @@ public static class MarkdownRenderer
         }
         FlushParagraph(); FlushList(); return doc;
     }
+    public static FlowDocument BuildPlain(string text)
+    {
+        var doc = NewDocument();
+        var paragraph = new Paragraph { FontFamily = new FontFamily("Cascadia Mono, Consolas, Yu Gothic UI"), Margin = new Thickness(0) };
+        string[] lines = text.Replace("\r\n", "\n").Split('\n');
+        for (int i = 0; i < lines.Length; i++) { paragraph.Inlines.Add(new Run(lines[i])); if (i + 1 < lines.Length) paragraph.Inlines.Add(new LineBreak()); }
+        doc.Blocks.Add(paragraph); return doc;
+    }
+    public static FlowDocument BuildHtml(string html)
+    {
+        string safe = Regex.Replace(html, "<(script|style|iframe|object)[^>]*>.*?</\\1>", "", RegexOptions.IgnoreCase | RegexOptions.Singleline);
+        safe = Regex.Replace(safe, "<h1[^>]*>", "\n# ", RegexOptions.IgnoreCase);
+        safe = Regex.Replace(safe, "<h2[^>]*>", "\n## ", RegexOptions.IgnoreCase);
+        safe = Regex.Replace(safe, "<h3[^>]*>", "\n### ", RegexOptions.IgnoreCase);
+        safe = Regex.Replace(safe, "<li[^>]*>", "\n- ", RegexOptions.IgnoreCase);
+        safe = Regex.Replace(safe, "<(br|/p|/div|/h1|/h2|/h3|/li)[^>]*>", "\n", RegexOptions.IgnoreCase);
+        safe = Regex.Replace(safe, "<blockquote[^>]*>", "\n> ", RegexOptions.IgnoreCase);
+        safe = Regex.Replace(safe, "<[^>]+>", " ");
+        safe = WebUtility.HtmlDecode(safe);
+        safe = Regex.Replace(safe, "[ \\t]+", " ");
+        safe = Regex.Replace(safe, "\\n[ \\t]+", "\n");
+        safe = Regex.Replace(safe, "\\n{3,}", "\n\n");
+        return Build(safe.Trim());
+    }
+    private static FlowDocument NewDocument() => new()
+    {
+        PagePadding = new Thickness(54, 42, 54, 60), FontFamily = new FontFamily("Yu Gothic UI"), FontSize = 16,
+        Foreground = new SolidColorBrush(Color.FromRgb(32, 38, 46)), LineHeight = 27, ColumnWidth = 760
+    };
     private static void AddInline(InlineCollection target, string text)
     {
         int at = 0;

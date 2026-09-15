@@ -1,4 +1,4 @@
-﻿param([switch]$InstallDependencies)
+param([switch]$InstallDependencies)
 $ErrorActionPreference = "Stop"
 $taskRoot = Split-Path -Parent $PSScriptRoot
 Set-Location $taskRoot

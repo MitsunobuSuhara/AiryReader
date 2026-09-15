@@ -1,8 +1,10 @@
 using System.ComponentModel;
+using System.Text;
+using System.Windows.Media.Imaging;
 using System.Windows.Input;
 using System.Windows.Threading;
 
-namespace AiryPdf;
+namespace AiryReader;
 
 public partial class MainWindow : Window
 {
@@ -14,13 +16,18 @@ public partial class MainWindow : Window
 
         public double ScrollOffset;
     }
-    private sealed class MarkdownTabState(string path, System.Windows.Documents.FlowDocument document)
+    private sealed class TextTabState(string path, System.Windows.Documents.FlowDocument document)
     {
         public string Path = path;
         public System.Windows.Documents.FlowDocument Document = document;
     }
     private TabState? Current => (Tabs.SelectedItem as TabItem)?.Tag as TabState;
-    private MarkdownTabState? CurrentMarkdown => (Tabs.SelectedItem as TabItem)?.Tag as MarkdownTabState;
+    private TextTabState? CurrentText => (Tabs.SelectedItem as TabItem)?.Tag as TextTabState;
+    private sealed class ImageTabState(string path, BitmapSource image)
+    {
+        public string Path = path; public BitmapSource Image = image;
+    }
+    private ImageTabState? CurrentImage => (Tabs.SelectedItem as TabItem)?.Tag as ImageTabState;
     private readonly DispatcherTimer zoomTimer = new() { Interval = TimeSpan.FromMilliseconds(140) };
     private sealed class PageView
     {
@@ -42,7 +49,7 @@ public partial class MainWindow : Window
         zoomTimer.Tick += async (_, _) => { zoomTimer.Stop(); await RenderVisible(); };
         DpiChanged += (_, _) => { zoomTimer.Stop(); zoomTimer.Start(); };
     }
-    private void Error(Exception ex) => MessageBox.Show(this, ex.Message, "airyPDF", MessageBoxButton.OK, MessageBoxImage.Warning);
+    private void Error(Exception ex) => MessageBox.Show(this, ex.Message, "AiryReader", MessageBoxButton.OK, MessageBoxImage.Warning);
     public async void OpenPaths(IEnumerable<string> paths) => await OpenPathsAsync(paths);
     public async Task OpenPathsAsync(IEnumerable<string> paths)
     {
@@ -50,15 +57,28 @@ public partial class MainWindow : Window
         {
             try
             {
-                if (string.Equals(System.IO.Path.GetExtension(path), ".md", StringComparison.OrdinalIgnoreCase) || string.Equals(System.IO.Path.GetExtension(path), ".markdown", StringComparison.OrdinalIgnoreCase))
+                string extension = System.IO.Path.GetExtension(path).ToLowerInvariant();
+                if (new[] { ".md", ".markdown", ".txt", ".html", ".htm" }.Contains(extension))
                 {
-                    var markdown = new MarkdownTabState(path, MarkdownRenderer.Build(await File.ReadAllTextAsync(path)));
-                    var markdownTab = new TabItem { Header = System.IO.Path.GetFileName(path), ToolTip = path, Tag = markdown };
-                    opening = true; Tabs.Items.Add(markdownTab); Tabs.SelectedItem = markdownTab; opening = false;
-                    await RenderCurrent();
-                    continue;
+                    string text = await ReadTextAsync(path);
+                    var document = extension is ".html" or ".htm" ? LightweightTextRenderer.BuildHtml(text) :
+                        extension == ".txt" ? LightweightTextRenderer.BuildPlain(text) : LightweightTextRenderer.Build(text);
+                    var reader = new TextTabState(path, document);
+                    var readerTab = new TabItem { Header = System.IO.Path.GetFileName(path), ToolTip = path, Tag = reader };
+                    opening = true; Tabs.Items.Add(readerTab); Tabs.SelectedItem = readerTab; opening = false;
+                    await RenderCurrent(); continue;
                 }
-                Status.Text = "PDFを読み込んでいます…";
+                if (new[] { ".jpg", ".jpeg", ".png", ".tif", ".tiff", ".bmp" }.Contains(extension))
+                {
+                    byte[] bytes = await File.ReadAllBytesAsync(path);
+                    var bitmap = new BitmapImage(); bitmap.BeginInit(); bitmap.CacheOption = BitmapCacheOption.OnLoad;
+                    using (var stream = new MemoryStream(bytes)) { bitmap.StreamSource = stream; bitmap.EndInit(); }
+                    bitmap.Freeze();
+                    var image = new ImageTabState(path, bitmap);
+                    var imageTab = new TabItem { Header = System.IO.Path.GetFileName(path), ToolTip = path, Tag = image };
+                    opening = true; Tabs.Items.Add(imageTab); Tabs.SelectedItem = imageTab; opening = false;
+                    await RenderCurrent(); continue;
+                }                Status.Text = "PDFを読み込んでいます…";
                 PdfDocument doc;
                 string? password = null;
                 while (true)
@@ -75,17 +95,26 @@ public partial class MainWindow : Window
                 opening = true; Tabs.Items.Add(tab); Tabs.SelectedItem = tab; opening = false;
                 await RenderCurrent();
             }
-            catch (Exception ex) { Error(ex); Status.Text = "PDFを開けませんでした。"; }
+            catch (Exception ex) { Error(ex); Status.Text = "ファイルを開けませんでした。"; }
         }
     }
-    private void OpenClick(object sender, RoutedEventArgs e)
+    private static async Task<string> ReadTextAsync(string path)
     {
-        var dialog = new Microsoft.Win32.OpenFileDialog { Filter = "PDF・Markdown|*.pdf;*.md;*.markdown|PDFファイル|*.pdf|Markdownファイル|*.md;*.markdown", Multiselect = true };
+        byte[] bytes = await File.ReadAllBytesAsync(path);
+        try { return new UTF8Encoding(false, true).GetString(bytes); }
+        catch (DecoderFallbackException)
+        {
+            Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+            return Encoding.GetEncoding(932).GetString(bytes);
+        }
+    }    private void OpenClick(object sender, RoutedEventArgs e)
+    {
+        var dialog = new Microsoft.Win32.OpenFileDialog { Filter = "対応ファイル|*.pdf;*.md;*.markdown;*.txt;*.html;*.htm;*.jpg;*.jpeg;*.png;*.tif;*.tiff;*.bmp|PDF|*.pdf|文章|*.md;*.markdown;*.txt;*.html;*.htm|画像|*.jpg;*.jpeg;*.png;*.tif;*.tiff;*.bmp", Multiselect = true };
         if (dialog.ShowDialog(this) == true) OpenPaths(dialog.FileNames);
     }
     private void FilesDropped(object sender, DragEventArgs e)
     {
-        if (e.Data.GetData(DataFormats.FileDrop) is string[] files) OpenPaths(files.Where(x => new[] { ".pdf", ".md", ".markdown" }.Contains(System.IO.Path.GetExtension(x), StringComparer.OrdinalIgnoreCase)));
+        if (e.Data.GetData(DataFormats.FileDrop) is string[] files) OpenPaths(files.Where(x => new[] { ".pdf", ".md", ".markdown", ".txt", ".html", ".htm", ".jpg", ".jpeg", ".png", ".tif", ".tiff", ".bmp" }.Contains(System.IO.Path.GetExtension(x), StringComparer.OrdinalIgnoreCase)));
     }
     private async void TabChanged(object sender, SelectionChangedEventArgs e)
     {
@@ -95,19 +124,23 @@ public partial class MainWindow : Window
     {
         ++renderVersion;
         var state = Current;
-        var markdown = CurrentMarkdown;
+        var textDocument = CurrentText;
+        var image = CurrentImage;
         changingLayout = true;
         PagesHost.Children.Clear(); pageViews.Clear();
-        Welcome.Visibility = state == null && markdown == null ? Visibility.Visible : Visibility.Collapsed;
+        Welcome.Visibility = state == null && textDocument == null && image == null ? Visibility.Visible : Visibility.Collapsed;
         Viewer.Visibility = state != null ? Visibility.Visible : Visibility.Collapsed;
-        MarkdownViewer.Visibility = markdown != null ? Visibility.Visible : Visibility.Collapsed;
+        MarkdownViewer.Visibility = textDocument != null ? Visibility.Visible : Visibility.Collapsed;
+        ImageViewer.Visibility = image != null ? Visibility.Visible : Visibility.Collapsed;
         DocumentToolbar.Visibility = state != null ? Visibility.Visible : Visibility.Collapsed;
-        PrintButton.Visibility = markdown == null ? Visibility.Visible : Visibility.Collapsed;
-        ContentGrid.Background = markdown != null ? Brushes.White : new SolidColorBrush(Color.FromRgb(188, 195, 204));
-        MarkdownViewer.Document = markdown?.Document;
+        PrintButton.Visibility = textDocument == null && image == null ? Visibility.Visible : Visibility.Collapsed;
+        ContentGrid.Background = textDocument != null || image != null ? Brushes.White : new SolidColorBrush(Color.FromRgb(188, 195, 204));
+        MarkdownViewer.Document = textDocument?.Document;
+        ReaderImage.Source = image?.Image;
         try
         {
-            if (markdown != null) { Status.Text = $"{System.IO.Path.GetFileName(markdown.Path)}  ·  読み取り専用"; return; }
+            if (textDocument != null) { Status.Text = $"{System.IO.Path.GetFileName(textDocument.Path)}  ·  読み取り専用"; return; }
+            if (image != null) { Status.Text = $"{System.IO.Path.GetFileName(image.Path)}  ·  {image.Image.PixelWidth} × {image.Image.PixelHeight} px  ·  読み取り専用"; return; }
             if (state == null) return;
             for (int i = 0; i < state.Document.Count; i++)
             {
@@ -326,8 +359,8 @@ public partial class MainWindow : Window
     private void HelpClick(object s, RoutedEventArgs e)
     {
         MessageBox.Show(this,
-            "airyPDF 1.1\n\nPDFを開く：Ctrl＋O、またはドラッグ＆ドロップ\nページ移動：ホイールで連続スクロール、ページ番号入力、左右のボタン\n拡大縮小：Ctrl＋ホイール、＋／−、倍率の手入力、画面幅に合わせる\n印刷：Ctrl＋P\n入力・注釈・検索・署名：Ctrl＋F、Ctrl＋F\nパスワードはファイルを開く際に入力します。保存・ログには残しません。\n\n新しいPDFの印刷倍率は100%。指定倍率では自動縮小せず、欠けをプレビューで知らせます。\nドライバー側の拡大縮小・Nアップは無効にしてください。\n回転を保存するときは別名保存します。\n\n寸法確認用PDFには縦横100mmの基準線があります。\n会社での印刷は利用者評価で用途上合格（約0.1mmのずれに見えるとの報告）。",
-            "airyPDF — 使い方", MessageBoxButton.OK, MessageBoxImage.Information);
+            "AiryReader 1.2\n\n対応形式：PDF、Markdown、TXT、HTML、JPEG、PNG、TIFF、BMP\nファイルを開く：Ctrl＋O、またはドラッグ＆ドロップ\nページ移動：ホイールで連続スクロール、ページ番号入力、左右のボタン\n拡大縮小：Ctrl＋ホイール、＋／−、倍率の手入力、画面幅に合わせる\n印刷：Ctrl＋P\n入力・注釈・検索・署名：Ctrl＋F、Ctrl＋F\nパスワードはファイルを開く際に入力します。保存・ログには残しません。\n\n新しいPDFの印刷倍率は100%。指定倍率では自動縮小せず、欠けをプレビューで知らせます。\nドライバー側の拡大縮小・Nアップは無効にしてください。\n回転を保存するときは別名保存します。\n\n寸法確認用PDFには縦横100mmの基準線があります。\n会社での印刷は利用者評価で用途上合格（約0.1mmのずれに見えるとの報告）。",
+            "AiryReader — 使い方", MessageBoxButton.OK, MessageBoxImage.Information);
     }
     private void ToolsClick(object sender, RoutedEventArgs e)
     {

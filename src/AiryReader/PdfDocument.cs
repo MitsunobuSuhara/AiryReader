@@ -1,6 +1,6 @@
 using System.Runtime.InteropServices;
 
-namespace AiryPdf;
+namespace AiryReader;
 
 // PDFiumは全ドキュメント間で直列化する。描画中の回転・解放との競合も防ぐ。
 public sealed class PdfDocument : IDisposable

@@ -1,4 +1,4 @@
-namespace AiryPdf;
+namespace AiryReader;
 
 public partial class App : System.Windows.Application
 {
@@ -15,7 +15,7 @@ public partial class App : System.Windows.Application
         }
         if (e.Args.Contains("--unregister"))
         {
-            if (MessageBox.Show("airyPDFのアプリ登録とショートカットを解除しますか？\n実行ファイルと設定は復旧用に残ります。", "airyPDF 登録解除", MessageBoxButton.YesNo) == MessageBoxResult.Yes)
+            if (MessageBox.Show("AiryReaderのアプリ登録とショートカットを解除しますか？\n実行ファイルと設定は復旧用に残ります。", "AiryReader 登録解除", MessageBoxButton.YesNo) == MessageBoxResult.Yes)
                 DesktopInstaller.Unregister();
             Shutdown(0); return;
         }
@@ -36,13 +36,13 @@ public partial class App : System.Windows.Application
                 catch (Exception ex) { MessageBox.Show(ex.Message, "管理者確認が完了しませんでした"); Shutdown(1); }
                 return;
             }
-            string logFolder = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "airyPDF");
+            string logFolder = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "AiryReader");
             Directory.CreateDirectory(logFolder);
             try
             {
                 string installed = DesktopInstaller.Install();
                 File.WriteAllText(System.IO.Path.Combine(logFolder, "install-result.txt"), installed);
-                if (!e.Args.Contains("--install-quiet")) MessageBox.Show("デスクトップとスタートメニューに airyPDF を登録しました。", "airyPDF");
+                if (!e.Args.Contains("--install-quiet")) MessageBox.Show("デスクトップとスタートメニューに AiryReader を登録しました。", "AiryReader");
                 Shutdown(0);
             }
             catch (Exception ex)

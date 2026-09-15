@@ -1,7 +1,7 @@
 using System.Globalization;
 using System.Text;
 
-namespace AiryPdf;
+namespace AiryReader;
 
 public static class CalibrationPdf
 {
@@ -24,7 +24,7 @@ public static class CalibrationPdf
             void Line(double x1, double y1, double x2, double y2) => content.AppendLine($"{P(x1)} {P(y1)} m {P(x2)} {P(y2)} l S");
             void Text(double x, double y, double font, string text) => content.AppendLine($"BT /F1 {N(font)} Tf {P(x)} {P(y)} Td ({text}) Tj ET");
             content.AppendLine("0 0 0 rg 0 0 0 RG 0.5 w");
-            Text(15, size.Height - 20, 21, $"airyPDF - PRINT CHECK  /  PAGE {page + 1}");
+            Text(15, size.Height - 20, 21, $"AiryReader - PRINT CHECK  /  PAGE {page + 1}");
             Text(15, size.Height - 30, 11, $"{(page == 2 ? "A3" : "A4")}  {size.Width} x {size.Height} mm  /  TOP");
             Text(15, size.Height - 40, 10, "Print at Actual size / 100%. Compare the SAME PDF in Acrobat Reader.");
             Text(15, size.Height - 47, 10, "Measure the CENTER of the end ticks. Each interval is 10 mm.");

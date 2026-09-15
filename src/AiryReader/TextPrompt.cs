@@ -1,4 +1,4 @@
-namespace AiryPdf;
+namespace AiryReader;
 public static class TextPrompt
 {
     public static string? Ask(Window owner, string title, string message, bool secret = false)

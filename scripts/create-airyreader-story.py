@@ -10,7 +10,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "artifacts" / "share"
 OUT.mkdir(parents=True, exist_ok=True)
-DOCX = OUT / "airyPDF_AIとの会話から生まれたPDFアプリ.docx"
+DOCX = OUT / "AiryReader_AIとの会話から生まれたPDFアプリ.docx"
 
 doc = Document()
 sec = doc.sections[0]
@@ -67,13 +67,13 @@ def conversation(who, text, dark=False):
 p=doc.add_paragraph(style="Title"); p.alignment=WD_ALIGN_PARAGRAPH.CENTER
 p.add_run("AIとの会話から生まれたPDFアプリ")
 p=doc.add_paragraph(); p.alignment=WD_ALIGN_PARAGRAPH.CENTER
-r=p.add_run("airyPDFを一緒に作った記録"); r.bold=True; r.font.size=Pt(16)
-icon=ROOT/"assets"/"icons"/"airyPDF-crane.png"
+r=p.add_run("AiryReaderを一緒に作った記録"); r.bold=True; r.font.size=Pt(16)
+icon=ROOT/"assets"/"icons"/"AiryReader-crane.png"
 if icon.exists():
     p=doc.add_paragraph(); p.alignment=WD_ALIGN_PARAGRAPH.CENTER
     p.add_run().add_picture(str(icon), width=Inches(2.0))
 p=doc.add_paragraph(); p.alignment=WD_ALIGN_PARAGRAPH.CENTER
-r=p.add_run("私はこれまで、プログラムコードを一度も書いたことがありません。\nこれまでのアプリも、今回のairyPDFも、すべてAIとの会話で作りました。\nairyPDFは、仕事の合間に話しかけ、約1日でほぼ形になりました。")
+r=p.add_run("私はこれまで、プログラムコードを一度も書いたことがありません。\nこれまでのアプリも、今回のAiryReaderも、すべてAIとの会話で作りました。\nAiryReaderは、仕事の合間に話しかけ、約1日でほぼ形になりました。")
 r.font.size=Pt(13)
 p=doc.add_paragraph(); p.alignment=WD_ALIGN_PARAGRAPH.CENTER
 p.paragraph_format.space_before=Pt(22)
@@ -101,7 +101,7 @@ doc.add_heading("実際の仕事で試して完成度を上げる", level=1)
 conversation("私", "会社の複合機で印刷チェックをします。このPCを持って行きます。", True)
 conversation("AI", "原本の用紙サイズと向きを引き継ぎ、印刷倍率100％で確認できるようにします。")
 conversation("私", "会社で印刷しました。0.1mmくらいずれて見えますが、私の用途では完璧です。", True)
-doc.add_paragraph("画面上で動くだけでは、仕事の道具として十分か分かりません。実際の複合機で印刷し、自分の用途に必要な精度を満たすか確認したことで、airyPDFは『試作品』から『使えるアプリ』へ進みました。")
+doc.add_paragraph("画面上で動くだけでは、仕事の道具として十分か分かりません。実際の複合機で印刷し、自分の用途に必要な精度を満たすか確認したことで、AiryReaderは『試作品』から『使えるアプリ』へ進みました。")
 
 doc.add_heading("会話は見た目や名前にも及んだ", level=1)
 conversation("私", "黒背景で、グラデーションなし。アイコンは少しかわいくしたいです。", True)
@@ -125,8 +125,8 @@ doc.add_heading("私の場合はこんな始まり方だった", level=1)
 doc.add_paragraph("立派な企画書や完成図があったわけではありません。仕事で困っていたことと、こうなれば便利だという希望を話しただけでした。そこから実物ができ、使った感想を返すたびに少しずつ変わっていきました。")
 conversation("最初の相談", "仕事で使うPDFを、寸法どおりに印刷できるアプリが欲しいです。", True)
 
-doc.add_heading("現在のairyPDF", level=1)
-doc.add_paragraph("airyPDFは、閲覧、複数ページのスクロール、倍率調整、原寸を意識した印刷、入力、注釈、検索、しおり、電子署名などを備えたWindowsアプリになりました。私はコードを一度も書いたことがありません。Forest Cruiseをはじめ、これまでのアプリもすべてAIとの会話で作りました。airyPDFも、空いた時間に話しかけ、約1日でほぼ形になりました。")
+doc.add_heading("現在のAiryReader", level=1)
+doc.add_paragraph("AiryReaderは、閲覧、複数ページのスクロール、倍率調整、原寸を意識した印刷、入力、注釈、検索、しおり、電子署名などを備えたWindowsアプリになりました。私はコードを一度も書いたことがありません。Forest Cruiseをはじめ、これまでのアプリもすべてAIとの会話で作りました。AiryReaderも、空いた時間に話しかけ、約1日でほぼ形になりました。")
 p=doc.add_paragraph(); p.alignment=WD_ALIGN_PARAGRAPH.CENTER
 r=p.add_run("これはチャットの逐語録ではなく、実際の開発経過をもとに読みやすく再構成した記録です。")
 r.font.size=Pt(8.5); r.font.color.rgb=RGBColor(90,90,90)
@@ -134,9 +134,9 @@ r.font.size=Pt(8.5); r.font.color.rgb=RGBColor(90,90,90)
 # footer
 for section in doc.sections:
     footer=section.footer.paragraphs[0]; footer.alignment=WD_ALIGN_PARAGRAPH.CENTER
-    footer.add_run("airyPDF  AIとの会話から生まれたPDFアプリ").font.size=Pt(8)
+    footer.add_run("AiryReader  AIとの会話から生まれたPDFアプリ").font.size=Pt(8)
 
 doc.core_properties.title = "AIとの会話から生まれたPDFアプリ"
-doc.core_properties.subject = "airyPDF制作記録"
+doc.core_properties.subject = "AiryReader制作記録"
 doc.save(DOCX)
 print(DOCX)

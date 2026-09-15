@@ -1,4 +1,4 @@
-namespace AiryPdf;
+namespace AiryReader;
 
 public enum PrintMode { Scale, Fit, TwoUp, FourUp, Booklet, Poster }
 public record Placement(int Page, Rect Destination, Rect Clip, double Scale);

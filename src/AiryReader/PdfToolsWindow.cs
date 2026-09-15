@@ -1,6 +1,6 @@
 using System.Text.Json;
 using System.Globalization;
-namespace AiryPdf;
+namespace AiryReader;
 public sealed class PdfToolsWindow : Window
 {
     private readonly PdfDocument document;
@@ -25,7 +25,7 @@ public sealed class PdfToolsWindow : Window
     public PdfToolsWindow(PdfDocument doc, int currentPage, Action<int> go, Func<string,Task> openPdf)
     {
         document = doc; page = currentPage; navigate = go; open = openPdf;
-        Title = "airyPDF — 入力・注釈・検索・署名"; Width = 800; Height = 690; MinWidth = 600; MinHeight = 450;
+        Title = "AiryReader — 入力・注釈・検索・署名"; Width = 800; Height = 690; MinWidth = 600; MinHeight = 450;
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
         var root = new DockPanel { Margin = new Thickness(14) }; Content = root;
         DockPanel.SetDock(status,Dock.Bottom); root.Children.Add(status);
