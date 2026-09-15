@@ -20,12 +20,15 @@ public partial class MainWindow : Window
     {
         public string Path = path;
         public System.Windows.Documents.FlowDocument Document = document;
+        public double Zoom = 1;
     }
     private TabState? Current => (Tabs.SelectedItem as TabItem)?.Tag as TabState;
     private TextTabState? CurrentText => (Tabs.SelectedItem as TabItem)?.Tag as TextTabState;
     private sealed class ImageTabState(string path, BitmapSource image)
     {
         public string Path = path; public BitmapSource Image = image;
+        public double Zoom = 1;
+        public int Rotation;
     }
     private ImageTabState? CurrentImage => (Tabs.SelectedItem as TabItem)?.Tag as ImageTabState;
     private readonly DispatcherTimer zoomTimer = new() { Interval = TimeSpan.FromMilliseconds(140) };
@@ -41,6 +44,8 @@ public partial class MainWindow : Window
     private int renderVersion;
     private bool opening;
     private long zoomPauseUntil;
+    private readonly List<System.Windows.Documents.Run> textMatches = [];
+    private int textMatchIndex = -1;
 
     public MainWindow()
     {
@@ -128,19 +133,27 @@ public partial class MainWindow : Window
         var image = CurrentImage;
         changingLayout = true;
         PagesHost.Children.Clear(); pageViews.Clear();
+        ClearTextSearch();
+        TextSearchBar.Visibility = Visibility.Collapsed;
         Welcome.Visibility = state == null && textDocument == null && image == null ? Visibility.Visible : Visibility.Collapsed;
         Viewer.Visibility = state != null ? Visibility.Visible : Visibility.Collapsed;
         MarkdownViewer.Visibility = textDocument != null ? Visibility.Visible : Visibility.Collapsed;
         ImageViewer.Visibility = image != null ? Visibility.Visible : Visibility.Collapsed;
-        DocumentToolbar.Visibility = state != null ? Visibility.Visible : Visibility.Collapsed;
-        PrintButton.Visibility = textDocument == null && image == null ? Visibility.Visible : Visibility.Collapsed;
+        DocumentToolbar.Visibility = state != null || textDocument != null || image != null ? Visibility.Visible : Visibility.Collapsed;
+        PageControls.Visibility = state != null ? Visibility.Visible : Visibility.Collapsed;
+        RotationControls.Visibility = state != null || image != null ? Visibility.Visible : Visibility.Collapsed;
+        FitWidthButton.Visibility = state != null || image != null ? Visibility.Visible : Visibility.Collapsed;
+        PrintButton.Visibility = state != null ? Visibility.Visible : Visibility.Collapsed;
         ContentGrid.Background = textDocument != null || image != null ? Brushes.White : new SolidColorBrush(Color.FromRgb(188, 195, 204));
         MarkdownViewer.Document = textDocument?.Document;
         ReaderImage.Source = image?.Image;
+        if (textDocument != null) MarkdownViewer.Zoom = textDocument.Zoom * 100;
+        if (image != null) ApplyImageLayout(image);
+        if (!ZoomText.IsKeyboardFocusWithin && (state != null || textDocument != null || image != null)) ZoomText.Text = (ActiveZoom * 100).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
         try
         {
-            if (textDocument != null) { Status.Text = $"{System.IO.Path.GetFileName(textDocument.Path)}  ·  読み取り専用"; return; }
-            if (image != null) { Status.Text = $"{System.IO.Path.GetFileName(image.Path)}  ·  {image.Image.PixelWidth} × {image.Image.PixelHeight} px  ·  読み取り専用"; return; }
+            if (textDocument != null) { UpdateNonPdfStatus(); return; }
+            if (image != null) { UpdateNonPdfStatus(); return; }
             if (state == null) return;
             for (int i = 0; i < state.Document.Count; i++)
             {
@@ -224,9 +237,22 @@ public partial class MainWindow : Window
     private void PreviousClick(object s, RoutedEventArgs e) => GoPage((Current?.Page ?? 0) - 1);
     private void NextClick(object s, RoutedEventArgs e) => GoPage((Current?.Page ?? 0) + 1);
     private void PageNumberKeyDown(object s, KeyEventArgs e) { if (e.Key == Key.Enter && int.TryParse(PageNumber.Text, out int n)) GoPage(n - 1); }
+    private double ActiveZoom => Current?.Zoom ?? CurrentImage?.Zoom ?? CurrentText?.Zoom ?? 1;
     private void Zoom(double factor, Point? anchor = null)
     {
-        if (Current is not { } state) return;
+        if (Current is { } state) { ZoomPdf(state, factor, anchor); return; }
+        if (CurrentImage is { } image) { ZoomImage(image, factor, anchor); return; }
+        if (CurrentText is { } text)
+        {
+            text.Zoom = Math.Clamp(text.Zoom * factor, .1, 8);
+            if (Math.Abs(text.Zoom - 1) < 1e-10) text.Zoom = 1;
+            MarkdownViewer.Zoom = text.Zoom * 100;
+            if (!ZoomText.IsKeyboardFocusWithin) ZoomText.Text = (text.Zoom * 100).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
+            UpdateNonPdfStatus();
+        }
+    }
+    private void ZoomPdf(TabState state, double factor, Point? anchor)
+    {
         ++renderVersion;
         zoomPauseUntil = 0;
         double old = state.Zoom; state.Zoom = Math.Clamp(old * factor, .1, 8);
@@ -245,37 +271,73 @@ public partial class MainWindow : Window
         state.ScrollOffset = Viewer.VerticalOffset;
         zoomTimer.Stop(); zoomTimer.Start();
     }
+    private void ZoomImage(ImageTabState state, double factor, Point? anchor)
+    {
+        double old = state.Zoom; state.Zoom = Math.Clamp(old * factor, .1, 8);
+        if (Math.Abs(state.Zoom - 1) < 1e-10) state.Zoom = 1;
+        double ratio = state.Zoom / old;
+        Point point = anchor ?? new Point(ImageViewer.ViewportWidth / 2, ImageViewer.ViewportHeight / 2);
+        Point imageAnchor = ImageViewer.TranslatePoint(point, ReaderImage);
+        ApplyImageLayout(state); ImageViewer.UpdateLayout();
+        Point moved = ReaderImage.TranslatePoint(new Point(imageAnchor.X * ratio, imageAnchor.Y * ratio), ImageViewer);
+        ImageViewer.ScrollToHorizontalOffset(ImageViewer.HorizontalOffset + moved.X - point.X);
+        ImageViewer.ScrollToVerticalOffset(ImageViewer.VerticalOffset + moved.Y - point.Y);
+        if (!ZoomText.IsKeyboardFocusWithin) ZoomText.Text = (state.Zoom * 100).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
+        UpdateNonPdfStatus();
+    }
+    private void ApplyImageLayout(ImageTabState state)
+    {
+        ReaderImage.Width = state.Image.PixelWidth * state.Zoom;
+        ReaderImage.Height = state.Image.PixelHeight * state.Zoom;
+        ReaderImage.LayoutTransform = new RotateTransform(state.Rotation);
+        RenderOptions.SetBitmapScalingMode(ReaderImage, state.Zoom >= 1 ? BitmapScalingMode.HighQuality : BitmapScalingMode.Fant);
+    }
+    private void UpdateNonPdfStatus()
+    {
+        if (CurrentText is { } text) Status.Text = $"{System.IO.Path.GetFileName(text.Path)}  ·  表示 {text.Zoom * 100:0.##}%  ·  Ctrl＋Fで検索";
+        else if (CurrentImage is { } image) Status.Text = $"{System.IO.Path.GetFileName(image.Path)}  ·  {image.Image.PixelWidth} × {image.Image.PixelHeight} px  ·  表示 {image.Zoom * 100:0.##}%";
+    }
     private void ZoomInputGotFocus(object s, KeyboardFocusChangedEventArgs e) => ZoomText.SelectAll();
     private void ApplyZoomInput()
     {
-        if (Current is not { } state) return;
+        if (Current == null && CurrentImage == null && CurrentText == null) return;
         string input = ZoomText.Text.Trim().TrimEnd('%', '％');
         if ((double.TryParse(input, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.CurrentCulture, out double percent) ||
             double.TryParse(input, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out percent)) && double.IsFinite(percent) && percent >= 10 && percent <= 800)
-            Zoom(percent / 100 / state.Zoom);
+            Zoom(percent / 100 / ActiveZoom);
         else Status.Text = "表示倍率は10～800％で入力してください。";
-        ZoomText.Text = (state.Zoom * 100).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
+        ZoomText.Text = (ActiveZoom * 100).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
     }
     private void ZoomInputKeyDown(object s, KeyEventArgs e) { if (e.Key == Key.Enter) { ApplyZoomInput(); e.Handled = true; } }
     private void ZoomInputLostFocus(object s, KeyboardFocusChangedEventArgs e) => ApplyZoomInput();
     private void ZoomInClick(object s, RoutedEventArgs e) => StepZoom(1.2);
     private void ZoomOutClick(object s, RoutedEventArgs e) => StepZoom(1 / 1.2);
-    private void FitClick(object s, RoutedEventArgs e) { if (Current is not null && PageSurface.Width > 0) Zoom((Viewer.ViewportWidth - 56) / PageSurface.Width); }
+    private void FitClick(object s, RoutedEventArgs e)
+    {
+        if (Current is not null && PageSurface.Width > 0) Zoom((Viewer.ViewportWidth - 56) / PageSurface.Width);
+        else if (CurrentImage is { } image)
+        {
+            bool side = Math.Abs(image.Rotation) % 180 == 90;
+            double width = side ? image.Image.PixelHeight : image.Image.PixelWidth, height = side ? image.Image.PixelWidth : image.Image.PixelHeight;
+            double target = Math.Min((ImageViewer.ViewportWidth - 24) / Math.Max(1, width), (ImageViewer.ViewportHeight - 24) / Math.Max(1, height));
+            Zoom(Math.Clamp(target, .1, 8) / image.Zoom);
+        }
+    }
     private void StepZoom(double factor, Point? anchor = null)
     {
-        if (Current is not { } state || Environment.TickCount64 < zoomPauseUntil) return;
-        double target = state.Zoom * factor;
-        bool stopAt100 = (state.Zoom < 1 && target >= 1) || (state.Zoom > 1 && target <= 1);
+        if ((Current == null && CurrentImage == null && CurrentText == null) || Environment.TickCount64 < zoomPauseUntil) return;
+        double current = ActiveZoom, target = current * factor;
+        bool stopAt100 = (current < 1 && target >= 1) || (current > 1 && target <= 1);
         if (stopAt100) target = 1;
-        Zoom(target / state.Zoom, anchor);
-        // 連続ホイールやボタン連打でも原寸の停止を見失わない。
+        Zoom(target / current, anchor);
         if (stopAt100) zoomPauseUntil = Environment.TickCount64 + 450;
-        ZoomText.Text = (state.Zoom * 100).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
+        ZoomText.Text = (ActiveZoom * 100).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
     }
     internal void ZoomByWheel(int delta, Point? anchor = null)
     {
         if (delta != 0) StepZoom(delta > 0 ? 1.12 : 1 / 1.12, anchor);
     }
+    internal double ActiveZoomForTest => ActiveZoom;
     private static T? FindVisualChild<T>(DependencyObject parent) where T : DependencyObject
     {
         for (int i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
@@ -294,7 +356,17 @@ public partial class MainWindow : Window
     }
     private void MarkdownWheel(object s, MouseWheelEventArgs e)
     {
-        ScrollMarkdownByWheel(e.Delta); e.Handled = true;
+        if ((Keyboard.Modifiers & ModifierKeys.Control) != 0) ZoomByWheel(e.Delta);
+        else ScrollMarkdownByWheel(e.Delta);
+        e.Handled = true;
+    }
+    private void ImageWheel(object s, MouseWheelEventArgs e)
+    {
+        if ((Keyboard.Modifiers & ModifierKeys.Control) != 0) { ZoomByWheel(e.Delta, e.GetPosition(ImageViewer)); e.Handled = true; }
+    }
+    private void ImageClick(object s, MouseButtonEventArgs e)
+    {
+        if (e.ClickCount == 2 && CurrentImage is { } image) { if (Math.Abs(image.Zoom - 1) < .001) FitClick(s, e); else Zoom(1 / image.Zoom, e.GetPosition(ImageViewer)); e.Handled = true; }
     }
     private void ViewerWheel(object s, MouseWheelEventArgs e)
     {
@@ -302,6 +374,11 @@ public partial class MainWindow : Window
     }
     private async void Rotate(int delta)
     {
+        if (CurrentImage is { } image)
+        {
+            image.Rotation = (image.Rotation + delta * 90) % 360;
+            ApplyImageLayout(image); UpdateNonPdfStatus(); return;
+        }
         if (Current is not { } state) return;
         try
         {
@@ -359,7 +436,7 @@ public partial class MainWindow : Window
     private void HelpClick(object s, RoutedEventArgs e)
     {
         MessageBox.Show(this,
-            "AiryReader 1.2\n\n対応形式：PDF、Markdown、TXT、HTML、JPEG、PNG、TIFF、BMP\nファイルを開く：Ctrl＋O、またはドラッグ＆ドロップ\nページ移動：ホイールで連続スクロール、ページ番号入力、左右のボタン\n拡大縮小：Ctrl＋ホイール、＋／−、倍率の手入力、画面幅に合わせる\n印刷：Ctrl＋P\n入力・注釈・検索・署名：Ctrl＋F、Ctrl＋F\nパスワードはファイルを開く際に入力します。保存・ログには残しません。\n\n新しいPDFの印刷倍率は100%。指定倍率では自動縮小せず、欠けをプレビューで知らせます。\nドライバー側の拡大縮小・Nアップは無効にしてください。\n回転を保存するときは別名保存します。\n\n寸法確認用PDFには縦横100mmの基準線があります。\n会社での印刷は利用者評価で用途上合格（約0.1mmのずれに見えるとの報告）。",
+            "AiryReader 1.2.1\n\n対応形式：PDF、Markdown、TXT、HTML、JPEG、PNG、TIFF、BMP\nファイルを開く：Ctrl＋O、またはドラッグ＆ドロップ\nページ移動：ホイールで連続スクロール、ページ番号入力、左右のボタン\nPDF・画像の拡大縮小：Ctrl＋ホイール、＋／−、倍率入力、画面幅に合わせる\n画像：回転アイコン、ダブルクリックで100％／画面内表示\nMarkdown・TXT・HTML：Ctrl＋ホイールで文字倍率、Ctrl＋Fで検索、選択・コピー\n共通：Ctrl＋0で100％、Ctrl＋＋／－で倍率変更\n印刷：Ctrl＋P\nPDFの入力・注釈・検索・署名確認：Ctrl＋F\nパスワードはファイルを開く際に入力します。保存・ログには残しません。\n\n新しいPDFの印刷倍率は100%。指定倍率では自動縮小せず、欠けをプレビューで知らせます。\nドライバー側の拡大縮小・Nアップは無効にしてください。\n回転を保存するときは別名保存します。\n\n寸法確認用PDFには縦横100mmの基準線があります。\n会社での印刷は利用者評価で用途上合格（約0.1mmのずれに見えるとの報告）。",
             "AiryReader — 使い方", MessageBoxButton.OK, MessageBoxImage.Information);
     }
     private void ToolsClick(object sender, RoutedEventArgs e)
@@ -367,6 +444,63 @@ public partial class MainWindow : Window
         if (Current is not { } state) return;
         new PdfToolsWindow(state.Document, state.Page, GoPage, async path => await OpenPathsAsync([path])) { Owner = this }.ShowDialog();
     }
+    private static IEnumerable<System.Windows.Documents.Run> FindRuns(DependencyObject parent)
+    {
+        foreach (object child in LogicalTreeHelper.GetChildren(parent))
+        {
+            if (child is System.Windows.Documents.Run run) yield return run;
+            else if (child is DependencyObject nested) foreach (var item in FindRuns(nested)) yield return item;
+        }
+    }
+    private void ClearTextSearch()
+    {
+        foreach (var run in textMatches) run.Background = null;
+        textMatches.Clear(); textMatchIndex = -1;
+        if (TextSearchCount != null) TextSearchCount.Text = "";
+    }
+    private void ShowTextSearch()
+    {
+        if (CurrentText == null) return;
+        TextSearchBar.Visibility = Visibility.Visible;
+        TextSearchInput.Focus(); TextSearchInput.SelectAll();
+    }
+    private void SearchText(bool forward)
+    {
+        if (CurrentText is not { } state) return;
+        string query = TextSearchInput.Text;
+        ClearTextSearch();
+        if (string.IsNullOrWhiteSpace(query)) return;
+        textMatches.AddRange(FindRuns(state.Document).Where(run => run.Text.Contains(query, StringComparison.CurrentCultureIgnoreCase)));
+        foreach (var run in textMatches) run.Background = new SolidColorBrush(Color.FromRgb(255, 240, 150));
+        if (textMatches.Count == 0) { TextSearchCount.Text = "0件"; return; }
+        textMatchIndex = forward ? 0 : textMatches.Count - 1;
+        ShowTextMatch();
+    }
+    private void MoveTextMatch(int delta)
+    {
+        if (textMatches.Count == 0) { SearchText(delta >= 0); return; }
+        textMatches[textMatchIndex].Background = new SolidColorBrush(Color.FromRgb(255, 240, 150));
+        textMatchIndex = (textMatchIndex + delta + textMatches.Count) % textMatches.Count;
+        ShowTextMatch();
+    }
+    private void ShowTextMatch()
+    {
+        var run = textMatches[textMatchIndex];
+        run.Background = new SolidColorBrush(Color.FromRgb(255, 190, 80));
+        run.BringIntoView();
+        TextSearchCount.Text = $"{textMatchIndex + 1} / {textMatches.Count}";
+    }
+    private void TextSearchKeyDown(object s, KeyEventArgs e)
+    {
+        if (e.Key == Key.Enter) { if (Keyboard.Modifiers.HasFlag(ModifierKeys.Shift)) MoveTextMatch(-1); else SearchText(true); e.Handled = true; }
+        else if (e.Key == Key.Escape) { CloseTextSearch(s, e); e.Handled = true; }
+    }
+    internal int SearchTextForTest(string query) { ShowTextSearch(); TextSearchInput.Text = query; SearchText(true); return textMatches.Count; }
+    private void TextSearchGotFocus(object s, KeyboardFocusChangedEventArgs e) => TextSearchInput.SelectAll();
+    private void PreviousTextMatch(object s, RoutedEventArgs e) => MoveTextMatch(-1);
+    private void NextTextMatch(object s, RoutedEventArgs e) => MoveTextMatch(1);
+    private void CloseTextSearch(object s, RoutedEventArgs e) { ClearTextSearch(); TextSearchBar.Visibility = Visibility.Collapsed; MarkdownViewer.Focus(); }
+
     private void WindowKeyDown(object s, KeyEventArgs e)
     {
         if (Keyboard.Modifiers == ModifierKeys.Control)
@@ -374,7 +508,10 @@ public partial class MainWindow : Window
             if (e.Key == Key.O) { OpenClick(s, e); e.Handled = true; }
             if (e.Key == Key.P) { PrintClick(s, e); e.Handled = true; }
             if (e.Key == Key.S) { SaveClick(s, e); e.Handled = true; }
-            if (e.Key == Key.F) { ToolsClick(s, e); e.Handled = true; }
+            if (e.Key == Key.F) { if (CurrentText != null) ShowTextSearch(); else ToolsClick(s, e); e.Handled = true; }
+            if (e.Key is Key.Add or Key.OemPlus) { StepZoom(1.2); e.Handled = true; }
+            if (e.Key is Key.Subtract or Key.OemMinus) { StepZoom(1 / 1.2); e.Handled = true; }
+            if (e.Key is Key.D0 or Key.NumPad0) { if (ActiveZoom > 0) Zoom(1 / ActiveZoom); e.Handled = true; }
             if (e.Key == Key.W) { CloseClick(s, e); e.Handled = true; }
         }
     }

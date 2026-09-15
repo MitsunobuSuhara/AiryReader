@@ -1,4 +1,4 @@
-# AiryReader 1.2
+# AiryReader 1.2.1
 
 Windows 11 x64用の軽量ファイルリーダー。PDFは原寸・指定倍率の印刷、連続スクロール、入力・注釈・検索・しおり・証明書署名に対応します。Markdown・TXT・HTMLは読みやすい本文表示、JPEG・PNG・TIFF・BMPは画像表示に対応します。CSV・Word・JSON・XMLは対象外です。アイコンは黒地に白い折り紙のツルです。
 
@@ -6,7 +6,7 @@ Windows 11 x64用の軽量ファイルリーダー。PDFは原寸・指定倍率
 
 セットアップ一式を展開し、Setup.cmdを実行します。Windowsの管理者確認後に C:\Program Files\AiryReader へ.NETとPDF編集エンジンを同梱して登録します。AiryReaderのデスクトップ・スタートメニュー・既存のタスクバーピンを更新します。実行ファイルは C:\Program Files\AiryReader\AiryReader.exe です。更新時はAiryReaderを閉じてからSetup.cmdを実行します。対応ファイルを右クリック→「プログラムから開く」でAiryReaderを選び、既定に設定できます。
 
-PDF・Markdown・TXT・HTML・JPEG・PNG・TIFF・BMPの「プログラムから開く」にAiryReaderを追加します。既定のPDFアプリは変更しません。設定はユーザーのLocalAppData/AiryReaderに保存します。登録解除はWindowsのアプリ一覧から行います。登録と自分のリンクを解除し、実行ファイルと設定は復旧用に残す方式です。
+PDF・Markdown・TXT・HTML・JPEG・PNG・TIFF・BMPの「プログラムから開く」にAiryReaderを追加します。 画像はCtrl＋ホイールで拡大縮小し、画面内表示と左右回転ができます。Markdown・TXT・HTMLはCtrl＋ホイールで文字倍率を変え、Ctrl＋Fで本文検索できます。共通の倍率操作はCtrl＋0、Ctrl＋＋、Ctrl＋－にも対応します。既定のPDFアプリは変更しません。設定はユーザーのLocalAppData/AiryReaderに保存します。登録解除はWindowsのアプリ一覧から行います。登録と自分のリンクを解除し、実行ファイルと設定は復旧用に残す方式です。
 
 別PCで使用する場合も.NETやPythonの追加インストールは不要です。プリンタードライバーはそのPCで導入してください。パッケージに社内IP、プリンタードライバー、個人のPDFや証明書は含めません。
 

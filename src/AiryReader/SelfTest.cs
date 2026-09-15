@@ -24,7 +24,10 @@ public static class SelfTest
         await window.OpenPathsAsync([markdownFixture]); window.UpdateLayout();
         var markdownViewer = (System.Windows.Controls.FlowDocumentScrollViewer)window.FindName("MarkdownViewer");
         Check(markdownViewer.Visibility == Visibility.Visible && markdownViewer.Document.Blocks.Count >= 4, "MarkdownをPDFと同じタブ内で整形表示");
-        Check(((FrameworkElement)window.FindName("DocumentToolbar")).Visibility == Visibility.Collapsed && ((FrameworkElement)window.FindName("PrintButton")).Visibility == Visibility.Collapsed, "Markdownは読むための本文だけを表示");
+        Check(((FrameworkElement)window.FindName("DocumentToolbar")).Visibility == Visibility.Visible && ((FrameworkElement)window.FindName("PageControls")).Visibility == Visibility.Collapsed && ((FrameworkElement)window.FindName("PrintButton")).Visibility == Visibility.Collapsed, "Markdownは文章用の倍率操作だけを表示");
+        double markdownZoom = window.ActiveZoomForTest; window.ZoomByWheel(120); window.UpdateLayout();
+        Check(window.ActiveZoomForTest > markdownZoom && markdownViewer.Zoom > 100, "Markdown・TXT・HTMLをCtrlホイール相当で文字拡大");
+        Check(window.SearchTextForTest("本文") >= 1 && ((FrameworkElement)window.FindName("TextSearchBar")).Visibility == Visibility.Visible, "Ctrl＋F用の文章検索と強調表示");
         window.ScrollMarkdownByWheel(-120); window.UpdateLayout();
         Check(window.MarkdownOffset >= 170, "Markdownのホイール1段で十分な距離をスクロール");
         Capture(window, "artifacts/markdown-window.png");        string textFixture = System.IO.Path.GetFullPath("artifacts/text-view.txt");
@@ -43,6 +46,9 @@ public static class SelfTest
         using (var imageFile = File.Create(imageFixture)) encoder.Save(imageFile);
         await window.OpenPathsAsync([imageFixture]); window.UpdateLayout();
         Check(((FrameworkElement)window.FindName("ImageViewer")).Visibility == Visibility.Visible && ((Image)window.FindName("ReaderImage")).Source is BitmapSource source && source.PixelWidth == 12, "PNG画像を同じタブで表示");
+        double imageZoom = window.ActiveZoomForTest; window.ZoomByWheel(120); window.UpdateLayout();
+        Check(window.ActiveZoomForTest > imageZoom && ((Image)window.FindName("ReaderImage")).Width > 12, "画像をCtrlホイール相当で拡大");
+        Check(((FrameworkElement)window.FindName("RotationControls")).Visibility == Visibility.Visible && ((FrameworkElement)window.FindName("FitWidthButton")).Visibility == Visibility.Visible, "画像の回転と画面内フィットを表示");
         Capture(window, "artifacts/image-window.png");
         string uiPath = Environment.GetEnvironmentVariable("AIRYPDF_UI_PDF") ?? fixture;
         using var uiDocument = new PdfDocument(uiPath);

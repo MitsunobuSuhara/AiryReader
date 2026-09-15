@@ -65,7 +65,7 @@ def conversation(who, text, dark=False):
 
 # Cover
 p=doc.add_paragraph(style="Title"); p.alignment=WD_ALIGN_PARAGRAPH.CENTER
-p.add_run("AIとの会話から生まれたPDFアプリ")
+p.add_run("AIとの会話から生まれた仕事の道具")
 p=doc.add_paragraph(); p.alignment=WD_ALIGN_PARAGRAPH.CENTER
 r=p.add_run("AiryReaderを一緒に作った記録"); r.bold=True; r.font.size=Pt(16)
 icon=ROOT/"assets"/"icons"/"AiryReader-crane.png"
@@ -73,7 +73,7 @@ if icon.exists():
     p=doc.add_paragraph(); p.alignment=WD_ALIGN_PARAGRAPH.CENTER
     p.add_run().add_picture(str(icon), width=Inches(2.0))
 p=doc.add_paragraph(); p.alignment=WD_ALIGN_PARAGRAPH.CENTER
-r=p.add_run("私はこれまで、プログラムコードを一度も書いたことがありません。\nこれまでのアプリも、今回のAiryReaderも、すべてAIとの会話で作りました。\nAiryReaderは、仕事の合間に話しかけ、約1日でほぼ形になりました。")
+r=p.add_run("私はプログラムコードを一度も書いたことがありません。\nそれでもAIとの会話を通じて、現場入力、測量、帳票作成など、仕事で使う道具をいくつも形にしてきました。\nAiryReaderも、仕事の合間に話しかけ、約1日でほぼ使える形になりました。")
 r.font.size=Pt(13)
 p=doc.add_paragraph(); p.alignment=WD_ALIGN_PARAGRAPH.CENTER
 p.paragraph_format.space_before=Pt(22)
@@ -87,8 +87,12 @@ doc.add_paragraph("このアプリは、昨日から今日までの約1日で、
 conversation("私", "Adobe Acrobat Readerと同じくらい、寸法に正確に出力できるPDFリーダーを作りたいです。", True)
 conversation("AI", "まず、原寸や指定倍率では勝手に縮小せず、用紙からはみ出す場合はプレビューで分かるようにしましょう。")
 conversation("私", "はい。新しいPDFは100％で始めたいです。複数ページはスクロールでも見たいです。", True)
-doc.add_paragraph("私はプログラムコードを一度も書いたことがなく、アプリの作り方も、正確な頼み方も知りませんでした。最初から全体を決めたわけではなく、できた画面を触り、気づいたことをそのまま話していきました。")
+doc.add_paragraph("私はプログラムコードを一度も書いたことがありません。一方で、これまでのアプリ作りを通じて、仕事のどこで困っているか、実際に使うと何が邪魔になるか、結果が正しいかを確かめる経験は積んできました。AiryReaderでも最初から全体を決め切らず、できた画面を触り、気づいたことをそのまま話していきました。")
 
+
+doc.add_heading("これまでのアプリ作りが土台にあった", level=1)
+doc.add_paragraph("AiryReaderが最初のアプリだったわけではありません。Forest Cruiseでは、国有林の収穫調査をスマートフォンで入力し、CSVをPCへ渡して帳票にする流れを作りました。TerraTraceでは、レーザー測距機や手入力から測点を記録し、閉合計算、面積計算、Excel帳票、Shapefile、PDFまでつなげました。さらに、fc-officeでは立木データから帳票を自動生成し、hauldeskではQGISを使った搬出書類や結合PDFの作成を進めています。北海道向けのForest Cruiseも、現地の規程や帳票に合わせて別に作っています。")
+doc.add_paragraph("どのアプリでも、私はコードを書いていません。仕事の手順、規程、実際の資料、使いにくかった画面、現場で起きたことをAIへ伝え、AIがコードや画面にしました。できたものを実機や実際のデータで試し、違えばまた言葉で直してもらいました。その積み重ねがあったので、AiryReaderでは『原寸で出したい』『100％で止めたい』『印刷ボタンが隠れる』という短い言葉からでも、かなり速く形にできました。")
 doc.add_heading("画面を見ながら少しずつ整える", level=1)
 conversation("私", "幅に合わせるは『画面幅に合わせる』に。回転は文字ではなくアイコンに。上のボタンもシンプルにしてください。", True)
 conversation("AI", "開く、印刷、倍率、回転、画面幅の操作を中心に整理します。ショートカットも表示します。")
@@ -96,7 +100,6 @@ conversation("私", "倍率は手入力できるように。Ctrlとスクロー�
 conversation("AI", "倍率をまたいだときに100％で一度止まるようにします。プラスとマイナスも同じ動きに揃えます。")
 doc.add_paragraph("私が伝えたのは、『何となく使いづらい』『ここが隠れる』『前の色の方がよい』といった感想です。スクリーンショットを見せると、AIが修正版を作り、私はもう一度使って確かめました。")
 
-doc.add_page_break()
 doc.add_heading("実際の仕事で試して完成度を上げる", level=1)
 conversation("私", "会社の複合機で印刷チェックをします。このPCを持って行きます。", True)
 conversation("AI", "原本の用紙サイズと向きを引き継ぎ、印刷倍率100％で確認できるようにします。")
@@ -115,18 +118,18 @@ items = [
     ("専門用語をほとんど使わなかった", "私が使ったのは、『ボタンが隠れる』『少しぼやける』『閉じるのがひと手間』といった普段の言葉でした。"),
     ("途中で考えが変わった", "色やアイコンは何度か試し、前の案へ戻したこともあります。それでも作業は続けられました。"),
     ("画像が会話の助けになった", "説明しにくいときは、画面のスクリーンショットや対象のPDF、プリンター名を見せました。"),
-    ("分からないままでも相談できた", "コードを書くことも技術的な方法を指定することもなく、どんな使い方をしたいか、何が気になるかを伝えました。"),
+    ("コードを書かなくても作り続けられた", "技術的な方法はAIに任せ、私は業務の流れ、規程、使い方、結果の良し悪しを伝えました。複数のアプリで同じ進め方を重ねています。"),
     ("実際に使うことが判断材料になった", "会社の複合機で印刷し、自分の仕事に十分な精度だと確認できたことで、ひとつの区切りがつきました。"),
 ]
 for title, body in items:
     p=doc.add_paragraph(); r=p.add_run(title+"  "); r.bold=True; p.add_run(body)
 
 doc.add_heading("私の場合はこんな始まり方だった", level=1)
-doc.add_paragraph("立派な企画書や完成図があったわけではありません。仕事で困っていたことと、こうなれば便利だという希望を話しただけでした。そこから実物ができ、使った感想を返すたびに少しずつ変わっていきました。")
+doc.add_paragraph("立派な企画書や完成図があったわけではありません。過去のアプリ作りで身についたのは、プログラムの書き方ではなく、仕事で困っていることを具体的に伝え、出てきたものを実際に試す進め方でした。AiryReaderも、使った感想を返すたびに少しずつ変わっていきました。")
 conversation("最初の相談", "仕事で使うPDFを、寸法どおりに印刷できるアプリが欲しいです。", True)
 
 doc.add_heading("現在のAiryReader", level=1)
-doc.add_paragraph("AiryReaderは、閲覧、複数ページのスクロール、倍率調整、原寸を意識した印刷、入力、注釈、検索、しおり、電子署名などを備えたWindowsアプリになりました。私はコードを一度も書いたことがありません。Forest Cruiseをはじめ、これまでのアプリもすべてAIとの会話で作りました。AiryReaderも、空いた時間に話しかけ、約1日でほぼ形になりました。")
+doc.add_paragraph("AiryReaderは、PDFの閲覧、複数ページのスクロール、倍率調整、原寸を意識した印刷、入力、注釈、検索、しおり、署名確認に加え、Markdown、テキスト、HTML、画像も同じタブで読めるWindowsアプリになりました。私はコードを一度も書いたことがありません。ただし、Forest Cruise、TerraTrace、fc-office、hauldeskなどをAIとの会話で作り、仕事で試して直す経験は積んできました。その経験とAIの作業速度が合わさり、AiryReaderは空いた時間に話しかける形で、約1日でほぼ使えるところまで進みました。")
 p=doc.add_paragraph(); p.alignment=WD_ALIGN_PARAGRAPH.CENTER
 r=p.add_run("これはチャットの逐語録ではなく、実際の開発経過をもとに読みやすく再構成した記録です。")
 r.font.size=Pt(8.5); r.font.color.rgb=RGBColor(90,90,90)
@@ -134,9 +137,9 @@ r.font.size=Pt(8.5); r.font.color.rgb=RGBColor(90,90,90)
 # footer
 for section in doc.sections:
     footer=section.footer.paragraphs[0]; footer.alignment=WD_ALIGN_PARAGRAPH.CENTER
-    footer.add_run("AiryReader  AIとの会話から生まれたPDFアプリ").font.size=Pt(8)
+    footer.add_run("AiryReader  AIとの会話から生まれた仕事の道具").font.size=Pt(8)
 
-doc.core_properties.title = "AIとの会話から生まれたPDFアプリ"
+doc.core_properties.title = "AIとの会話から生まれた仕事の道具"
 doc.core_properties.subject = "AiryReader制作記録"
 doc.save(DOCX)
 print(DOCX)
