@@ -44,6 +44,7 @@ public static class SelfTest
         await window.OpenPathsAsync([textFixture]); window.UpdateLayout();
         var textEditor = (TextBox)window.FindName("TextEditor");
         Check(textEditor.Visibility == Visibility.Visible && textEditor.IsReadOnly == false, "TXTを同じタブで編集表示");
+        Check(window.SearchTextForTest("1行目") == 1 && textEditor.SelectedText == "1行目", "TXTをCtrl＋F相当で検索");
         textEditor.Text += "\n追記"; window.SaveTextForTest();
         Check(File.ReadAllText(textFixture, Encoding.UTF8).Contains("追記"), "TXTをCtrl＋S相当で上書き保存");
         string imageFixture = System.IO.Path.GetFullPath("artifacts/image-view.png");

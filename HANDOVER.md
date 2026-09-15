@@ -325,3 +325,6 @@ Release・UI・PDF・印刷・画像・文章操作の自動テスト成功。�
 
 ## タブ内の閉じるボタン（2026-09-15）
 利用者の画面指摘によりAiryReader 1.2.7で画面右端の共通×を廃止し、各タブ名の中に小さな×を内蔵。クリックするとそのタブを閉じ、未保存TXT/PDFの確認も既存どおり行う。＋は画面右端固定から最後のタブ直後へ移し、一般的なタブUIに変更。各×はCtrl+W、＋はCtrl+Tのツールチップを表示。タブ内×の存在、新規メモ、全既存機能のテスト成功、警告0・エラー0。Program Filesへ1.2.7導入済み。配布ZIP: `artifacts/release/AiryReader-1.2.7-20260915-193325.zip`、SHA256 `C1AC0574AA458E2CD67B9BD6526147F60DBD03257F048F3A499B410540B62DD5`。
+
+## シンプルなメモ帳代替（2026-09-15）
+利用者はWindowsメモ帳の役割をAiryReaderへ移しつつ、画面をシンプルに保つ方針。AiryReader 1.2.8でTXTのCtrl+F検索を編集欄へ正式対応し、F3で次、Shift+F3で前へ移動。TextBox標準のCtrl+Z/Y、切り取り、コピー、貼り付け、全選択を利用し、専用ボタンは増やさない。新規・タブ・保存・別名保存・未保存確認は既存機能を継続。TXT検索を含む全テスト成功、警告0・エラー0。Program Filesへ1.2.8導入済みで、AiryReaderのWindows既定アプリ画面を表示。`.txt`の最終選択はWindowsの保護仕様により利用者操作。配布ZIP: `artifacts/release/AiryReader-1.2.8-20260915-193707.zip`、SHA256 `E96E2695F05D63A5FD6D88D7DD878C5A5A57DD1E602FC1FF853FDE10FD73FCB0`。

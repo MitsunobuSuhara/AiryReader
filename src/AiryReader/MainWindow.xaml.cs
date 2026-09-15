@@ -49,6 +49,8 @@ public partial class MainWindow : Window
     private bool opening;
     private long zoomPauseUntil;
     private readonly List<System.Windows.Documents.Run> textMatches = [];
+    private readonly List<int> textEditorMatches = [];
+    private int textEditorQueryLength;
     private int textMatchIndex = -1;
 
     public MainWindow()
@@ -521,7 +523,7 @@ public partial class MainWindow : Window
     private void HelpClick(object s, RoutedEventArgs e)
     {
         MessageBox.Show(this,
-            "AiryReader 1.2.7\n\n対応形式：PDF、Markdown、TXT、JPEG、PNG、TIFF、BMP\nファイルを開く：Ctrl＋O、またはドラッグ＆ドロップ\nページ移動：ホイールで連続スクロール、ページ番号入力、左右のボタン\nPDF・画像の拡大縮小：Ctrl＋ホイール、＋／−、倍率入力、画面幅に合わせる\n画像：回転アイコン、ダブルクリックで100％／画面内表示\nMarkdown：Ctrl＋ホイールで文字倍率、Ctrl＋Fで検索、選択・コピー\nTXT：単体起動で新しいメモ、＋またはCtrl＋Tでタブ追加、×またはCtrl＋Wで閉じる、Ctrl＋Sで保存\n共通：Ctrl＋0で100％、Ctrl＋＋／－で倍率変更\n印刷：Ctrl＋P\nPDFの入力・注釈・検索・署名確認：Ctrl＋F\nパスワードはファイルを開く際に入力します。保存・ログには残しません。\n\n新しいPDFの印刷倍率は100%。指定倍率では自動縮小せず、欠けをプレビューで知らせます。\nドライバー側の拡大縮小・Nアップは無効にしてください。\n回転を保存するときは別名保存します。\n\n寸法確認用PDFには縦横100mmの基準線があります。\n会社での印刷は利用者評価で用途上合格（約0.1mmのずれに見えるとの報告）。",
+            "AiryReader 1.2.8\n\n対応形式：PDF、Markdown、TXT、JPEG、PNG、TIFF、BMP\nファイルを開く：Ctrl＋O、またはドラッグ＆ドロップ\nページ移動：ホイールで連続スクロール、ページ番号入力、左右のボタン\nPDF・画像の拡大縮小：Ctrl＋ホイール、＋／−、倍率入力、画面幅に合わせる\n画像：回転アイコン、ダブルクリックで100％／画面内表示\nMarkdown：Ctrl＋ホイールで文字倍率、Ctrl＋Fで検索、選択・コピー\nTXT：単体起動で新しいメモ、＋またはCtrl＋Tでタブ追加、×またはCtrl＋Wで閉じる、Ctrl＋Sで保存、Ctrl＋Fで検索\n共通：Ctrl＋0で100％、Ctrl＋＋／－で倍率変更\n印刷：Ctrl＋P\nPDFの入力・注釈・検索・署名確認：Ctrl＋F\nパスワードはファイルを開く際に入力します。保存・ログには残しません。\n\n新しいPDFの印刷倍率は100%。指定倍率では自動縮小せず、欠けをプレビューで知らせます。\nドライバー側の拡大縮小・Nアップは無効にしてください。\n回転を保存するときは別名保存します。\n\n寸法確認用PDFには縦横100mmの基準線があります。\n会社での印刷は利用者評価で用途上合格（約0.1mmのずれに見えるとの報告）。",
             "AiryReader — 使い方", MessageBoxButton.OK, MessageBoxImage.Information);
     }
     private void ToolsClick(object sender, RoutedEventArgs e)
@@ -540,7 +542,7 @@ public partial class MainWindow : Window
     private void ClearTextSearch()
     {
         foreach (var run in textMatches) run.Background = null;
-        textMatches.Clear(); textMatchIndex = -1;
+        textMatches.Clear(); textEditorMatches.Clear(); textEditorQueryLength = 0; textMatchIndex = -1;
         if (TextSearchCount != null) TextSearchCount.Text = "";
     }
     private void ShowTextSearch()
@@ -555,6 +557,18 @@ public partial class MainWindow : Window
         string query = TextSearchInput.Text;
         ClearTextSearch();
         if (string.IsNullOrWhiteSpace(query)) return;
+        if (state.Editable)
+        {
+            textEditorQueryLength = query.Length;
+            for (int at = 0; at <= TextEditor.Text.Length - query.Length;)
+            {
+                int found = TextEditor.Text.IndexOf(query, at, StringComparison.CurrentCultureIgnoreCase);
+                if (found < 0) break;
+                textEditorMatches.Add(found); at = found + Math.Max(1, query.Length);
+            }
+            if (textEditorMatches.Count == 0) { TextSearchCount.Text = "0件"; return; }
+            textMatchIndex = forward ? 0 : textEditorMatches.Count - 1; ShowTextMatch(); return;
+        }
         textMatches.AddRange(FindRuns(state.Document).Where(run => run.Text.Contains(query, StringComparison.CurrentCultureIgnoreCase)));
         foreach (var run in textMatches) run.Background = new SolidColorBrush(Color.FromRgb(255, 240, 150));
         if (textMatches.Count == 0) { TextSearchCount.Text = "0件"; return; }
@@ -563,13 +577,20 @@ public partial class MainWindow : Window
     }
     private void MoveTextMatch(int delta)
     {
-        if (textMatches.Count == 0) { SearchText(delta >= 0); return; }
-        textMatches[textMatchIndex].Background = new SolidColorBrush(Color.FromRgb(255, 240, 150));
-        textMatchIndex = (textMatchIndex + delta + textMatches.Count) % textMatches.Count;
+        int count = CurrentText?.Editable == true ? textEditorMatches.Count : textMatches.Count;
+        if (count == 0) { SearchText(delta >= 0); return; }
+        if (CurrentText?.Editable != true) textMatches[textMatchIndex].Background = new SolidColorBrush(Color.FromRgb(255, 240, 150));
+        textMatchIndex = (textMatchIndex + delta + count) % count;
         ShowTextMatch();
     }
     private void ShowTextMatch()
     {
+        if (CurrentText?.Editable == true)
+        {
+            TextEditor.Focus(); TextEditor.Select(textEditorMatches[textMatchIndex], textEditorQueryLength);
+            TextEditor.ScrollToLine(TextEditor.GetLineIndexFromCharacterIndex(textEditorMatches[textMatchIndex]));
+            TextSearchCount.Text = $"{textMatchIndex + 1} / {textEditorMatches.Count}"; return;
+        }
         var run = textMatches[textMatchIndex];
         run.Background = new SolidColorBrush(Color.FromRgb(255, 190, 80));
         run.BringIntoView();
@@ -580,14 +601,15 @@ public partial class MainWindow : Window
         if (e.Key == Key.Enter) { if (Keyboard.Modifiers.HasFlag(ModifierKeys.Shift)) MoveTextMatch(-1); else SearchText(true); e.Handled = true; }
         else if (e.Key == Key.Escape) { CloseTextSearch(s, e); e.Handled = true; }
     }
-    internal int SearchTextForTest(string query) { ShowTextSearch(); TextSearchInput.Text = query; SearchText(true); return textMatches.Count; }
+    internal int SearchTextForTest(string query) { ShowTextSearch(); TextSearchInput.Text = query; SearchText(true); return CurrentText?.Editable == true ? textEditorMatches.Count : textMatches.Count; }
     private void TextSearchGotFocus(object s, KeyboardFocusChangedEventArgs e) => TextSearchInput.SelectAll();
     private void PreviousTextMatch(object s, RoutedEventArgs e) => MoveTextMatch(-1);
     private void NextTextMatch(object s, RoutedEventArgs e) => MoveTextMatch(1);
-    private void CloseTextSearch(object s, RoutedEventArgs e) { ClearTextSearch(); TextSearchBar.Visibility = Visibility.Collapsed; MarkdownViewer.Focus(); }
+    private void CloseTextSearch(object s, RoutedEventArgs e) { ClearTextSearch(); TextSearchBar.Visibility = Visibility.Collapsed; if (CurrentText?.Editable == true) TextEditor.Focus(); else MarkdownViewer.Focus(); }
 
     private void WindowKeyDown(object s, KeyEventArgs e)
     {
+        if (e.Key == Key.F3 && CurrentText != null) { if (TextSearchBar.Visibility != Visibility.Visible) ShowTextSearch(); else MoveTextMatch(Keyboard.Modifiers.HasFlag(ModifierKeys.Shift) ? -1 : 1); e.Handled = true; return; }
         if (Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift) && e.Key == Key.S)
         {
             if (CurrentText is { Editable: true } text) SaveText(text, true);
