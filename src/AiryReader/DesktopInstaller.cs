@@ -83,23 +83,45 @@ public static class DesktopInstaller
     }
     private static void RegisterApplication(string exe, string folder)
     {
+        string[] documentExtensions = [".pdf", ".md", ".markdown", ".txt", ".html", ".htm"];
+        string[] imageExtensions = [".jpg", ".jpeg", ".png", ".tif", ".tiff", ".bmp"];
+        string[] supportedExtensions = [.. documentExtensions, .. imageExtensions];
         using var app = Microsoft.Win32.Registry.CurrentUser.CreateSubKey(@"Software\Classes\Applications\AiryReader.exe");
         app.SetValue("FriendlyAppName", "AiryReader");
         using (var icon = app.CreateSubKey("DefaultIcon")) icon.SetValue("", IconLocation(exe));
         using (var command = app.CreateSubKey(@"shell\open\command")) command.SetValue("", "\"" + exe + "\" \"%1\"");
-        using (var types = app.CreateSubKey("SupportedTypes")) foreach (string extension in new[] { ".pdf", ".md", ".markdown", ".txt", ".html", ".htm", ".jpg", ".jpeg", ".png", ".tif", ".tiff", ".bmp" }) types.SetValue(extension, "");
+        using (var types = app.CreateSubKey("SupportedTypes")) foreach (string extension in supportedExtensions) types.SetValue(extension, "");
+
+        // Windows 10/11の「既定のアプリ」にAiryReaderと対応形式を表示する正式な登録。
+        using (var capabilities = Microsoft.Win32.Registry.CurrentUser.CreateSubKey(@"Software\AiryReader\Capabilities"))
+        {
+            capabilities.SetValue("ApplicationName", "AiryReader");
+            capabilities.SetValue("ApplicationDescription", "軽量ファイル閲覧・PDF印刷");
+            capabilities.SetValue("ApplicationIcon", IconLocation(exe));
+            using var associations = capabilities.CreateSubKey("FileAssociations");
+            foreach (string extension in documentExtensions) associations.SetValue(extension, "AiryReader.Document");
+            foreach (string extension in imageExtensions) associations.SetValue(extension, "AiryReader.Image");
+        }
+        using (var registered = Microsoft.Win32.Registry.CurrentUser.CreateSubKey(@"Software\RegisteredApplications"))
+            registered.SetValue("AiryReader", @"Software\AiryReader\Capabilities");
+        RegisterProgId("AiryReader.Document", "AiryReaderで開く文書", exe);
+        RegisterProgId("AiryReader.Image", "AiryReaderで開く画像", exe);
+        foreach (string extension in supportedExtensions)
+            using (var openWith = Microsoft.Win32.Registry.CurrentUser.CreateSubKey(@"Software\Classes\" + extension + @"\OpenWithProgids"))
+                openWith.SetValue(documentExtensions.Contains(extension) ? "AiryReader.Document" : "AiryReader.Image", Array.Empty<byte>(), Microsoft.Win32.RegistryValueKind.None);
+
         // Windowsの既定アプリが旧実行名を記憶していても、新しい実行ファイルへ安全につなぐ。
         using (var legacy = Microsoft.Win32.Registry.CurrentUser.CreateSubKey(@"Software\Classes\Applications\airyPDF.exe"))
         {
             legacy.SetValue("FriendlyAppName", "AiryReader");
             using (var command = legacy.CreateSubKey(@"shell\open\command")) command.SetValue("", "\"" + exe + "\" \"%1\"");
             using var types = legacy.CreateSubKey("SupportedTypes");
-            foreach (string extension in new[] { ".pdf", ".md", ".markdown", ".txt", ".html", ".htm", ".jpg", ".jpeg", ".png", ".tif", ".tiff", ".bmp" }) types.SetValue(extension, "");
+            foreach (string extension in supportedExtensions) types.SetValue(extension, "");
         }
         Microsoft.Win32.Registry.CurrentUser.DeleteSubKeyTree(@"Software\Microsoft\Windows\CurrentVersion\Uninstall\airyPDF", false);
         using var uninstall = Microsoft.Win32.Registry.CurrentUser.CreateSubKey(@"Software\Microsoft\Windows\CurrentVersion\Uninstall\AiryReader");
         uninstall.SetValue("DisplayName", "AiryReader");
-        uninstall.SetValue("DisplayVersion", "1.2.1");
+        uninstall.SetValue("DisplayVersion", "1.2.2");
         uninstall.SetValue("Publisher", "AiryReader");
         uninstall.SetValue("InstallLocation", folder);
         uninstall.SetValue("DisplayIcon", IconLocation(exe));
@@ -107,9 +129,21 @@ public static class DesktopInstaller
         uninstall.SetValue("NoModify", 1); uninstall.SetValue("NoRepair", 1);
         SHChangeNotify(0x08000000, 0, null!, IntPtr.Zero);
     }
+    private static void RegisterProgId(string progId, string description, string exe)
+    {
+        using var key = Microsoft.Win32.Registry.CurrentUser.CreateSubKey(@"Software\Classes\" + progId);
+        key.SetValue("", description);
+        key.SetValue("FriendlyTypeName", description);
+        using (var icon = key.CreateSubKey("DefaultIcon")) icon.SetValue("", IconLocation(exe));
+        using (var command = key.CreateSubKey(@"shell\open\command")) command.SetValue("", "\"" + exe + "\" \"%1\"");
+    }
     public static void Unregister()
     {
         Microsoft.Win32.Registry.CurrentUser.DeleteSubKeyTree(@"Software\Classes\Applications\AiryReader.exe", false);
+        Microsoft.Win32.Registry.CurrentUser.DeleteSubKeyTree(@"Software\Classes\AiryReader.Document", false);
+        Microsoft.Win32.Registry.CurrentUser.DeleteSubKeyTree(@"Software\Classes\AiryReader.Image", false);
+        Microsoft.Win32.Registry.CurrentUser.DeleteSubKeyTree(@"Software\AiryReader\Capabilities", false);
+        using (var registered = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(@"Software\RegisteredApplications", true)) registered?.DeleteValue("AiryReader", false);
         Microsoft.Win32.Registry.CurrentUser.DeleteSubKeyTree(@"Software\Microsoft\Windows\CurrentVersion\Uninstall\AiryReader", false);
         foreach (string folder in new[] { Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), Environment.GetFolderPath(Environment.SpecialFolder.Programs),
             System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Microsoft", "Internet Explorer", "Quick Launch", "User Pinned", "TaskBar") })

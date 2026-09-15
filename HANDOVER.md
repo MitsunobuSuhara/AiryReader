@@ -308,3 +308,5 @@ Forest Cruise、TerraTrace、fc-office、hauldesk、Forest Cruise Hokkaido等の
 Release・UI・PDF・印刷・画像・文章操作の自動テスト成功。配布ZIP: `artifacts/release/AiryReader-1.2.1-20260915-181803.zip`（112527074バイト）、SHA256 `D69B8A51C59042A1BBAFA6F0991B4F692CC99DC99416067ACA7283B4290810FC`。GitHub ReleaseへのZIP登録は自動承認審査で外部共有の明示承認不足として停止。
 ## 共有文書から個別アプリ名を除去（2026-09-15）
 利用者のPDFコメントにより、共有文書では過去に作った具体的なアプリ名を出さない方針へ変更。「現場入力」「測量」「帳票作成」「GIS」「地域別規程対応」という仕事内容だけを示し、コードは書かないがAIとの会話で複数の実務ツールを作って試す経験がある、という主旨は維持。Markdown、Word、PDFを再生成し、PDF全文に個別名がないこと、6ページすべてに本文があり描画範囲が正常なことを検査。
+## Windows既定アプリ登録（2026-09-15）
+利用者依頼によりAiryReader 1.2.2へ更新。WindowsのRegisteredApplications／Capabilities／FileAssociationsと専用ProgIDを登録し、「設定」→「アプリ」→「既定のアプリ」→「AiryReader」にPDF、Markdown、TXT、HTML、JPEG、PNG、TIFF、BMPの12拡張子が表示されるようにした。Program Filesへ1.2.2を導入し、登録値を確認。Windowsの保護仕様により最終的な既定選択は利用者が設定画面で行う。Release・UI・PDF・印刷テスト成功、警告0・エラー0。配布ZIP: `artifacts/release/AiryReader-1.2.2-20260915-185058.zip`、SHA256 `EBAC6035F4AE94DB920C6E2F8D7CE4517129B266A632355F3281E1B5A9C28630`。
