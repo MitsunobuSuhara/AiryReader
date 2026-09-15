@@ -1,7 +1,12 @@
+using System.Threading;
 namespace AiryReader;
 
 public partial class App : System.Windows.Application
 {
+    private const string InstanceMutexName = "Local\\AiryReader.SingleInstance.v1";
+    private const string InstancePipeName = "AiryReader.OpenFiles.v1";
+    private Mutex? instanceMutex;
+    private CancellationTokenSource? pipeCancellation;
     protected override async void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
@@ -53,11 +58,63 @@ public partial class App : System.Windows.Application
             }
             return;
         }
+        string[] files = e.Args.Where(File.Exists).Select(System.IO.Path.GetFullPath).ToArray();
+        instanceMutex = new Mutex(true, InstanceMutexName, out bool firstInstance);
+        if (!firstInstance)
+        {
+            if (!await ForwardFilesAsync(files)) MessageBox.Show("起動中のAiryReaderへファイルを渡せませんでした。少し待ってから開き直してください。", "AiryReader");
+            instanceMutex.Dispose(); instanceMutex = null; Shutdown(0); return;
+        }
         var window = new MainWindow();
         MainWindow = window;
+        pipeCancellation = new CancellationTokenSource();
+        _ = ListenForFilesAsync(window, pipeCancellation.Token);
+        window.Closed += (_, _) => { pipeCancellation.Cancel(); instanceMutex?.ReleaseMutex(); instanceMutex?.Dispose(); instanceMutex = null; };
         window.Show();
-        string[] files = e.Args.Where(File.Exists).ToArray();
         if (files.Length == 0) window.NewText();
         else window.OpenPaths(files);
+    }
+    private static async Task<bool> ForwardFilesAsync(string[] files)
+    {
+        for (int attempt = 0; attempt < 20; attempt++)
+        {
+            try
+            {
+                using var pipe = new System.IO.Pipes.NamedPipeClientStream(".", InstancePipeName, System.IO.Pipes.PipeDirection.Out, System.IO.Pipes.PipeOptions.Asynchronous);
+                await pipe.ConnectAsync(150);
+                using var writer = new BinaryWriter(pipe, System.Text.Encoding.UTF8, leaveOpen: true);
+                writer.Write(files.Length);
+                foreach (string file in files) writer.Write(file);
+                writer.Flush(); await pipe.FlushAsync(); return true;
+            }
+            catch (TimeoutException) { await Task.Delay(100); }
+            catch (IOException) { await Task.Delay(100); }
+            catch (UnauthorizedAccessException) { await Task.Delay(100); }
+        }
+        return false;
+    }
+
+    private async Task ListenForFilesAsync(MainWindow window, CancellationToken cancellationToken)
+    {
+        while (!cancellationToken.IsCancellationRequested)
+        {
+            try
+            {
+                using var pipe = new System.IO.Pipes.NamedPipeServerStream(InstancePipeName, System.IO.Pipes.PipeDirection.In, 1,
+                    System.IO.Pipes.PipeTransmissionMode.Byte, System.IO.Pipes.PipeOptions.Asynchronous);
+                await pipe.WaitForConnectionAsync(cancellationToken);
+                using var reader = new BinaryReader(pipe, System.Text.Encoding.UTF8, leaveOpen: true);
+                int count = Math.Clamp(reader.ReadInt32(), 0, 1000);
+                string[] files = Enumerable.Range(0, count).Select(_ => reader.ReadString()).Where(File.Exists).ToArray();
+                await Dispatcher.InvokeAsync(() =>
+                {
+                    if (files.Length > 0) window.OpenPaths(files);
+                    if (window.WindowState == WindowState.Minimized) window.WindowState = WindowState.Normal;
+                    window.Show(); window.Activate();
+                });
+            }
+            catch (OperationCanceledException) { break; }
+            catch (IOException) when (!cancellationToken.IsCancellationRequested) { }
+        }
     }
 }
