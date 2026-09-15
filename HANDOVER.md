@@ -389,4 +389,4 @@ Git履歴に基づき、8:23の要件整理、8:54のPDF閲覧・原寸印刷プ
 
 利用者の明示依頼でGitHub MitsunobuSuhara/AiryReader をPUBLICへ変更。公開前に全Git履歴を秘密鍵・APIキー・証明書・個人資料・社内IP・ローカル個人パスのパターンで監査し、実在する秘密情報は検出されなかった。テスト内の固定文字列 secret とパスワード入力処理の変数名のみ確認。ルートライセンスは未設定のため、公開は閲覧・ダウンロードを可能にするもので、ソース再利用許諾は別途付与していない。
 
-uild.ps1 -Test -Publish はビルド警告0・エラー0、PDF・印刷・UIテスト成功。配布ZIP AiryReader-1.4.2-20260916-070624.zip（112,539,823バイト、SHA256 2F0E3E0D9842750FD35432C5C3579927C4F25036CE7B85E1D2AC7D10B046F49C）と紹介PDF AiryReader-Story.pdf（SHA256 1D2CA19B3A0F96B50701B9CED6B56FC78AC463AE6C9E11517055D815697606BA）をGitHub Release 1.4.2へ登録し、GitHub側digest一致・uploadedを確認。READMEへLatest Releaseからのダウンロード案内を追加。ローカル開発フォルダは C:\dev\AiryReader へ統一する。
+`build.ps1 -Test -Publish` はビルド警告0・エラー0、PDF・印刷・UIテスト成功。配布ZIP AiryReader-1.4.2-20260916-070624.zip（112,539,823バイト、SHA256 2F0E3E0D9842750FD35432C5C3579927C4F25036CE7B85E1D2AC7D10B046F49C）と紹介PDF AiryReader-Story.pdf（SHA256 1D2CA19B3A0F96B50701B9CED6B56FC78AC463AE6C9E11517055D815697606BA）をGitHub Release `v1.4.2`へ登録し、GitHub側digest一致・uploadedを確認。READMEへLatest Releaseからのダウンロード案内を追加。ローカル開発フォルダは C:\dev\AiryReader へ統一する。
