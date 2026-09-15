@@ -20,11 +20,13 @@ public static class SelfTest
         CreateFixture(fixture, 5);
         var window = new MainWindow(); window.Show();
         string markdownFixture = System.IO.Path.GetFullPath("artifacts/markdown-view.md");
-        File.WriteAllText(markdownFixture, "# 見出し\n\n本文と**太字**です。\n\n- 項目\n\n> 引用");
+        File.WriteAllText(markdownFixture, "# 見出し\n\n本文と**太字**です。\n\n- 項目\n\n> 引用\n\n" + string.Join("\n\n", Enumerable.Repeat("スクロール確認用の本文です。", 80)));
         await window.OpenPathsAsync([markdownFixture]); window.UpdateLayout();
         var markdownViewer = (System.Windows.Controls.FlowDocumentScrollViewer)window.FindName("MarkdownViewer");
         Check(markdownViewer.Visibility == Visibility.Visible && markdownViewer.Document.Blocks.Count >= 4, "MarkdownをPDFと同じタブ内で整形表示");
         Check(((FrameworkElement)window.FindName("DocumentToolbar")).Visibility == Visibility.Collapsed && ((FrameworkElement)window.FindName("PrintButton")).Visibility == Visibility.Collapsed, "Markdownは読むための本文だけを表示");
+        window.ScrollMarkdownByWheel(-120); window.UpdateLayout();
+        Check(window.MarkdownOffset >= 170, "Markdownのホイール1段で十分な距離をスクロール");
         Capture(window, "artifacts/markdown-window.png");
         string uiPath = Environment.GetEnvironmentVariable("AIRYPDF_UI_PDF") ?? fixture;
         using var uiDocument = new PdfDocument(uiPath);

@@ -293,3 +293,7 @@ C:\dev\AGENTS.md適用。日本語、呼称NOBUさん。区切りでコミット
 ## MarkdownをPDFと同じタブへ統合（2026-09-15）
 利用者が別ウィンドウ表示を望まなかったため、MarkdownをMainWindowのTabControl内へ統合。PDFと.md/.markdownを同じタブ列で切替。Markdownタブは白背景の読み取り専用本文だけを表示し、PDF用のページ・倍率・回転ツールバーと印刷ボタンを隠す。PDFタブへ戻ると復帰。ブラウザ・外部パッケージなし。閉じる処理はPDFとMarkdownの型を安全に分け、Ctrl+W対応。PDF/印刷・UI・Markdown同一タブ表示テスト成功、実画面を目視。このPCへ導入DLL一致。配布ZIP: artifacts/release/airyPDF-1.1-20260915-163449.zip、SHA256 AE7DF723561B8B7939A8E879E621E0483EEC29D016844E4FE7722CDCD1AF4EF7。
 
+
+## Markdownのホイールスクロール高速化（2026-09-15）
+利用者が長文Markdownでホイールスクロールが遅いと指摘。Windows標準の行単位移動を上書きし、1ノッチ180pxの一定移動へ変更。ブラウザや追加部品なし、PDFスクロールは変更なし。Markdownは読むだけの方針を維持し、印刷ボタンは非表示。印刷はレイアウトの確定したPDF版を使用。80段落の長文UIテストで1ノッチ170px以上、PDF/印刷・UI全検証成功。このPCへ導入DLL一致。利用者のDesktop/airyPDF一発作成プロンプト.mdを更新版で起動。配布ZIP: artifacts/release/airyPDF-1.1-20260915-164426.zip、SHA256 5F2B1563A4C0A358214025583E5A5D3035C65508B7A4363EC90BE6046D231152。
+

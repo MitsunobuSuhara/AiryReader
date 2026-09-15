@@ -23,7 +23,7 @@
     <TextBlock Text="軽やかに開く。寸法を守って印刷する。" FontSize="25" Foreground="#334155" HorizontalAlignment="Center"/>
     <TextBlock Text="PDFをドラッグするか、「開く」を選んでください。" Margin="0,18" Foreground="#64748B" HorizontalAlignment="Center"/>
    </StackPanel>
-   <FlowDocumentScrollViewer x:Name="MarkdownViewer" Visibility="Collapsed" Background="White" VerticalScrollBarVisibility="Auto" IsSelectionEnabled="True"/>
+   <FlowDocumentScrollViewer x:Name="MarkdownViewer" Visibility="Collapsed" PreviewMouseWheel="MarkdownWheel" Background="White" VerticalScrollBarVisibility="Auto" IsSelectionEnabled="True"/>
    <ScrollViewer x:Name="Viewer" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" PreviewMouseWheel="ViewerWheel" ScrollChanged="ViewerScrolled">
     <StackPanel x:Name="PagesHost" Margin="24" HorizontalAlignment="Center" VerticalAlignment="Top"/>
    </ScrollViewer>

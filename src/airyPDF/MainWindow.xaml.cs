@@ -243,6 +243,26 @@ public partial class MainWindow : Window
     {
         if (delta != 0) StepZoom(delta > 0 ? 1.12 : 1 / 1.12, anchor);
     }
+    private static T? FindVisualChild<T>(DependencyObject parent) where T : DependencyObject
+    {
+        for (int i = 0; i < VisualTreeHelper.GetChildrenCount(parent); i++)
+        {
+            DependencyObject child = VisualTreeHelper.GetChild(parent, i);
+            if (child is T found) return found;
+            if (FindVisualChild<T>(child) is { } nested) return nested;
+        }
+        return null;
+    }
+    internal double MarkdownOffset => FindVisualChild<ScrollViewer>(MarkdownViewer)?.VerticalOffset ?? 0;
+    internal void ScrollMarkdownByWheel(int delta)
+    {
+        if (FindVisualChild<ScrollViewer>(MarkdownViewer) is not { } scroll || delta == 0) return;
+        scroll.ScrollToVerticalOffset(scroll.VerticalOffset - Math.Sign(delta) * 180);
+    }
+    private void MarkdownWheel(object s, MouseWheelEventArgs e)
+    {
+        ScrollMarkdownByWheel(e.Delta); e.Handled = true;
+    }
     private void ViewerWheel(object s, MouseWheelEventArgs e)
     {
         if ((Keyboard.Modifiers & ModifierKeys.Control) != 0) { ZoomByWheel(e.Delta, e.GetPosition(Viewer)); e.Handled = true; }
