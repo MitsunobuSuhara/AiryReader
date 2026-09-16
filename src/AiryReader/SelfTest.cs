@@ -125,7 +125,7 @@ public static class SelfTest
         Check(pageTotal >= 2, "連続表示の検証対象が複数ページ");
         await window.OpenPathsAsync([uiPath]);
         window.UpdateLayout();
-        Check(selectionBadge.Visibility == Visibility.Visible && selectionInfo.Text.Contains("Actual size") && selectionInfo.Text.Contains("100%"), "PDFの原本サイズ・印刷モード・倍率を表示");
+        Check(selectionBadge.Visibility == Visibility.Visible && selectionInfo.Text.Contains("縦 / Portrait") && selectionInfo.Text.Contains("原寸 / Actual size") && selectionInfo.Text.Contains("100%"), "PDFの原本サイズ・印刷モード・倍率を表示");
         int pdfTabCount = window.TabCountForTest;
         await window.OpenPathsAsync([uiPath]); window.UpdateLayout();
         Check(window.TabCountForTest == pdfTabCount && string.Equals(window.CurrentPathForTest, uiPath, StringComparison.OrdinalIgnoreCase), "同じPDFを再度開くと既存タブへ移動");

@@ -319,7 +319,7 @@ public partial class MainWindow : Window
         ];
         string? name = standards.FirstOrDefault(p => Math.Abs(shortSide - p.Short) <= 1 && Math.Abs(longSide - p.Long) <= 1).Name;
         if (name == null) return $"{size.Width:0.#} × {size.Height:0.#} mm";
-        return size.Width > size.Height ? name + " Landscape" : name;
+        return size.Width > size.Height ? name + " 横 / Landscape" : name + " 縦 / Portrait";
     }
     private void UpdatePdfSmartStatus()
     {
@@ -330,14 +330,14 @@ public partial class MainWindow : Window
         }
         string mode = state.Document.LastPrintMode switch
         {
-            PrintMode.Scale when Math.Abs(state.Document.PrintPercent - 100) < .001 => "Actual size",
-            PrintMode.Scale => "Scale",
-            PrintMode.Fit => "Fit to paper",
-            PrintMode.TwoUp => "2-up",
-            PrintMode.FourUp => "4-up",
-            PrintMode.Booklet => "Booklet",
-            PrintMode.Poster => "Poster",
-            _ => "Print"
+            PrintMode.Scale when Math.Abs(state.Document.PrintPercent - 100) < .001 => "原寸 / Actual size",
+            PrintMode.Scale => "指定倍率 / Scale",
+            PrintMode.Fit => "用紙に合わせる / Fit to paper",
+            PrintMode.TwoUp => "2ページ / 2-up",
+            PrintMode.FourUp => "4ページ / 4-up",
+            PrintMode.Booklet => "小冊子 / Booklet",
+            PrintMode.Poster => "ポスター / Poster",
+            _ => "印刷 / Print"
         };
         string percent = state.Document.LastPrintMode is PrintMode.Scale or PrintMode.Poster ? $"  •  {state.Document.PrintPercent:0.##}%" : "";
         TextSelectionInfo.Text = $"{PdfPageLabel(state.Document.SizeMm(state.Page))}  •  {mode}{percent}";
