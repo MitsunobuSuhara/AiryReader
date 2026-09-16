@@ -406,3 +406,8 @@ GitHubリポジトリ `MitsunobuSuhara/AiryReader` は利用者の指示によ�
 利用者の明示依頼により、AiryReaderをMIT Licenseでオープンソース化する。利用・複製・改変・再配布・商用利用を、著作権表示とライセンス文を残す条件で許可する。GitHubリポジトリは公開へ変更する方針。
 
 配布ZIPは展開後に `AiryReaderをセットアップ.cmd` をダブルクリックするだけに整理し、`はじめにお読みください.txt` を同梱。管理者確認後、デスクトップとスタートメニューへ登録される。README冒頭も同じ3ステップへ整理した。
+## 紹介PDFをGitHub公開対象から除去（2026-09-16）
+
+利用者の明示指示により、内々用の `docs/AiryReader_AIとの会話から生まれたPDFアプリ.pdf` をGit管理から外し、`.gitignore` で再登録を防止。ローカルのPDF実体は保持する。GitHub Release `v1.4.2` の `AiryReader-Story.pdf` も削除した。
+
+公開済みコミットからも紹介PDFを取り除くため、利用者の明示承認後にmainと全タグの履歴を再構成して強制pushした。GitHubのdocs一覧は `VALIDATION.md` のみ、Release添付はアプリZIPのみであることを確認。公開済みURL・フォーク・キャッシュは外部に残る可能性があり、完全な回収はできない。
