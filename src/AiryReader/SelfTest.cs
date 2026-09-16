@@ -50,6 +50,11 @@ public static class SelfTest
         var selectionBadge = (FrameworkElement)window.FindName("TextSelectionBadge");
         var selectionInfo = (TextBlock)window.FindName("TextSelectionInfo");
         Check(selectionBadge.Visibility == Visibility.Visible && selectionInfo.Text.Contains("3 chars") && selectionInfo.Text.Contains("Full 2  Half 1") && selectionInfo.Text.Contains("Width 5"), "TXTの選択文字数を右下に表示");
+        textEditor.Select(0, 0); window.UpdateLayout();
+        Check(selectionInfo.Text.Contains("Ln 1") && selectionInfo.Text.Contains("Col 1") && selectionInfo.Text.Contains("UTF-8"), "選択していないTXTで行・列・文字コードを表示");
+        int textTabCount = window.TabCountForTest;
+        await window.OpenPathsAsync([textFixture]); window.UpdateLayout();
+        Check(window.TabCountForTest == textTabCount && string.Equals(window.CurrentPathForTest, textFixture, StringComparison.OrdinalIgnoreCase), "同じTXTを再度開くと既存タブへ移動");
         textEditor.Text += "\n追記"; window.SaveTextForTest();
         Check(File.ReadAllText(textFixture, Encoding.UTF8).Contains("追記"), "TXTをCtrl＋S相当で上書き保存");
         Check(((FrameworkElement)window.FindName("PrintButton")).Visibility == Visibility.Visible, "TXTで印刷ボタンを表示");
@@ -100,6 +105,10 @@ public static class SelfTest
         Check(pageTotal >= 2, "連続表示の検証対象が複数ページ");
         await window.OpenPathsAsync([uiPath]);
         window.UpdateLayout();
+        Check(selectionBadge.Visibility == Visibility.Visible && selectionInfo.Text.Contains("Actual size") && selectionInfo.Text.Contains("100%"), "PDFの原本サイズ・印刷モード・倍率を表示");
+        int pdfTabCount = window.TabCountForTest;
+        await window.OpenPathsAsync([uiPath]); window.UpdateLayout();
+        Check(window.TabCountForTest == pdfTabCount && string.Equals(window.CurrentPathForTest, uiPath, StringComparison.OrdinalIgnoreCase), "同じPDFを再度開くと既存タブへ移動");
         Capture(window, "artifacts/viewer-window.png");
         var viewer = (ScrollViewer)window.FindName("Viewer");
         var host = (StackPanel)window.FindName("PagesHost");

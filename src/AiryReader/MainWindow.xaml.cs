@@ -100,7 +100,16 @@ public partial class MainWindow : Window
     {
         if (tab.Header is StackPanel header && header.Children.OfType<TextBlock>().FirstOrDefault() is { } label) label.Text = title;
     }
-    internal int TabCountForTest => Tabs.Items.Count;
+    private static string? StatePath(object? state) => state switch
+    {
+        TabState pdf => pdf.Document.Path,
+        TextTabState text when !string.IsNullOrEmpty(text.Path) => text.Path,
+        ImageTabState image => image.Path,
+        _ => null
+    };
+    private TabItem? FindOpenTab(string path) => Tabs.Items.Cast<TabItem>().FirstOrDefault(tab =>
+        StatePath(tab.Tag) is { } openPath && string.Equals(System.IO.Path.GetFullPath(openPath), path, StringComparison.OrdinalIgnoreCase));
+    internal string? CurrentPathForTest => StatePath((Tabs.SelectedItem as TabItem)?.Tag);    internal int TabCountForTest => Tabs.Items.Count;
     internal async Task NewTextAsync()
     {
         var state = new TextTabState("", LightweightTextRenderer.BuildPlain(""), "", new UTF8Encoding(false), true);
@@ -111,10 +120,17 @@ public partial class MainWindow : Window
     public async void OpenPaths(IEnumerable<string> paths) => await OpenPathsAsync(paths);
     public async Task OpenPathsAsync(IEnumerable<string> paths)
     {
-        foreach (string path in paths)
+        foreach (string requestedPath in paths)
         {
             try
             {
+                string path = System.IO.Path.GetFullPath(requestedPath);
+                if (FindOpenTab(path) is { } existing)
+                {
+                    Tabs.SelectedItem = existing;
+                    await RenderCurrent();
+                    continue;
+                }
                 string extension = System.IO.Path.GetExtension(path).ToLowerInvariant();
                 if (new[] { ".md", ".markdown", ".txt" }.Contains(extension))
                 {
@@ -206,7 +222,7 @@ public partial class MainWindow : Window
         Viewer.Visibility = state != null ? Visibility.Visible : Visibility.Collapsed;
         MarkdownViewer.Visibility = textDocument != null && !textDocument.Editable ? Visibility.Visible : Visibility.Collapsed;
         TextEditorArea.Visibility = textDocument?.Editable == true ? Visibility.Visible : Visibility.Collapsed;
-        if (textDocument?.Editable != true) TextSelectionBadge.Visibility = Visibility.Collapsed;
+        TextSelectionBadge.Visibility = Visibility.Collapsed;
         SaveTextButton.Visibility = textDocument?.Editable == true ? Visibility.Visible : Visibility.Collapsed;
         ImageViewer.Visibility = image != null ? Visibility.Visible : Visibility.Collapsed;
         DocumentToolbar.Visibility = Visibility.Visible;
@@ -217,6 +233,7 @@ public partial class MainWindow : Window
         ContentGrid.Background = textDocument != null || image != null ? Brushes.White : new SolidColorBrush(Color.FromRgb(188, 195, 204));
         MarkdownViewer.Document = textDocument?.Editable == false ? textDocument.Document : null;
         if (textDocument?.Editable == true && TextEditor.Text != textDocument.LiveText) { opening = true; TextEditor.Text = textDocument.LiveText; opening = false; }
+        if (textDocument?.Editable == true) UpdateTextSmartStatus();
         ReaderImage.Source = image?.Image;
         if (textDocument != null) { MarkdownViewer.Zoom = textDocument.Zoom * 100; TextEditor.FontSize = 15 * textDocument.Zoom; }
         if (image != null) ApplyImageLayout(image);
@@ -254,13 +271,49 @@ public partial class MainWindow : Window
             pageViews[i].Surface.Height = mm.Height * 96 / 25.4 * state.Zoom;
         }
     }
-    private void UpdatePageInfo()
+    private static string PdfPageLabel(Size size)
+    {
+        double shortSide = Math.Min(size.Width, size.Height), longSide = Math.Max(size.Width, size.Height);
+        (string Name, double Short, double Long)[] standards =
+        [
+            ("A3", 297, 420), ("A4", 210, 297), ("A5", 148, 210),
+            ("B4", 257, 364), ("B5", 182, 257)
+        ];
+        string? name = standards.FirstOrDefault(p => Math.Abs(shortSide - p.Short) <= 1 && Math.Abs(longSide - p.Long) <= 1).Name;
+        if (name == null) return $"{size.Width:0.#} × {size.Height:0.#} mm";
+        return size.Width > size.Height ? name + " Landscape" : name;
+    }
+    private void UpdatePdfSmartStatus()
+    {
+        if (Current is not { } state)
+        {
+            TextSelectionBadge.Visibility = Visibility.Collapsed;
+            return;
+        }
+        string mode = state.Document.LastPrintMode switch
+        {
+            PrintMode.Scale when Math.Abs(state.Document.PrintPercent - 100) < .001 => "Actual size",
+            PrintMode.Scale => "Scale",
+            PrintMode.Fit => "Fit to paper",
+            PrintMode.TwoUp => "2-up",
+            PrintMode.FourUp => "4-up",
+            PrintMode.Booklet => "Booklet",
+            PrintMode.Poster => "Poster",
+            _ => "Print"
+        };
+        string percent = state.Document.LastPrintMode is PrintMode.Scale or PrintMode.Poster ? $"  •  {state.Document.PrintPercent:0.##}%" : "";
+        TextSelectionInfo.Text = $"{PdfPageLabel(state.Document.SizeMm(state.Page))}  •  {mode}{percent}";
+        TextSelectionBadge.ToolTip = "現在ページの原本サイズと印刷モードです。";
+        TextSelectionBadge.Visibility = Visibility.Visible;
+    }    private void UpdatePageInfo()
     {
         if (Current is not { } state) return;
         Size mm = state.Document.SizeMm(state.Page);
         PageNumber.Text = (state.Page + 1).ToString(); PageCount.Text = $"/ {state.Document.Count}";
         if (!ZoomText.IsKeyboardFocusWithin) ZoomText.Text = (state.Zoom * 100).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
         Status.Text = $"{System.IO.Path.GetFileName(state.Document.Path)}  ·  {mm.Width:F1} × {mm.Height:F1} mm  ·  印刷倍率 {state.Document.PrintPercent:0.##}%";
+
+        UpdatePdfSmartStatus();
     }
     private void ViewerScrolled(object sender, ScrollChangedEventArgs e)
     {
@@ -500,6 +553,10 @@ public partial class MainWindow : Window
             Canvas.SetLeft(mark, box.X * view.Surface.ActualWidth); Canvas.SetTop(mark, box.Y * view.Surface.ActualHeight); view.Selection.Children.Add(mark);
         }
         Status.Text = $"{selectedPdfText.Length}文字を選択  ·  Ctrl＋Cでコピー";
+
+        TextSelectionInfo.Text = $"{selectedPdfText.Length} chars selected  •  Ctrl+C";
+        TextSelectionBadge.ToolTip = "選択したPDF文字をCtrl+Cでコピーできます。";
+        TextSelectionBadge.Visibility = Visibility.Visible;
     }
     private void ClearPdfSelection()
     {
@@ -621,17 +678,40 @@ public partial class MainWindow : Window
         state.LiveText = TextEditor.Text;
         state.Dirty = state.LiveText != state.Text; UpdateTextTabTitle(state);
     }
-    private void TextEditorSelectionChanged(object s, RoutedEventArgs e)
+    private void TextEditorSelectionChanged(object s, RoutedEventArgs e) => UpdateTextSmartStatus();
+    private void UpdateTextSmartStatus()
     {
-        if (CurrentText is not { Editable: true } || TextEditor.SelectionLength == 0)
+        if (CurrentText is not { Editable: true } state)
         {
             TextSelectionBadge.Visibility = Visibility.Collapsed;
             return;
         }
-        var count = CountCharacterWidths(TextEditor.SelectedText);
-        TextSelectionInfo.Text = $"{count.Total} chars  •  Full {count.FullWidth}  Half {count.HalfWidth}  •  Width {count.HalfWidthEquivalent}";
+        if (TextEditor.SelectionLength > 0)
+        {
+            var count = CountCharacterWidths(TextEditor.SelectedText);
+            TextSelectionInfo.Text = $"{count.Total} chars  •  Full {count.FullWidth}  Half {count.HalfWidth}  •  Width {count.HalfWidthEquivalent}";
+            TextSelectionBadge.ToolTip = "選択範囲の文字数。Widthは全角を2、半角を1として数えます。";
+        }
+        else
+        {
+            int line = Math.Max(0, TextEditor.GetLineIndexFromCharacterIndex(TextEditor.CaretIndex));
+            int lineStart = TextEditor.GetCharacterIndexFromLineIndex(line);
+            int column = Math.Max(0, TextEditor.CaretIndex - lineStart);
+            TextSelectionInfo.Text = $"Ln {line + 1}  Col {column + 1}  •  {EncodingLabel(state.Encoding)}";
+            TextSelectionBadge.ToolTip = "現在の行・列と、保存時に使用する文字コードです。";
+        }
         TextSelectionBadge.Visibility = Visibility.Visible;
     }
+    private static string EncodingLabel(Encoding encoding) => encoding.CodePage switch
+    {
+        65001 => "UTF-8",
+        932 => "Shift-JIS",
+        1200 => "UTF-16 LE",
+        1201 => "UTF-16 BE",
+        12000 => "UTF-32 LE",
+        12001 => "UTF-32 BE",
+        _ => encoding.WebName.ToUpperInvariant()
+    };
     internal static (int Total, int FullWidth, int HalfWidth, int HalfWidthEquivalent) CountCharacterWidths(string text)
     {
         int full = 0, half = 0;
@@ -690,7 +770,7 @@ public partial class MainWindow : Window
     {
         try
         {
-            if (Current is { } state) new PrintWindow(state.Document, state.Page, null) { Owner = this }.ShowDialog();
+            if (Current is { } state) { new PrintWindow(state.Document, state.Page, null) { Owner = this }.ShowDialog(); UpdatePageInfo(); }
             else if (CurrentText is { Editable: true } text)
             {
                 var dialog = new System.Windows.Controls.PrintDialog();

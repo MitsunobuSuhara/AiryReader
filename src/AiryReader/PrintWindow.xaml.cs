@@ -22,6 +22,7 @@ public partial class PrintWindow : Window
         document = doc; currentPage = page; selectedRegion = region;
         InitializeComponent();
         PercentBox.Text = doc.PrintPercent.ToString(CultureInfo.InvariantCulture);
+        ModeBox.SelectedIndex = (int)doc.LastPrintMode;
         RegionBox.IsEnabled = region.HasValue; RegionBox.IsChecked = region.HasValue;
         printer.OriginAtMargins = false;
         printer.DefaultPageSettings.Margins = new Margins(0, 0, 0, 0);
@@ -164,6 +165,7 @@ public partial class PrintWindow : Window
             var options = new PrintOptions(activeMode, percent, activeMode == PrintMode.Poster ? Number(OverlapBox, "貼り合わせ幅") : 5, RightBindingBox.IsChecked == true);
             sheets = PrintLayout.Build(document.SizeMm, pages, paperSize, printableRect, options, activeRegion);
             document.PrintPercent = percent;
+            document.LastPrintMode = activeMode;
             side = 0;
             bool clipped = activeMode != PrintMode.Poster && sheets.SelectMany(x => x.Items).Any(p => PrintLayout.IsClipped(p, document.SizeMm(p.Page), activeRegion));
             int paperCount = DuplexBox.SelectedIndex == 0 ? sheets.Count : (sheets.Count + 1) / 2;

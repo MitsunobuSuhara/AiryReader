@@ -32,15 +32,15 @@
    <ScrollViewer x:Name="ImageViewer" Visibility="Collapsed" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" Background="White" PreviewMouseWheel="ImageWheel"><Image x:Name="ReaderImage" Stretch="Fill" HorizontalAlignment="Center" VerticalAlignment="Center" MouseLeftButtonDown="ImageClick"/></ScrollViewer>
    <Grid x:Name="TextEditorArea" Visibility="Collapsed">
     <TextBox x:Name="TextEditor" AcceptsReturn="True" AcceptsTab="True" TextWrapping="NoWrap" FontFamily="Cascadia Mono, Consolas, Yu Gothic UI" FontSize="15" Padding="28,22" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto" TextChanged="TextEditorChanged" SelectionChanged="TextEditorSelectionChanged"/>
-    <Border x:Name="TextSelectionBadge" Visibility="Collapsed" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,20,18" Padding="12,6" CornerRadius="11" Background="#EB172033" BorderBrush="#52637A" BorderThickness="1" IsHitTestVisible="False" ToolTip="選択範囲の文字数。換算は全角を2、半角を1として数えます。">
-     <Border.Effect><DropShadowEffect BlurRadius="10" ShadowDepth="2" Opacity="0.24" Color="#111827"/></Border.Effect>
-     <TextBlock x:Name="TextSelectionInfo" Foreground="#F8FAFC" FontFamily="Yu Gothic UI" FontSize="12" FontWeight="SemiBold"/>
-    </Border>
    </Grid>
    <FlowDocumentScrollViewer x:Name="MarkdownViewer" Visibility="Collapsed" PreviewMouseWheel="MarkdownWheel" Background="White" VerticalScrollBarVisibility="Auto" IsSelectionEnabled="True" MinZoom="10" MaxZoom="800"/>
    <ScrollViewer x:Name="Viewer" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" PreviewMouseWheel="ViewerWheel" ScrollChanged="ViewerScrolled">
     <StackPanel x:Name="PagesHost" Margin="24" HorizontalAlignment="Center" VerticalAlignment="Top"/>
    </ScrollViewer>
+   <Border x:Name="TextSelectionBadge" Visibility="Collapsed" Panel.ZIndex="10" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,20,18" Padding="12,6" CornerRadius="11" Background="#EB172033" BorderBrush="#52637A" BorderThickness="1">
+    <Border.Effect><DropShadowEffect BlurRadius="10" ShadowDepth="2" Opacity="0.24" Color="#111827"/></Border.Effect>
+    <TextBlock x:Name="TextSelectionInfo" Foreground="#F8FAFC" FontFamily="Yu Gothic UI" FontSize="12" FontWeight="SemiBold"/>
+   </Border>
   </Grid>
  </DockPanel>
 </Window>

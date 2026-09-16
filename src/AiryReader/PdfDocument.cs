@@ -23,6 +23,7 @@ public sealed class PdfDocument : IDisposable
     public bool CanEdit { get; }
     public bool CanFill { get; }
     public double PrintPercent { get; set; } = 100;
+    public PrintMode LastPrintMode { get; set; } = PrintMode.Scale;
 
     public PdfDocument(string path, string? password = null)
     {
