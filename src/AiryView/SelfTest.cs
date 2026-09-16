@@ -2,7 +2,7 @@ using System.Diagnostics;
 using System.Drawing.Printing;
 using System.Text;
 
-namespace AiryReader;
+namespace AiryView;
 
 public static class SelfTest
 {
@@ -119,7 +119,7 @@ public static class SelfTest
         Check(selectionCanvas.Children.Count > 0, "PDFの選択範囲を青い層で表示");
         Check(window.CopySelectedPdfForTest() && Clipboard.GetText() == selectedPdfText, "選択したPDF文字をクリップボードへコピー");
         using (var selectableDocument = new PdfDocument(selectablePath)) Check(selectableDocument.TextCharacters(0).Any(c => !c.RelativeBox.IsEmpty), "PDF文字の画面座標を取得");
-        string uiPath = Environment.GetEnvironmentVariable("AIRYPDF_UI_PDF") ?? fixture;
+        string uiPath = Environment.GetEnvironmentVariable("AIRYVIEW_UI_PDF") ?? fixture;
         using var uiDocument = new PdfDocument(uiPath);
         int pageTotal = uiDocument.Count;
         Check(pageTotal >= 2, "連続表示の検証対象が複数ページ");
@@ -192,7 +192,7 @@ public static class SelfTest
         Check(!FindButtons(window).Any(b => b.Content as string == "100%"), "100％ボタンを削除");
         var fit = (Button)window.FindName("FitWidthButton");
         Check(((Panel)fit.Parent).Children[((Panel)fit.Parent).Children.Count - 1] == fit, "画面幅に合わせるを右端に配置");
-        Check(window.FindName("SelectRegion") == null && fit.ToolTip?.ToString() == "画面幅に合わせて表示", "範囲選択を削除して画面幅の文言に変更");
+        Check(window.FindName("SelectRegion") == null && fit.ToolTip?.ToString() == "画面幅に合わせる / Fit to width", "範囲選択を削除して画面幅の文言に変更");
         window.WindowState = WindowState.Normal; window.Width = 860;
         await Task.Delay(200); window.UpdateLayout();
         fit.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
@@ -323,7 +323,7 @@ public static class SelfTest
         }
         if (File.Exists("artifacts/feature-tests/forms.pdf"))
         {
-            string formPath = Environment.GetEnvironmentVariable("AIRYPDF_TOOL_PDF") ?? "artifacts/feature-tests/forms.pdf";
+            string formPath = Environment.GetEnvironmentVariable("AIRYVIEW_TOOL_PDF") ?? "artifacts/feature-tests/forms.pdf";
             using var forms = new PdfDocument(formPath);
             var metadata = await PdfHelper.RunAsync(new Dictionary<string,object?> { ["operation"]="inspect", ["source"]=formPath, ["password"]="" });
             int expectedFields = metadata.GetProperty("fields").GetArrayLength();
@@ -382,7 +382,7 @@ public static class SelfTest
             Check(signed.HasSignatures && !signed.CanEdit, "署名済みPDFの編集を保護");
         }
         var watch = Stopwatch.StartNew();
-        string? compat = Environment.GetEnvironmentVariable("AIRYPDF_COMPAT_PDF");
+        string? compat = Environment.GetEnvironmentVariable("AIRYVIEW_COMPAT_PDF");
         if (!string.IsNullOrEmpty(compat))
         {
             using var compatible = new PdfDocument(compat);

@@ -1,12 +1,12 @@
 using System.Diagnostics;
 using System.Text;
 using System.Text.Json;
-namespace AiryReader;
+namespace AiryView;
 public static class PdfHelper
 {
     public static async Task<JsonElement> RunAsync(Dictionary<string,object?> request)
     {
-        string helper = System.IO.Path.Combine(AppContext.BaseDirectory, "Helper", "airy-pdf-helper.exe");
+        string helper = System.IO.Path.Combine(AppContext.BaseDirectory, "Helper", "airyview-pdf-helper.exe");
         if (!File.Exists(helper)) throw new IOException("PDF編集エンジンがありません。アプリの更新版を登録してください。");
         var start = new ProcessStartInfo(helper) { UseShellExecute = false, CreateNoWindow = true, RedirectStandardInput = true, RedirectStandardOutput = true, RedirectStandardError = true, StandardInputEncoding = new UTF8Encoding(false) };
         using var process = Process.Start(start) ?? throw new IOException("PDF編集エンジンを起動できません。");

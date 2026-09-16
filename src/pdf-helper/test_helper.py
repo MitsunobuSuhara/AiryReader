@@ -21,7 +21,7 @@ encrypted=root/'encrypted.pdf';w=PdfWriter();w.clone_document_from_reader(PdfRea
 assert len(run('inspect',src=encrypted,password='secret')['fields'])==2
 encout=root/'encrypted-filled.pdf';run('write',src=encrypted,password='secret',destination=str(encout),values={'name':'暗号化入力'})
 r=PdfReader(encout);assert r.is_encrypted and r.decrypt('secret');assert r.get_fields()['name']['/V']=='暗号化入力';print('PASS: password-protected PDF and encrypted edited copy')
-key=rsa.generate_private_key(public_exponent=65537,key_size=2048);subject=x509.Name([x509.NameAttribute(NameOID.COMMON_NAME,'AiryReader TEST ONLY')]);now=datetime.datetime.now(datetime.timezone.utc)
+key=rsa.generate_private_key(public_exponent=65537,key_size=2048);subject=x509.Name([x509.NameAttribute(NameOID.COMMON_NAME,'AiryView TEST ONLY')]);now=datetime.datetime.now(datetime.timezone.utc)
 cert=x509.CertificateBuilder().subject_name(subject).issuer_name(subject).public_key(key.public_key()).serial_number(x509.random_serial_number()).not_valid_before(now-datetime.timedelta(days=1)).not_valid_after(now+datetime.timedelta(days=30)).add_extension(x509.KeyUsage(True,True,False,False,False,False,False,False,False),critical=True).sign(key,hashes.SHA256())
 pfx=root/'test-only.pfx';pfx.write_bytes(pkcs12.serialize_key_and_certificates(b'test',key,cert,None,serialization.BestAvailableEncryption(b'test')))
 signed=root/'signed.pdf';run('sign',destination=str(signed),pfx=str(pfx),pfxPassword='test');status=run('verify',src=signed)['signatures'][0];assert status['valid'] and status['intact'] and not status['trusted'];print('PASS: certificate signature, integrity and untrusted self-signed status distinguished')

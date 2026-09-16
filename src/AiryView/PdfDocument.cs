@@ -1,6 +1,6 @@
 using System.Runtime.InteropServices;
 
-namespace AiryReader;
+namespace AiryView;
 
 public readonly record struct PdfTextCharacter(char Character, Rect RelativeBox);
 

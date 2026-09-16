@@ -2,7 +2,7 @@ using System.Net;
 using System.Text.RegularExpressions;
 using System.Windows.Documents;
 
-namespace AiryReader;
+namespace AiryView;
 
 public static class LightweightTextRenderer
 {

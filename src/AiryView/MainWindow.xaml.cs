@@ -7,7 +7,7 @@ using System.Windows.Input;
 using System.Windows.Threading;
 using System.Security.Cryptography;
 
-namespace AiryReader;
+namespace AiryView;
 
 public partial class MainWindow : Window
 {
@@ -93,7 +93,7 @@ public partial class MainWindow : Window
         if (DwmSetWindowAttribute(handle, 20, ref enabled, sizeof(int)) != 0)
             DwmSetWindowAttribute(handle, 19, ref enabled, sizeof(int));
     }
-    private void Error(Exception ex) => MessageBox.Show(this, ex.Message, "AiryReader", MessageBoxButton.OK, MessageBoxImage.Warning);
+    private void Error(Exception ex) => MessageBox.Show(this, ex.Message, "AiryView", MessageBoxButton.OK, MessageBoxImage.Warning);
     public async void NewText() => await NewTextAsync();
     private void NewTextClick(object s, RoutedEventArgs e) => NewText();
     private TabItem CreateTab(string title, string toolTip, object state)
@@ -725,7 +725,7 @@ public partial class MainWindow : Window
         try
         {
             if (HasExternalTextChange(state, destination) &&
-                MessageBox.Show(this, "このファイルは別のアプリで変更されています。AiryReaderの内容で上書きしますか？", "外部で変更されています", MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes) return false;
+                MessageBox.Show(this, "このファイルは別のアプリで変更されています。AiryViewの内容で上書きしますか？", "外部で変更されています", MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes) return false;
             string folder = System.IO.Path.GetDirectoryName(System.IO.Path.GetFullPath(destination))!;
             Directory.CreateDirectory(folder);
             string temporary = System.IO.Path.Combine(folder, "." + System.IO.Path.GetFileName(destination) + "." + Guid.NewGuid().ToString("N") + ".tmp");
@@ -889,8 +889,8 @@ public partial class MainWindow : Window
     private void HelpClick(object s, RoutedEventArgs e)
     {
         MessageBox.Show(this,
-            "AiryReader 1.4.4\n\n対応形式：PDF、Markdown、TXT、JPEG、PNG、TIFF、BMP\nファイルを開く：Ctrl＋O、またはドラッグ＆ドロップ\nページ移動：ホイールで連続スクロール、ページ番号入力、左右のボタン\nPDF・画像の拡大縮小：Ctrl＋ホイール、＋／−、倍率入力、画面幅に合わせる\n画像：回転アイコン、ダブルクリックで100％／画面内表示\nMarkdown：Ctrl＋Shift＋MでPreview／Source編集、SourceはAlt＋Zで折り返し、Ctrl＋Sで保存\nTXT：Alt＋Zで折り返し、Ctrl＋Sで安全に保存、Ctrl＋Fで検索、Ctrl＋Pで印刷\n共通：Ctrl＋Shift＋Tで閉じたタブを復元、Ctrl＋0で100％、Ctrl＋＋／－で倍率変更\nPDF文字の選択：文字をドラッグ、Ctrl＋Cでコピー\n印刷：Ctrl＋P\nPDFの入力・注釈・検索・署名確認：Ctrl＋F\nパスワードはファイルを開く際に入力します。保存・ログには残しません。\n\n新しいPDFの印刷倍率は100%。指定倍率では自動縮小せず、欠けをプレビューで知らせます。\nドライバー側の拡大縮小・Nアップは無効にしてください。\n回転を保存するときは別名保存します。\n\n寸法確認用PDFには縦横100mmの基準線があります。\n会社での印刷は利用者評価で用途上合格（約0.1mmのずれに見えるとの報告）。",
-            "AiryReader — 使い方", MessageBoxButton.OK, MessageBoxImage.Information);
+            "AiryView 2.0.0\n\n対応形式：PDF、Markdown、TXT、JPEG、PNG、TIFF、BMP\nファイルを開く：Ctrl＋O、またはドラッグ＆ドロップ\nページ移動：ホイールで連続スクロール、ページ番号入力、左右のボタン\nPDF・画像の拡大縮小：Ctrl＋ホイール、＋／−、倍率入力、画面幅に合わせる\n画像：回転アイコン、ダブルクリックで100％／画面内表示\nMarkdown：Ctrl＋Shift＋MでPreview／Source編集、SourceはAlt＋Zで折り返し、Ctrl＋Sで保存\nTXT：Alt＋Zで折り返し、Ctrl＋Sで安全に保存、Ctrl＋Fで検索、Ctrl＋Pで印刷\n共通：Ctrl＋Shift＋Tで閉じたタブを復元、Ctrl＋0で100％、Ctrl＋＋／－で倍率変更\nPDF文字の選択：文字をドラッグ、Ctrl＋Cでコピー\n印刷：Ctrl＋P\nPDFの入力・注釈・検索・署名確認：Ctrl＋F\nパスワードはファイルを開く際に入力します。保存・ログには残しません。\n\n新しいPDFの印刷倍率は100%。指定倍率では自動縮小せず、欠けをプレビューで知らせます。\nドライバー側の拡大縮小・Nアップは無効にしてください。\n回転を保存するときは別名保存します。\n\n寸法確認用PDFには縦横100mmの基準線があります。\n会社での印刷は利用者評価で用途上合格（約0.1mmのずれに見えるとの報告）。",
+            "AiryView — 使い方", MessageBoxButton.OK, MessageBoxImage.Information);
     }
     private void ToolsClick(object sender, RoutedEventArgs e)
     {

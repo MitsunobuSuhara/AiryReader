@@ -1,15 +1,15 @@
-# AiryReader
+# AiryView（エアリービュー）
 
-Windows 11（64ビット）向けの、軽いファイル閲覧アプリです。PDFを読み、原寸を意識して印刷できます。Markdown（.md）、テキスト（.txt）、画像（JPEG・PNG・TIFF・BMP）も開けます。
+Windows 11（64ビット）向けの、軽量ドキュメントビューアです。PDFを読み、原寸を意識して印刷できます。Markdown（.md）、テキスト（.txt）、画像（JPEG・PNG・TIFF・BMP）も開けます。
 
 ## ダウンロードとセットアップ
 
-1. [最新版のダウンロード画面](https://github.com/MitsunobuSuhara/AiryReader/releases/latest) を開きます。
-2. **Assets** の `AiryReader-*.zip` をクリックして保存します。
+1. [最新版のダウンロード画面](https://github.com/MitsunobuSuhara/AiryView/releases/latest) を開きます。
+2. **Assets** の `AiryView-*.zip` をクリックして保存します。
 3. ZIPを右クリックして **すべて展開** を選び、展開したフォルダを開きます。
-4. **AiryReaderをセットアップ.cmd** をダブルクリックします。Windowsの確認が出たら、内容を確認して **はい** を選びます。
+4. **AiryViewをセットアップ.cmd** をダブルクリックします。Windowsの確認が出たら、内容を確認して **はい** を選びます。
 
-完了後は、スタートメニューの **AiryReader** から開けます。更新するときも、AiryReaderを閉じてから同じ手順です。
+完了後は、スタートメニューの **AiryView** から開けます。更新するときも、AiryViewを閉じてから同じ手順です。
 
 ## できること
 

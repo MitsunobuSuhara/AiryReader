@@ -6,5 +6,5 @@ artifacts/
 *.user
 
 # 紹介PDFは内々の配布物のためGitHubへ公開しない
-docs/AiryReader_AIとの会話から生まれたPDFアプリ.pdf
-output/pdf/AiryReader_AIとの会話から生まれたPDFアプリ.pdf
+docs/*_AIとの会話から生まれたPDFアプリ.pdf
+output/pdf/*_AIとの会話から生まれたPDFアプリ.pdf

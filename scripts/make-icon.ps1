@@ -1,7 +1,7 @@
 $ErrorActionPreference = 'Stop'
 $taskRoot = Split-Path -Parent $PSScriptRoot
 Add-Type -AssemblyName System.Drawing
-$taskSource = [Drawing.Bitmap]::new((Join-Path $taskRoot 'assets\icons\AiryReader-symbol-white-transparent.png'))
+$taskSource = [Drawing.Bitmap]::new((Join-Path $taskRoot 'assets\icons\AiryView-symbol-white-transparent.png'))
 $taskSizes = @(16,24,32,48,64,128,256)
 $taskPngs = [Collections.Generic.List[byte[]]]::new()
 try {
@@ -21,7 +21,7 @@ try {
             $taskPngs.Add($taskMemory.ToArray())
         } finally { $taskMemory.Dispose(); $taskGraphics.Dispose(); $taskBitmap.Dispose() }
     }
-    $taskFile = [IO.File]::Create((Join-Path $taskRoot 'assets\icons\AiryReader.ico'))
+    $taskFile = [IO.File]::Create((Join-Path $taskRoot 'assets\icons\AiryView.ico'))
     $taskWriter = [IO.BinaryWriter]::new($taskFile)
     try {
         $taskWriter.Write([uint16]0); $taskWriter.Write([uint16]1); $taskWriter.Write([uint16]$taskSizes.Count)

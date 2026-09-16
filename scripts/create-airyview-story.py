@@ -10,7 +10,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "artifacts" / "share"
 OUT.mkdir(parents=True, exist_ok=True)
-DOCX = OUT / "AiryReader_AIとの会話から生まれたPDFアプリ.docx"
+DOCX = OUT / "AiryView_AIとの会話から生まれたPDFアプリ.docx"
 
 doc = Document()
 sec = doc.sections[0]
@@ -67,13 +67,13 @@ def conversation(who, text, dark=False):
 p=doc.add_paragraph(style="Title"); p.alignment=WD_ALIGN_PARAGRAPH.CENTER
 p.add_run("AIとの会話から生まれた仕事のアプリ")
 p=doc.add_paragraph(); p.alignment=WD_ALIGN_PARAGRAPH.CENTER
-r=p.add_run("AiryReaderを一緒に作った記録"); r.bold=True; r.font.size=Pt(16)
-icon=ROOT/"assets"/"icons"/"AiryReader-symbol-preview.png"
+r=p.add_run("AiryViewを一緒に作った記録"); r.bold=True; r.font.size=Pt(16)
+icon=ROOT/"assets"/"icons"/"AiryView-symbol-preview.png"
 if icon.exists():
     p=doc.add_paragraph(); p.alignment=WD_ALIGN_PARAGRAPH.CENTER
     p.add_run().add_picture(str(icon), width=Inches(2.0))
 p=doc.add_paragraph(); p.alignment=WD_ALIGN_PARAGRAPH.CENTER
-r=p.add_run("私はプログラムコードを一度も書いたことがありません。\nそれでもAIとの会話を通じて、仕事用のアプリやプラグインをいくつか作ってきました。\nこれまではClaudeを使い、最近はChatGPTのCodexを中心に開発しています。AiryReaderは、9月13日の朝にPDFリーダーの枠組みができ、その後、細かな改善やメモ機能などを追加しました。")
+r=p.add_run("私はプログラムコードを一度も書いたことがありません。\nそれでもAIとの会話を通じて、仕事用のアプリやプラグインをいくつか作ってきました。\nこれまではClaudeを使い、最近はChatGPTのCodexを中心に開発しています。AiryViewは、9月13日の朝にPDFリーダーの枠組みができ、その後、細かな改善やメモ機能などを追加しました。")
 r.font.size=Pt(13)
 p=doc.add_paragraph(); p.alignment=WD_ALIGN_PARAGRAPH.CENTER
 p.paragraph_format.space_before=Pt(22)
@@ -90,12 +90,12 @@ conversation("私", "Adobe Acrobat Readerと同じくらい、寸法に正確に
 conversation("AI", "まず、原寸や指定倍率では勝手に縮小せず、用紙からはみ出す場合はプレビューで分かるようにしましょう。")
 doc.add_paragraph("最初の試作を実際に触ると、PDFを開いた直後の大きさや、ページの移動方法にも希望が出てきました。")
 conversation("私", "PDFは最初から100％で表示してください。\n何ページもある資料は、縦にスクロールして読みたいです。", True)
-doc.add_paragraph("私はプログラムコードを一度も書いたことがありません。一方で、これまでのアプリ作りを通じて、仕事のどこで困っているか、実際に使うと何が邪魔になるか、結果が正しいかを確かめる経験は積んできました。AiryReaderでも最初から全体を決め切らず、できた画面を触り、気づいたことをそのまま話していきました。")
+doc.add_paragraph("私はプログラムコードを一度も書いたことがありません。一方で、これまでのアプリ作りを通じて、仕事のどこで困っているか、実際に使うと何が邪魔になるか、結果が正しいかを確かめる経験は積んできました。AiryViewでも最初から全体を決め切らず、できた画面を触り、気づいたことをそのまま話していきました。")
 
 
 doc.add_heading("これまでにも少し作っていた", level=1)
-doc.add_paragraph("AiryReaderが最初のアプリだったわけではありません。これまでにもAIとの会話で、仕事用のアプリやプラグインをいくつか作ってみました。コードは書かず、欲しい動きや使った感想を言葉で伝え、できたものを試しながら直してきました。")
-doc.add_paragraph("これまではClaudeを使うことが多く、最近はChatGPTのCodexを中心に開発しています。使うAIは変わっても、普段の言葉で相談し、実際に触って感想を返す進め方は同じです。AiryReaderでも『原寸で出したい』『100％で止めたい』『印刷ボタンが隠れる』という短い言葉から形になっていきました。")
+doc.add_paragraph("AiryViewが最初のアプリだったわけではありません。これまでにもAIとの会話で、仕事用のアプリやプラグインをいくつか作ってみました。コードは書かず、欲しい動きや使った感想を言葉で伝え、できたものを試しながら直してきました。")
+doc.add_paragraph("これまではClaudeを使うことが多く、最近はChatGPTのCodexを中心に開発しています。使うAIは変わっても、普段の言葉で相談し、実際に触って感想を返す進め方は同じです。AiryViewでも『原寸で出したい』『100％で止めたい』『印刷ボタンが隠れる』という短い言葉から形になっていきました。")
 
 doc.add_heading("画面を見ながら少しずつ整える", level=1)
 conversation("私", "PDFを画面の横幅いっぱいに表示するボタンは、意味が分かる名前にしてください。回転は文字ではなくアイコンにして、上のボタンもシンプルにしてください。", True)
@@ -108,7 +108,7 @@ doc.add_heading("実際の仕事で試して完成度を上げる", level=1)
 conversation("私", "会社の複合機で印刷を確認します。", True)
 conversation("AI", "原本の用紙サイズと向きを引き継ぎ、印刷倍率100％で確認できるようにします。")
 conversation("私", "会社で印刷しました。0.1mmくらいずれて見えますが、私の用途では完璧です。", True)
-doc.add_paragraph("画面上で動くだけでは、仕事のアプリとして十分か分かりません。実際の複合機で印刷し、自分の用途に必要な精度を満たすか確認したことで、AiryReaderは『試作品』から『使えるアプリ』へ進みました。")
+doc.add_paragraph("画面上で動くだけでは、仕事のアプリとして十分か分かりません。実際の複合機で印刷し、自分の用途に必要な精度を満たすか確認したことで、AiryViewは『試作品』から『使えるアプリ』へ進みました。")
 
 doc.add_heading("会話は見た目や名前にも及んだ", level=1)
 conversation("私", "黒背景で、グラデーションなし。アイコンは少しかわいくしたいです。", True)
@@ -129,12 +129,12 @@ for title, body in items:
     p=doc.add_paragraph(); r=p.add_run(title+"  "); r.bold=True; p.add_run(body)
 
 doc.add_heading("私の場合はこんな始まり方だった", level=1)
-doc.add_paragraph("立派な企画書や完成図があったわけではありません。過去のアプリ作りで身についたのは、プログラムの書き方ではなく、仕事で困っていることを具体的に伝え、出てきたものを実際に試す進め方でした。AiryReaderも、使った感想を返すたびに少しずつ変わっていきました。")
+doc.add_paragraph("立派な企画書や完成図があったわけではありません。過去のアプリ作りで身についたのは、プログラムの書き方ではなく、仕事で困っていることを具体的に伝え、出てきたものを実際に試す進め方でした。AiryViewも、使った感想を返すたびに少しずつ変わっていきました。")
 conversation("最初の相談", "仕事で使うPDFを、寸法どおりに印刷できるアプリが欲しいです。", True)
 
-doc.add_heading("現在のAiryReader", level=1)
-doc.add_paragraph("AiryReaderは、PDFを軽く開いて読み、原寸を意識して印刷できるWindowsアプリになりました。複数ページも自然にスクロールでき、記入や検索など、仕事でPDFを扱うための機能も備えています。さらに、Markdownや画像、テキストも同じ画面のタブで開けます。何も開かずに起動すれば、シンプルなメモ帳としても使えます。最初は自分の印刷の困りごとから始まりましたが、毎日のファイル確認やちょっとしたメモにも使えるアプリへ育ちました。")
-doc.add_paragraph("私はコードを一度も書いたことがありません。ただ、AIとの会話で仕事用のアプリやプラグインをいくつか作り、実際に試して直してきました。その経験とAIの作業速度が合わさり、AiryReaderの中心となるPDF閲覧・原寸印刷は短い会話の積み重ねで仕事に使えるところまで進み、その後も実際に使って見つけた問題を会話で直し続けています。")
+doc.add_heading("現在のAiryView", level=1)
+doc.add_paragraph("AiryViewは、PDFを軽く開いて読み、原寸を意識して印刷できるWindowsアプリになりました。複数ページも自然にスクロールでき、記入や検索など、仕事でPDFを扱うための機能も備えています。さらに、Markdownや画像、テキストも同じ画面のタブで開けます。何も開かずに起動すれば、シンプルなメモ帳としても使えます。最初は自分の印刷の困りごとから始まりましたが、毎日のファイル確認やちょっとしたメモにも使えるアプリへ育ちました。")
+doc.add_paragraph("私はコードを一度も書いたことがありません。ただ、AIとの会話で仕事用のアプリやプラグインをいくつか作り、実際に試して直してきました。その経験とAIの作業速度が合わさり、AiryViewの中心となるPDF閲覧・原寸印刷は短い会話の積み重ねで仕事に使えるところまで進み、その後も実際に使って見つけた問題を会話で直し続けています。")
 p=doc.add_paragraph(); p.alignment=WD_ALIGN_PARAGRAPH.CENTER
 r=p.add_run("これはチャットの逐語録ではなく、実際の開発経過をもとに読みやすく再構成した記録です。")
 r.font.size=Pt(8.5); r.font.color.rgb=RGBColor(90,90,90)
@@ -142,9 +142,9 @@ r.font.size=Pt(8.5); r.font.color.rgb=RGBColor(90,90,90)
 # footer
 for section in doc.sections:
     footer=section.footer.paragraphs[0]; footer.alignment=WD_ALIGN_PARAGRAPH.CENTER
-    footer.add_run("AiryReader  AIとの会話から生まれた仕事のアプリ").font.size=Pt(8)
+    footer.add_run("AiryView  AIとの会話から生まれた仕事のアプリ").font.size=Pt(8)
 
 doc.core_properties.title = "AIとの会話から生まれた仕事のアプリ"
-doc.core_properties.subject = "AiryReader制作記録"
+doc.core_properties.subject = "AiryView制作記録"
 doc.save(DOCX)
 print(DOCX)

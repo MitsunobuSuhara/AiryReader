@@ -1,4 +1,4 @@
-# AiryReader 開発引き継ぎ
+# AiryView 開発引き継ぎ
 
 更新日: 2026-09-14
 開発場所: C:\dev\AiryReader
@@ -440,3 +440,8 @@ GitHub Release `v1.4.3` を公開。添付は `AiryReader-1.4.3-20260916-104817.
 - 紹介PDFは内々用で、Git・GitHub Release・配布ZIPへ含めない。
 - 利用者へ.NETの別途導入を求めず、Releaseは`--self-contained true`のWindows x64版を配布する。
 - GitHubは簡潔な案内に留め、管理署担当者向けの詳しい説明は別途メールで行う。
+## AiryViewへの正式名称変更（2026-09-17）
+
+利用者の正式決定により、AiryReaderをAiryView（エアリービュー）へ全面変更。表示名、namespace、プロジェクト名、実行ファイル、アイコン名、Program Files、Windows登録、ショートカット、設定保存先、補助実行ファイル、配布ZIP、README、紹介PDFをAiryViewへ統一し、版を2.0.0とした。旧AiryReader／airyPDFの設定は初回読込対象として維持し、旧インストール・登録・ショートカットは利用者の明示承認後に削除済み。旧名文字列は移行互換処理と履歴説明にのみ残す。
+
+全ビルド・自己テスト・UIテスト・PDF補助機能テストに合格。寸法確認PDFはA4縦、A4横、A3横、A4縦の実寸を維持。紹介PDFは6ページを再生成し、全ページ描画・旧名不在・文字範囲を確認。GitHubリポジトリとローカル開発フォルダは、このコミット後にAiryViewへ変更する。

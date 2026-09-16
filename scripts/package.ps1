@@ -2,30 +2,30 @@ param()
 $ErrorActionPreference = "Stop"
 $taskRoot = Split-Path -Parent $PSScriptRoot
 Set-Location $taskRoot
-if (!(Test-Path "artifacts/app/Helper/airy-pdf-helper.exe")) { throw "Run build-pdf-helper.ps1 and build.ps1 -Test -Publish first." }
-$taskRelease = Join-Path $taskRoot ("artifacts/release/AiryReader-1.4.4-" + (Get-Date -Format "yyyyMMdd-HHmmss"))
+if (!(Test-Path "artifacts/app/Helper/airyview-pdf-helper.exe")) { throw "Run build-pdf-helper.ps1 and build.ps1 -Test -Publish first." }
+$taskRelease = Join-Path $taskRoot ("artifacts/release/AiryView-2.0.0-" + (Get-Date -Format "yyyyMMdd-HHmmss"))
 New-Item -ItemType Directory -Path $taskRelease -Force | Out-Null
 Copy-Item -LiteralPath "artifacts/app" -Destination (Join-Path $taskRelease "app") -Recurse
 $taskSetup = @"
 @echo off
 chcp 65001 >nul
-start "" "%~dp0app\AiryReader.exe" --install
+start "" "%~dp0app\AiryView.exe" --install
 "@
 $taskSetup = $taskSetup.Replace([string][char]13, [string]::Empty).Replace([string][char]10,[string][char]13+[char]10)
-$taskSetupName = "AiryReaderをセットアップ.cmd"
+$taskSetupName = "AiryViewをセットアップ.cmd"
 [IO.File]::WriteAllText((Join-Path $taskRelease $taskSetupName), $taskSetup, [Text.UTF8Encoding]::new($false))
 $taskGuide = @(
-    'AiryReader のセットアップ',
+    'AiryView のセットアップ',
     '',
     'このフォルダでは、次の1つだけ行ってください。',
     '',
-    '  AiryReaderをセットアップ.cmd をダブルクリック',
+    '  AiryViewをセットアップ.cmd をダブルクリック',
     '',
     'Windowsの確認画面が出たら、内容を確認して「はい」を選びます。',
     '完了画面が出たら、このフォルダは閉じて大丈夫です。',
-    '以後はスタートメニューの AiryReader から開けます。',
+    '以後はスタートメニューの AiryView から開けます。',
     '',
-    '更新するときも、AiryReaderを閉じてから同じファイルをダブルクリックしてください。'
+    '更新するときも、AiryViewを閉じてから同じファイルをダブルクリックしてください。'
 ) -join [Environment]::NewLine
 [IO.File]::WriteAllText((Join-Path $taskRelease "はじめにお読みください.txt"), $taskGuide, [Text.UTF8Encoding]::new($false))
 Copy-Item -LiteralPath README.md -Destination (Join-Path $taskRelease "README.md")

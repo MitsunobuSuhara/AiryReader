@@ -1,12 +1,12 @@
 using System.Threading;
 using System.Runtime.InteropServices;
 using System.Windows.Interop;
-namespace AiryReader;
+namespace AiryView;
 
 public partial class App : System.Windows.Application
 {
-    private const string InstanceMutexName = "Local\\AiryReader.SingleInstance.v1";
-    private const string InstancePipeName = "AiryReader.OpenFiles.v1";
+    private const string InstanceMutexName = "Local\\AiryView.SingleInstance.v1";
+    private const string InstancePipeName = "AiryView.OpenFiles.v1";
     private Mutex? instanceMutex;
     [DllImport("user32.dll")] private static extern bool SetForegroundWindow(IntPtr window);
     [DllImport("user32.dll")] private static extern bool ShowWindow(IntPtr window, int command);
@@ -20,7 +20,7 @@ public partial class App : System.Windows.Application
         if (e.Args.Contains("--self-test") || e.Args.Contains("--ui-test"))
         {
             ShutdownMode = ShutdownMode.OnExplicitShutdown;
-            AiryReader.MainWindow.SuppressRecentFilesForTest = true;
+            AiryView.MainWindow.SuppressRecentFilesForTest = true;
             if (File.Exists("artifacts/test-failure.txt")) File.Delete("artifacts/test-failure.txt");
             try { if (e.Args.Contains("--ui-test")) await SelfTest.RunUiAsync(); else SelfTest.Run(); Shutdown(0); }
             catch (Exception ex) { Directory.CreateDirectory("artifacts"); File.WriteAllText("artifacts/test-failure.txt", ex.ToString()); Shutdown(1); }
@@ -28,7 +28,7 @@ public partial class App : System.Windows.Application
         }
         if (e.Args.Contains("--unregister"))
         {
-            if (MessageBox.Show("AiryReaderのアプリ登録とショートカットを解除しますか？\n実行ファイルと設定は復旧用に残ります。", "AiryReader 登録解除", MessageBoxButton.YesNo) == MessageBoxResult.Yes)
+            if (MessageBox.Show("AiryViewのアプリ登録とショートカットを解除しますか？\n実行ファイルと設定は復旧用に残ります。", "AiryView 登録解除", MessageBoxButton.YesNo) == MessageBoxResult.Yes)
                 DesktopInstaller.Unregister();
             Shutdown(0); return;
         }
@@ -49,13 +49,13 @@ public partial class App : System.Windows.Application
                 catch (Exception ex) { MessageBox.Show(ex.Message, "管理者確認が完了しませんでした"); Shutdown(1); }
                 return;
             }
-            string logFolder = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "AiryReader");
+            string logFolder = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "AiryView");
             Directory.CreateDirectory(logFolder);
             try
             {
                 string installed = DesktopInstaller.Install();
                 File.WriteAllText(System.IO.Path.Combine(logFolder, "install-result.txt"), installed);
-                if (!e.Args.Contains("--install-quiet")) MessageBox.Show("スタートメニューに AiryReader を登録しました。", "AiryReader");
+                if (!e.Args.Contains("--install-quiet")) MessageBox.Show("スタートメニューに AiryView を登録しました。", "AiryView");
                 Shutdown(0);
             }
             catch (Exception ex)
@@ -71,7 +71,7 @@ public partial class App : System.Windows.Application
         if (!firstInstance)
         {
             AllowSetForegroundWindow(AllowAnyProcess);
-            if (!await ForwardFilesAsync(files)) MessageBox.Show("起動中のAiryReaderへファイルを渡せませんでした。少し待ってから開き直してください。", "AiryReader");
+            if (!await ForwardFilesAsync(files)) MessageBox.Show("起動中のAiryViewへファイルを渡せませんでした。少し待ってから開き直してください。", "AiryView");
             instanceMutex.Dispose(); instanceMutex = null; Shutdown(0); return;
         }
         var window = new MainWindow();

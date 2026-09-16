@@ -1,16 +1,16 @@
 using System.Text.Json;
-namespace AiryReader;
+namespace AiryView;
 public static class WindowPreferences
 {
     private sealed record Preferences(double Width, double Height, bool Maximized);
-    private static string SettingsPath => System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "AiryReader", "window.json");
-    private static string LegacySettingsPath => System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "airyPDF", "window.json");
+    private static string SettingsPath => System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "AiryView", "window.json");
+    private static string[] LegacySettingsPaths => [System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "AiryReader", "window.json"), System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "airyPDF", "window.json")];
     public static void Restore(Window window)
     {
         try
         {
-            var path = File.Exists(SettingsPath) ? SettingsPath : LegacySettingsPath;
-            if (!File.Exists(path)) return;
+            var path = File.Exists(SettingsPath) ? SettingsPath : LegacySettingsPaths.FirstOrDefault(File.Exists);
+            if (path == null || !File.Exists(path)) return;
             var saved = JsonSerializer.Deserialize<Preferences>(File.ReadAllText(path));
             if (saved == null || !double.IsFinite(saved.Width) || !double.IsFinite(saved.Height)) return;
             window.Width = Math.Clamp(saved.Width, window.MinWidth, Math.Max(window.MinWidth, SystemParameters.WorkArea.Width));

@@ -1,5 +1,5 @@
-<Window x:Class="AiryReader.PrintWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
- Title="印刷プレビュー — AiryReader" Width="1150" Height="850" MinWidth="940" MinHeight="640" FontFamily="Yu Gothic UI" FontSize="14" Background="#F5F7FA" PreviewKeyDown="PrintShortcutKeyDown">
+<Window x:Class="AiryView.PrintWindow" xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+ Title="印刷プレビュー — AiryView" Width="1150" Height="850" MinWidth="940" MinHeight="640" FontFamily="Yu Gothic UI" FontSize="14" Background="#F5F7FA" PreviewKeyDown="PrintShortcutKeyDown">
  <Window.InputBindings><KeyBinding Command="ApplicationCommands.Print" Key="Enter" Modifiers="Control"/></Window.InputBindings>
  <Window.CommandBindings><CommandBinding Command="ApplicationCommands.Print" Executed="PrintNowClick" CanExecute="CanPrintCommand"/></Window.CommandBindings>
  <Grid Margin="18">
