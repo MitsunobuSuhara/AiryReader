@@ -15,7 +15,9 @@ try {
             # 明るい背景でも白い鶴が消えないよう、配布ICOだけに軽い濃色の円を置く。
             $taskBrush = [Drawing.SolidBrush]::new([Drawing.Color]::FromArgb(255,38,45,55))
             try { $taskGraphics.FillEllipse($taskBrush,0,0,$taskSize-1,$taskSize-1) } finally { $taskBrush.Dispose() }
-            $taskInset = if ($taskSize -le 64) { -0.18 * $taskSize } else { 0 }
+            # タスクバーでツルがほかのアプリアイコンより小さく見えないよう、
+            # 小さいサイズだけを少し拡大する。128px以上の資料用表示は変えない。
+            $taskInset = if ($taskSize -le 64) { -0.23 * $taskSize } else { 0 }
             $taskGraphics.DrawImage($taskSource,$taskInset,$taskInset,$taskSize-2*$taskInset,$taskSize-2*$taskInset)
             $taskBitmap.Save($taskMemory,[Drawing.Imaging.ImageFormat]::Png)
             $taskPngs.Add($taskMemory.ToArray())
