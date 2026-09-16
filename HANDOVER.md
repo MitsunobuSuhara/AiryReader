@@ -1,7 +1,7 @@
 # AiryView 開発引き継ぎ
 
-更新日: 2026-09-14
-開発場所: C:\dev\AiryReader
+更新日: 2026-09-17
+開発場所: C:\dev\AiryView
 
 
 ## 最新状態：デスクトップ版1.1（2026-09-14）
@@ -444,4 +444,6 @@ GitHub Release `v1.4.3` を公開。添付は `AiryReader-1.4.3-20260916-104817.
 
 利用者の正式決定により、AiryReaderをAiryView（エアリービュー）へ全面変更。表示名、namespace、プロジェクト名、実行ファイル、アイコン名、Program Files、Windows登録、ショートカット、設定保存先、補助実行ファイル、配布ZIP、README、紹介PDFをAiryViewへ統一し、版を2.0.0とした。旧AiryReader／airyPDFの設定は初回読込対象として維持し、旧インストール・登録・ショートカットは利用者の明示承認後に削除済み。旧名文字列は移行互換処理と履歴説明にのみ残す。
 
-全ビルド・自己テスト・UIテスト・PDF補助機能テストに合格。寸法確認PDFはA4縦、A4横、A3横、A4縦の実寸を維持。紹介PDFは6ページを再生成し、全ページ描画・旧名不在・文字範囲を確認。GitHubリポジトリとローカル開発フォルダは、このコミット後にAiryViewへ変更する。
+全ビルド・自己テスト・UIテスト・PDF補助機能テストに合格。寸法確認PDFはA4縦、A4横、A3横、A4縦の実寸を維持。紹介PDFは6ページを再生成し、全ページ描画・旧名不在・文字範囲を確認。GitHubリポジトリは `MitsunobuSuhara/AiryView` へ、正式なローカル開発場所は `C:\dev\AiryView` へ変更済み。GitHub Release `v2.0.0` には `AiryView-2.0.0-20260917-051957.zip` を公開し、GitHub側のSHA256がローカル生成物と一致することを確認した。
+
+旧作業場所 `C:\dev\airyPDF` には未コミットの変更が残っているため、データ保護のため削除・改名していない。現在のCodexタスクが使用中の `C:\dev\AiryReader` も終了まではWindowsにより完全改名できないため、内容を `C:\dev\AiryView` へ統合済み。今後の作業は必ず `C:\dev\AiryView` を使用する。
