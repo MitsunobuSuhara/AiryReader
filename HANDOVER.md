@@ -411,3 +411,8 @@ GitHubリポジトリ `MitsunobuSuhara/AiryReader` は利用者の指示によ�
 利用者の明示指示により、内々用の `docs/AiryReader_AIとの会話から生まれたPDFアプリ.pdf` をGit管理から外し、`.gitignore` で再登録を防止。ローカルのPDF実体は保持する。GitHub Release `v1.4.2` の `AiryReader-Story.pdf` も削除した。
 
 公開済みコミットからも紹介PDFを取り除くため、利用者の明示承認後にmainと全タグの履歴を再構成して強制pushした。GitHubのdocs一覧は `VALIDATION.md` のみ、Release添付はアプリZIPのみであることを確認。公開済みURL・フォーク・キャッシュは外部に残る可能性があり、完全な回収はできない。
+## GitHub配布説明を簡潔化・1.4.3 Release（2026-09-16）
+
+利用者の指示により、公開GitHubのREADMEを初心者向けの最小構成へ整理。ダウンロード、ZIP展開、`AiryReaderをセットアップ.cmd` のダブルクリック、Windows確認の4手順、短い機能一覧、MIT Licenseだけを掲載する。詳しい運用説明は別途メールで送る方針。
+
+GitHub Release `v1.4.3` を公開。添付は `AiryReader-1.4.3-20260916-104817.zip` のみで、ZIPには日本語名のセットアップ実行ファイル、最初に読む案内、README、LICENSEを同梱。Release URL: https://github.com/MitsunobuSuhara/AiryReader/releases/tag/v1.4.3
