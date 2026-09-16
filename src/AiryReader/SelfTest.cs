@@ -49,7 +49,7 @@ public static class SelfTest
         Check(characterCount == (4, 2, 2, 6), "全角・半角・半角換算の文字数を区別");
         var selectionBadge = (FrameworkElement)window.FindName("TextSelectionBadge");
         var selectionInfo = (TextBlock)window.FindName("TextSelectionInfo");
-        Check(selectionBadge.Visibility == Visibility.Visible && selectionInfo.Text.Contains("選択 3文字") && selectionInfo.Text.Contains("全角2・半角1") && selectionInfo.Text.Contains("半角換算5"), "TXTの選択文字数を右下に表示");
+        Check(selectionBadge.Visibility == Visibility.Visible && selectionInfo.Text.Contains("3 chars") && selectionInfo.Text.Contains("Full 2  Half 1") && selectionInfo.Text.Contains("Width 5"), "TXTの選択文字数を右下に表示");
         textEditor.Text += "\n追記"; window.SaveTextForTest();
         Check(File.ReadAllText(textFixture, Encoding.UTF8).Contains("追記"), "TXTをCtrl＋S相当で上書き保存");
         Check(((FrameworkElement)window.FindName("PrintButton")).Visibility == Visibility.Visible, "TXTで印刷ボタンを表示");

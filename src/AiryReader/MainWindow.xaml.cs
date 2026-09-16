@@ -629,7 +629,7 @@ public partial class MainWindow : Window
             return;
         }
         var count = CountCharacterWidths(TextEditor.SelectedText);
-        TextSelectionInfo.Text = $"選択 {count.Total}文字（全角{count.FullWidth}・半角{count.HalfWidth}／半角換算{count.HalfWidthEquivalent}）";
+        TextSelectionInfo.Text = $"{count.Total} chars  •  Full {count.FullWidth}  Half {count.HalfWidth}  •  Width {count.HalfWidthEquivalent}";
         TextSelectionBadge.Visibility = Visibility.Visible;
     }
     internal static (int Total, int FullWidth, int HalfWidth, int HalfWidthEquivalent) CountCharacterWidths(string text)

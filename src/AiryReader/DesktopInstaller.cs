@@ -40,7 +40,8 @@ public static class DesktopInstaller
         string exe = ResolveShellPath(System.IO.Path.Combine(target, "AiryReader.exe"));
         target = System.IO.Path.GetDirectoryName(exe)!;
         // 元の版は残す。更新中や実行中のファイルを削除しない。
-        CreateShortcut(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), exe, target);
+        RemoveOwnShortcut(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory));
+        RemoveOwnShortcut(Environment.GetFolderPath(Environment.SpecialFolder.CommonDesktopDirectory));
         CreateShortcut(Environment.GetFolderPath(Environment.SpecialFolder.Programs), exe, target);
         string pinnedFolder = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Microsoft", "Internet Explorer", "Quick Launch", "User Pinned", "TaskBar");
         // 既にピン留めされた自分のリンクのみ更新する。新たなピン留めは行わない。
@@ -207,6 +208,28 @@ public static class DesktopInstaller
         Type shellType = Type.GetTypeFromProgID("WScript.Shell")!; dynamic shell = Activator.CreateInstance(shellType)!; object? item = null;
         try { dynamic shortcut = shell.CreateShortcut(path); item = shortcut; if (IsOwnInstall((string)shortcut.TargetPath)) { File.Delete(path); SHChangeNotify(0x4, 0x1005, path, IntPtr.Zero); } }
         finally { if (item != null) Marshal.FinalReleaseComObject(item); Marshal.FinalReleaseComObject(shell); }
+    }
+    private static void RemoveOwnShortcut(string folder)
+    {
+        string path = System.IO.Path.Combine(folder, "AiryReader.lnk");
+        if (!File.Exists(path)) return;
+        Type shellType = Type.GetTypeFromProgID("WScript.Shell")!;
+        dynamic shell = Activator.CreateInstance(shellType)!;
+        object? shortcutObject = null;
+        try
+        {
+            dynamic shortcut = shell.CreateShortcut(path); shortcutObject = shortcut;
+            if (IsOwnInstall((string)shortcut.TargetPath))
+            {
+                File.Delete(path);
+                SHChangeNotify(0x4, 0x1005, path, IntPtr.Zero);
+            }
+        }
+        finally
+        {
+            if (shortcutObject != null) Marshal.FinalReleaseComObject(shortcutObject);
+            Marshal.FinalReleaseComObject(shell);
+        }
     }
     private static string IconLocation(string exe) => System.IO.Path.Combine(System.IO.Path.GetDirectoryName(exe)!, "AiryReader.ico") + ",0";
     private static void CreateShortcut(string folder, string exe, string working)

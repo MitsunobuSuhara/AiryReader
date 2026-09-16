@@ -47,7 +47,7 @@ public partial class App : System.Windows.Application
             {
                 string installed = DesktopInstaller.Install();
                 File.WriteAllText(System.IO.Path.Combine(logFolder, "install-result.txt"), installed);
-                if (!e.Args.Contains("--install-quiet")) MessageBox.Show("デスクトップとスタートメニューに AiryReader を登録しました。", "AiryReader");
+                if (!e.Args.Contains("--install-quiet")) MessageBox.Show("スタートメニューに AiryReader を登録しました。", "AiryReader");
                 Shutdown(0);
             }
             catch (Exception ex)

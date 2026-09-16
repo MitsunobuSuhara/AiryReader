@@ -1,4 +1,4 @@
-﻿param()
+param()
 $ErrorActionPreference = "Stop"
 $taskRoot = Split-Path -Parent $PSScriptRoot
 Set-Location $taskRoot
@@ -23,7 +23,7 @@ $taskGuide = @(
     '',
     'Windowsの確認画面が出たら、内容を確認して「はい」を選びます。',
     '完了画面が出たら、このフォルダは閉じて大丈夫です。',
-    '以後はデスクトップまたはスタートメニューの AiryReader から開けます。',
+    '以後はスタートメニューの AiryReader から開けます。',
     '',
     '更新するときも、AiryReaderを閉じてから同じファイルをダブルクリックしてください。'
 ) -join [Environment]::NewLine
