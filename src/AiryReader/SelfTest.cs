@@ -33,6 +33,18 @@ public static class SelfTest
         await window.OpenPathsAsync([markdownFixture]); window.UpdateLayout();
         var markdownViewer = (System.Windows.Controls.FlowDocumentScrollViewer)window.FindName("MarkdownViewer");
         Check(markdownViewer.Visibility == Visibility.Visible && markdownViewer.Document.Blocks.Count >= 4, "MarkdownをPDFと同じタブ内で整形表示");
+        var selectionBadge = (FrameworkElement)window.FindName("TextSelectionBadge");
+        var selectionInfo = (TextBlock)window.FindName("TextSelectionInfo");
+        var markdownModeButton = (Button)window.FindName("MarkdownModeButton");
+        Check(markdownModeButton.Visibility == Visibility.Visible && selectionInfo.Text.Contains("Preview") && selectionInfo.Text.Contains("MD"), "MarkdownのPreview状態と切替アイコンを表示");
+        await window.ToggleMarkdownModeAsync(); window.UpdateLayout();
+        var markdownEditor = (TextBox)window.FindName("TextEditor");
+        Check(markdownEditor.IsVisible && markdownEditor.Text.Contains("# 見出し") && selectionInfo.Text.Contains("Source"), "MarkdownをSource表示へ切り替え");
+        markdownEditor.Text += "\n\n## 編集確認\n保存される本文";
+        string editedMarkdown = System.IO.Path.GetFullPath("artifacts/markdown-edited.md");
+        Check(window.SaveTextToPathForTest(editedMarkdown) && File.ReadAllText(editedMarkdown, Encoding.UTF8).Contains("編集確認"), "Markdown Sourceを安全に保存");
+        await window.ToggleMarkdownModeAsync(); window.UpdateLayout();
+        Check(markdownViewer.Visibility == Visibility.Visible && window.SearchTextForTest("編集確認") == 1, "編集内容をPreview切替時に再整形");
         Check(((FrameworkElement)window.FindName("DocumentToolbar")).Visibility == Visibility.Visible && ((FrameworkElement)window.FindName("PageControls")).Visibility == Visibility.Collapsed && ((FrameworkElement)window.FindName("PrintButton")).Visibility == Visibility.Collapsed, "Markdownは文章用の倍率操作だけを表示");
         double markdownZoom = window.ActiveZoomForTest; window.ZoomByWheel(120); window.UpdateLayout();
         Check(window.ActiveZoomForTest > markdownZoom && markdownViewer.Zoom > 100, "Markdown・TXTをCtrlホイール相当で文字拡大");
@@ -47,8 +59,6 @@ public static class SelfTest
         Check(window.SearchTextForTest("1行目") == 1 && textEditor.SelectedText == "1行目", "TXTをCtrl＋F相当で検索");
         var characterCount = MainWindow.CountCharacterWidths("ＡあA1");
         Check(characterCount == (4, 2, 2, 6), "全角・半角・半角換算の文字数を区別");
-        var selectionBadge = (FrameworkElement)window.FindName("TextSelectionBadge");
-        var selectionInfo = (TextBlock)window.FindName("TextSelectionInfo");
         Check(selectionBadge.Visibility == Visibility.Visible && selectionInfo.Text.Contains("3 chars") && selectionInfo.Text.Contains("Full 2  Half 1") && selectionInfo.Text.Contains("Width 5"), "TXTの選択文字数を右下に表示");
         textEditor.Select(0, 0); window.UpdateLayout();
         Check(selectionInfo.Text.Contains("Ln 1") && selectionInfo.Text.Contains("Col 1") && selectionInfo.Text.Contains("UTF-8"), "選択していないTXTで行・列・文字コードを表示");

@@ -27,6 +27,10 @@ public partial class MainWindow : Window
         public string LiveText = text;
         public Encoding Encoding = encoding;
         public bool Editable = editable;
+        public bool IsMarkdown => new[] { ".md", ".markdown" }.Contains(System.IO.Path.GetExtension(Path), StringComparer.OrdinalIgnoreCase);
+        public bool SourceMode;
+        public bool CanEdit => Editable || IsMarkdown;
+        public bool ShowEditor => Editable || IsMarkdown && SourceMode;
         public bool Dirty;
         public double Zoom = 1;
         public byte[]? FileHash = File.Exists(path) ? SHA256.HashData(File.ReadAllBytes(path)) : null;
@@ -220,10 +224,12 @@ public partial class MainWindow : Window
         TextSearchBar.Visibility = Visibility.Collapsed;
         Welcome.Visibility = state == null && textDocument == null && image == null ? Visibility.Visible : Visibility.Collapsed;
         Viewer.Visibility = state != null ? Visibility.Visible : Visibility.Collapsed;
-        MarkdownViewer.Visibility = textDocument != null && !textDocument.Editable ? Visibility.Visible : Visibility.Collapsed;
-        TextEditorArea.Visibility = textDocument?.Editable == true ? Visibility.Visible : Visibility.Collapsed;
+        MarkdownViewer.Visibility = textDocument?.IsMarkdown == true && !textDocument.SourceMode ? Visibility.Visible : Visibility.Collapsed;
+        TextEditorArea.Visibility = textDocument?.ShowEditor == true ? Visibility.Visible : Visibility.Collapsed;
         TextSelectionBadge.Visibility = Visibility.Collapsed;
-        SaveTextButton.Visibility = textDocument?.Editable == true ? Visibility.Visible : Visibility.Collapsed;
+        SaveTextButton.Visibility = textDocument?.CanEdit == true ? Visibility.Visible : Visibility.Collapsed;
+        MarkdownModeButton.Visibility = textDocument?.IsMarkdown == true ? Visibility.Visible : Visibility.Collapsed;
+        if (textDocument?.IsMarkdown == true) MarkdownModeButton.ToolTip = textDocument.SourceMode ? "MarkdownをPreview表示へ切り替え\nCtrl+Shift+M" : "MarkdownをSource編集へ切り替え\nCtrl+Shift+M";
         ImageViewer.Visibility = image != null ? Visibility.Visible : Visibility.Collapsed;
         DocumentToolbar.Visibility = Visibility.Visible;
         PageControls.Visibility = state != null ? Visibility.Visible : Visibility.Collapsed;
@@ -231,9 +237,10 @@ public partial class MainWindow : Window
         FitWidthButton.Visibility = state != null || image != null ? Visibility.Visible : Visibility.Collapsed;
         PrintButton.Visibility = state != null || textDocument?.Editable == true ? Visibility.Visible : Visibility.Collapsed;
         ContentGrid.Background = textDocument != null || image != null ? Brushes.White : new SolidColorBrush(Color.FromRgb(188, 195, 204));
-        MarkdownViewer.Document = textDocument?.Editable == false ? textDocument.Document : null;
-        if (textDocument?.Editable == true && TextEditor.Text != textDocument.LiveText) { opening = true; TextEditor.Text = textDocument.LiveText; opening = false; }
-        if (textDocument?.Editable == true) UpdateTextSmartStatus();
+        MarkdownViewer.Document = textDocument?.IsMarkdown == true && !textDocument.SourceMode ? textDocument.Document : null;
+        if (textDocument?.ShowEditor == true && TextEditor.Text != textDocument.LiveText) { opening = true; TextEditor.Text = textDocument.LiveText; opening = false; }
+        if (textDocument?.ShowEditor == true) UpdateTextSmartStatus();
+        else if (textDocument?.IsMarkdown == true) UpdateMarkdownPreviewStatus();
         ReaderImage.Source = image?.Image;
         if (textDocument != null) { MarkdownViewer.Zoom = textDocument.Zoom * 100; TextEditor.FontSize = 15 * textDocument.Zoom; }
         if (image != null) ApplyImageLayout(image);
@@ -423,8 +430,29 @@ public partial class MainWindow : Window
     }
     private void UpdateNonPdfStatus()
     {
-        if (CurrentText is { } text) Status.Text = text.Editable ? $"{(string.IsNullOrEmpty(text.Path) ? "無題.txt" : System.IO.Path.GetFileName(text.Path))}  ·  編集可能  ·  Ctrl＋Sで保存" : $"{System.IO.Path.GetFileName(text.Path)}  ·  表示 {text.Zoom * 100:0.##}%  ·  Ctrl＋Fで検索";
+        if (CurrentText is { } text)
+            Status.Text = text.IsMarkdown ? $"{System.IO.Path.GetFileName(text.Path)}  ·  {(text.SourceMode ? "Source編集" : "Preview")}  ·  Ctrl＋Shift＋Mで切替" : $"{(string.IsNullOrEmpty(text.Path) ? "無題.txt" : System.IO.Path.GetFileName(text.Path))}  ·  編集可能  ·  Ctrl＋Sで保存";
         else if (CurrentImage is { } image) Status.Text = $"{System.IO.Path.GetFileName(image.Path)}  ·  {image.Image.PixelWidth} × {image.Image.PixelHeight} px  ·  表示 {image.Zoom * 100:0.##}%";
+    }
+    private async void MarkdownModeClick(object s, RoutedEventArgs e) => await ToggleMarkdownModeAsync();
+    internal async Task ToggleMarkdownModeAsync()
+    {
+        if (CurrentText is not { IsMarkdown: true } state) return;
+        if (state.SourceMode)
+        {
+            state.Document = LightweightTextRenderer.Build(state.LiveText);
+            state.SourceMode = false;
+        }
+        else state.SourceMode = true;
+        await RenderCurrent();
+        if (state.SourceMode) TextEditor.Focus();
+    }
+    private void UpdateMarkdownPreviewStatus()
+    {
+        if (CurrentText is not { IsMarkdown: true, SourceMode: false } state) return;
+        TextSelectionInfo.Text = $"Preview  •  MD  •  {EncodingLabel(state.Encoding)}";
+        TextSelectionBadge.ToolTip = "整形表示中です。上の </> または Ctrl+Shift+M でSource編集へ切り替えます。";
+        TextSelectionBadge.Visibility = Visibility.Visible;
     }
     private void ZoomInputGotFocus(object s, KeyboardFocusChangedEventArgs e) => ZoomText.SelectAll();
     private void ApplyZoomInput()
@@ -630,16 +658,18 @@ public partial class MainWindow : Window
     private void SaveClick(object s, RoutedEventArgs e)
     {
         if (Current is { } state) Save(state);
-        else if (CurrentText is { Editable: true } text) SaveText(text);
+        else if (CurrentText is { CanEdit: true } text) SaveText(text);
     }
-    private void SaveTextClick(object s, RoutedEventArgs e) { if (CurrentText is { Editable: true } text) SaveText(text); }
-    internal bool SaveTextForTest() => CurrentText is { Editable: true } text && SaveText(text);
+    private void SaveTextClick(object s, RoutedEventArgs e) { if (CurrentText is { CanEdit: true } text) SaveText(text); }
+    internal bool SaveTextForTest() => CurrentText is { CanEdit: true } text && SaveText(text);
     private bool SaveText(TextTabState state, bool saveAs = false)
     {
         string destination = state.Path;
         if (saveAs || string.IsNullOrEmpty(destination))
         {
-            var dialog = new Microsoft.Win32.SaveFileDialog { Filter = "テキストファイル|*.txt", FileName = string.IsNullOrEmpty(destination) ? "無題.txt" : System.IO.Path.GetFileName(destination), OverwritePrompt = true };
+            string filter = state.IsMarkdown ? "Markdown|*.md;*.markdown" : "テキストファイル|*.txt";
+            string defaultName = state.IsMarkdown ? "無題.md" : "無題.txt";
+            var dialog = new Microsoft.Win32.SaveFileDialog { Filter = filter, FileName = string.IsNullOrEmpty(destination) ? defaultName : System.IO.Path.GetFileName(destination), OverwritePrompt = true };
             if (dialog.ShowDialog(this) != true) return false;
             destination = dialog.FileName;
         }
@@ -648,7 +678,7 @@ public partial class MainWindow : Window
     private static bool HasExternalTextChange(TextTabState state, string destination) =>
         string.Equals(destination, state.Path, StringComparison.OrdinalIgnoreCase) && state.FileHash != null && File.Exists(destination) &&
         !SHA256.HashData(File.ReadAllBytes(destination)).SequenceEqual(state.FileHash);
-    internal bool CurrentTextHasExternalChangeForTest() => CurrentText is { Editable: true } text && HasExternalTextChange(text, text.Path);
+    internal bool CurrentTextHasExternalChangeForTest() => CurrentText is { CanEdit: true } text && HasExternalTextChange(text, text.Path);
     private bool SaveTextToPath(TextTabState state, string destination)
     {
         try
@@ -671,17 +701,18 @@ public partial class MainWindow : Window
         }
         catch (Exception ex) { Error(ex); return false; }
     }
-    internal bool SaveTextToPathForTest(string destination) => CurrentText is { Editable: true } text && SaveTextToPath(text, destination);
+    internal bool SaveTextToPathForTest(string destination) => CurrentText is { CanEdit: true } text && SaveTextToPath(text, destination);
     private void TextEditorChanged(object s, TextChangedEventArgs e)
     {
-        if (opening || CurrentText is not { Editable: true } state) return;
+        if (opening || CurrentText is not { ShowEditor: true } state) return;
         state.LiveText = TextEditor.Text;
         state.Dirty = state.LiveText != state.Text; UpdateTextTabTitle(state);
+        UpdateTextSmartStatus();
     }
     private void TextEditorSelectionChanged(object s, RoutedEventArgs e) => UpdateTextSmartStatus();
     private void UpdateTextSmartStatus()
     {
-        if (CurrentText is not { Editable: true } state)
+        if (CurrentText is not { ShowEditor: true } state)
         {
             TextSelectionBadge.Visibility = Visibility.Collapsed;
             return;
@@ -689,7 +720,8 @@ public partial class MainWindow : Window
         if (TextEditor.SelectionLength > 0)
         {
             var count = CountCharacterWidths(TextEditor.SelectedText);
-            TextSelectionInfo.Text = $"{count.Total} chars  •  Full {count.FullWidth}  Half {count.HalfWidth}  •  Width {count.HalfWidthEquivalent}";
+            string source = state.IsMarkdown ? "  •  Source" : "";
+            TextSelectionInfo.Text = $"{count.Total} chars  •  Full {count.FullWidth}  Half {count.HalfWidth}  •  Width {count.HalfWidthEquivalent}{source}";
             TextSelectionBadge.ToolTip = "選択範囲の文字数。Widthは全角を2、半角を1として数えます。";
         }
         else
@@ -697,11 +729,13 @@ public partial class MainWindow : Window
             int line = Math.Max(0, TextEditor.GetLineIndexFromCharacterIndex(TextEditor.CaretIndex));
             int lineStart = TextEditor.GetCharacterIndexFromLineIndex(line);
             int column = Math.Max(0, TextEditor.CaretIndex - lineStart);
-            TextSelectionInfo.Text = $"Ln {line + 1}  Col {column + 1}  •  {EncodingLabel(state.Encoding)}";
+            string source = state.IsMarkdown ? "  •  Source" : "";
+            TextSelectionInfo.Text = $"Ln {line + 1}  Col {column + 1}  •  {EncodingLabel(state.Encoding)}  •  {LineEndingLabel(state.LiveText)}{source}";
             TextSelectionBadge.ToolTip = "現在の行・列と、保存時に使用する文字コードです。";
         }
         TextSelectionBadge.Visibility = Visibility.Visible;
     }
+    private static string LineEndingLabel(string text) => text.Contains("\r\n", StringComparison.Ordinal) ? "CRLF" : text.Contains('\n') ? "LF" : "No EOL";
     private static string EncodingLabel(Encoding encoding) => encoding.CodePage switch
     {
         65001 => "UTF-8",
@@ -732,7 +766,7 @@ public partial class MainWindow : Window
     }
     private bool CanClose(TextTabState state)
     {
-        if (!state.Editable || !state.Dirty) return true;
+        if (!state.CanEdit || !state.Dirty) return true;
         var result = MessageBox.Show(this, $"{System.IO.Path.GetFileName(state.Path)} の変更を保存しますか？", "未保存の変更", MessageBoxButton.YesNoCancel);
         return result == MessageBoxResult.No || result == MessageBoxResult.Yes && SaveText(state);
     }
@@ -828,7 +862,7 @@ public partial class MainWindow : Window
         string query = TextSearchInput.Text;
         ClearTextSearch();
         if (string.IsNullOrWhiteSpace(query)) return;
-        if (state.Editable)
+        if (state.ShowEditor)
         {
             textEditorQueryLength = query.Length;
             for (int at = 0; at <= TextEditor.Text.Length - query.Length;)
@@ -848,15 +882,15 @@ public partial class MainWindow : Window
     }
     private void MoveTextMatch(int delta)
     {
-        int count = CurrentText?.Editable == true ? textEditorMatches.Count : textMatches.Count;
+        int count = CurrentText?.ShowEditor == true ? textEditorMatches.Count : textMatches.Count;
         if (count == 0) { SearchText(delta >= 0); return; }
-        if (CurrentText?.Editable != true) textMatches[textMatchIndex].Background = new SolidColorBrush(Color.FromRgb(255, 240, 150));
+        if (CurrentText?.ShowEditor != true) textMatches[textMatchIndex].Background = new SolidColorBrush(Color.FromRgb(255, 240, 150));
         textMatchIndex = (textMatchIndex + delta + count) % count;
         ShowTextMatch();
     }
     private void ShowTextMatch()
     {
-        if (CurrentText?.Editable == true)
+        if (CurrentText?.ShowEditor == true)
         {
             TextEditor.Focus(); TextEditor.Select(textEditorMatches[textMatchIndex], textEditorQueryLength);
             TextEditor.ScrollToLine(TextEditor.GetLineIndexFromCharacterIndex(textEditorMatches[textMatchIndex]));
@@ -872,18 +906,19 @@ public partial class MainWindow : Window
         if (e.Key == Key.Enter) { if (Keyboard.Modifiers.HasFlag(ModifierKeys.Shift)) MoveTextMatch(-1); else SearchText(true); e.Handled = true; }
         else if (e.Key == Key.Escape) { CloseTextSearch(s, e); e.Handled = true; }
     }
-    internal int SearchTextForTest(string query) { ShowTextSearch(); TextSearchInput.Text = query; SearchText(true); return CurrentText?.Editable == true ? textEditorMatches.Count : textMatches.Count; }
+    internal int SearchTextForTest(string query) { ShowTextSearch(); TextSearchInput.Text = query; SearchText(true); return CurrentText?.ShowEditor == true ? textEditorMatches.Count : textMatches.Count; }
     private void TextSearchGotFocus(object s, KeyboardFocusChangedEventArgs e) => TextSearchInput.SelectAll();
     private void PreviousTextMatch(object s, RoutedEventArgs e) => MoveTextMatch(-1);
     private void NextTextMatch(object s, RoutedEventArgs e) => MoveTextMatch(1);
-    private void CloseTextSearch(object s, RoutedEventArgs e) { ClearTextSearch(); TextSearchBar.Visibility = Visibility.Collapsed; if (CurrentText?.Editable == true) TextEditor.Focus(); else MarkdownViewer.Focus(); }
+    private void CloseTextSearch(object s, RoutedEventArgs e) { ClearTextSearch(); TextSearchBar.Visibility = Visibility.Collapsed; if (CurrentText?.ShowEditor == true) TextEditor.Focus(); else MarkdownViewer.Focus(); }
 
     private void WindowKeyDown(object s, KeyEventArgs e)
     {
         if (e.Key == Key.F3 && CurrentText != null) { if (TextSearchBar.Visibility != Visibility.Visible) ShowTextSearch(); else MoveTextMatch(Keyboard.Modifiers.HasFlag(ModifierKeys.Shift) ? -1 : 1); e.Handled = true; return; }
+        if (Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift) && e.Key == Key.M) { MarkdownModeClick(s, e); e.Handled = true; return; }
         if (Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift) && e.Key == Key.S)
         {
-            if (CurrentText is { Editable: true } text) SaveText(text, true);
+            if (CurrentText is { CanEdit: true } text) SaveText(text, true);
             e.Handled = true; return;
         }
         if (Keyboard.Modifiers == ModifierKeys.Control)
