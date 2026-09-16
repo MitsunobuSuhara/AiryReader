@@ -491,8 +491,8 @@ public partial class MainWindow : Window
     private void UpdateMarkdownPreviewStatus()
     {
         if (CurrentText is not { IsMarkdown: true, SourceMode: false } state) return;
-        TextSelectionInfo.Text = $"Preview  •  MD  •  {EncodingLabel(state.Encoding)}";
-        TextSelectionBadge.ToolTip = "整形表示中です。上の </> または Ctrl+Shift+M でSource編集へ切り替えます。";
+        TextSelectionInfo.Text = $"プレビュー / Preview  •  MD  •  {EncodingLabel(state.Encoding)}";
+        TextSelectionBadge.ToolTip = "整形表示中 / Preview mode。上の </> または Ctrl+Shift+M でソース編集 / Sourceへ切り替えます。";
         TextSelectionBadge.Visibility = Visibility.Visible;
     }
     private void ZoomInputGotFocus(object s, KeyboardFocusChangedEventArgs e) => ZoomText.SelectAll();
@@ -623,8 +623,8 @@ public partial class MainWindow : Window
         }
         Status.Text = $"{selectedPdfText.Length}文字を選択  ·  Ctrl＋Cでコピー";
 
-        TextSelectionInfo.Text = $"{selectedPdfText.Length} chars selected  •  Ctrl+C";
-        TextSelectionBadge.ToolTip = "選択したPDF文字をCtrl+Cでコピーできます。";
+        TextSelectionInfo.Text = $"{selectedPdfText.Length}文字選択 / {selectedPdfText.Length} chars selected  •  コピー / Ctrl+C";
+        TextSelectionBadge.ToolTip = "選択したPDF文字をコピー / Copy selected PDF text（Ctrl+C）";
         TextSelectionBadge.Visibility = Visibility.Visible;
     }
     private void ClearPdfSelection()
@@ -761,22 +761,22 @@ public partial class MainWindow : Window
         if (TextEditor.SelectionLength > 0)
         {
             var count = CountCharacterWidths(TextEditor.SelectedText);
-            string source = state.IsMarkdown ? "  •  Source" : "";
-            TextSelectionInfo.Text = $"{count.Total} chars  •  Full {count.FullWidth}  Half {count.HalfWidth}  •  Width {count.HalfWidthEquivalent}{source}  •  Wrap {(state.Wrap ? "ON" : "OFF")}";
-            TextSelectionBadge.ToolTip = "選択範囲の文字数。Widthは全角を2、半角を1として数えます。";
+            string source = state.IsMarkdown ? "  •  ソース / Source" : "";
+            TextSelectionInfo.Text = $"選択 {count.Total}字 / {count.Total} chars  •  全角 {count.FullWidth} / Full {count.FullWidth}  •  半角 {count.HalfWidth} / Half {count.HalfWidth}  •  幅 {count.HalfWidthEquivalent} / Width {count.HalfWidthEquivalent}{source}  •  折返し {(state.Wrap ? "ON" : "OFF")} / Wrap {(state.Wrap ? "ON" : "OFF")}";
+            TextSelectionBadge.ToolTip = "選択範囲の文字数 / Selected text counts。幅 / Widthは全角を2、半角を1として数えます。";
         }
         else
         {
             int line = Math.Max(0, TextEditor.GetLineIndexFromCharacterIndex(TextEditor.CaretIndex));
             int lineStart = TextEditor.GetCharacterIndexFromLineIndex(line);
             int column = Math.Max(0, TextEditor.CaretIndex - lineStart);
-            string source = state.IsMarkdown ? "  •  Source" : "";
-            TextSelectionInfo.Text = $"Ln {line + 1}  Col {column + 1}  •  {EncodingLabel(state.Encoding)}  •  {LineEndingLabel(state.LiveText)}{source}  •  Wrap {(state.Wrap ? "ON" : "OFF")}";
-            TextSelectionBadge.ToolTip = "現在の行・列と、保存時に使用する文字コードです。";
+            string source = state.IsMarkdown ? "  •  ソース / Source" : "";
+            TextSelectionInfo.Text = $"行 {line + 1} / Ln {line + 1}  •  列 {column + 1} / Col {column + 1}  •  {EncodingLabel(state.Encoding)}  •  {LineEndingLabel(state.LiveText)}{source}  •  折返し {(state.Wrap ? "ON" : "OFF")} / Wrap {(state.Wrap ? "ON" : "OFF")}";
+            TextSelectionBadge.ToolTip = "現在の行・列・文字コード / Current line, column, and encoding";
         }
         TextSelectionBadge.Visibility = Visibility.Visible;
     }
-    private static string LineEndingLabel(string text) => text.Contains("\r\n", StringComparison.Ordinal) ? "CRLF" : text.Contains('\n') ? "LF" : "No EOL";
+    private static string LineEndingLabel(string text) => text.Contains("\r\n", StringComparison.Ordinal) ? "改行形式 CRLF / EOL CRLF" : text.Contains('\n') ? "改行形式 LF / EOL LF" : "改行なし / No EOL";
     private static string EncodingLabel(Encoding encoding) => encoding.CodePage switch
     {
         65001 => "UTF-8",
@@ -889,7 +889,7 @@ public partial class MainWindow : Window
     private void HelpClick(object s, RoutedEventArgs e)
     {
         MessageBox.Show(this,
-            "AiryView 2.0.0\n\n対応形式：PDF、Markdown、TXT、JPEG、PNG、TIFF、BMP\nファイルを開く：Ctrl＋O、またはドラッグ＆ドロップ\nページ移動：ホイールで連続スクロール、ページ番号入力、左右のボタン\nPDF・画像の拡大縮小：Ctrl＋ホイール、＋／−、倍率入力、画面幅に合わせる\n画像：回転アイコン、ダブルクリックで100％／画面内表示\nMarkdown：Ctrl＋Shift＋MでPreview／Source編集、SourceはAlt＋Zで折り返し、Ctrl＋Sで保存\nTXT：Alt＋Zで折り返し、Ctrl＋Sで安全に保存、Ctrl＋Fで検索、Ctrl＋Pで印刷\n共通：Ctrl＋Shift＋Tで閉じたタブを復元、Ctrl＋0で100％、Ctrl＋＋／－で倍率変更\nPDF文字の選択：文字をドラッグ、Ctrl＋Cでコピー\n印刷：Ctrl＋P\nPDFの入力・注釈・検索・署名確認：Ctrl＋F\nパスワードはファイルを開く際に入力します。保存・ログには残しません。\n\n新しいPDFの印刷倍率は100%。指定倍率では自動縮小せず、欠けをプレビューで知らせます。\nドライバー側の拡大縮小・Nアップは無効にしてください。\n回転を保存するときは別名保存します。\n\n寸法確認用PDFには縦横100mmの基準線があります。\n会社での印刷は利用者評価で用途上合格（約0.1mmのずれに見えるとの報告）。",
+            "AiryView 2.0.1\n\n対応形式：PDF、Markdown、TXT、JPEG、PNG、TIFF、BMP\nファイルを開く：Ctrl＋O、またはドラッグ＆ドロップ\nページ移動：ホイールで連続スクロール、ページ番号入力、左右のボタン\nPDF・画像の拡大縮小：Ctrl＋ホイール、＋／−、倍率入力、画面幅に合わせる\n画像：回転アイコン、ダブルクリックで100％／画面内表示\nMarkdown：Ctrl＋Shift＋MでPreview／Source編集、SourceはAlt＋Zで折り返し、Ctrl＋Sで保存\nTXT：Alt＋Zで折り返し、Ctrl＋Sで安全に保存、Ctrl＋Fで検索、Ctrl＋Pで印刷\n共通：Ctrl＋Shift＋Tで閉じたタブを復元、Ctrl＋0で100％、Ctrl＋＋／－で倍率変更\nPDF文字の選択：文字をドラッグ、Ctrl＋Cでコピー\n印刷：Ctrl＋P\nPDFの入力・注釈・検索・署名確認：Ctrl＋F\nパスワードはファイルを開く際に入力します。保存・ログには残しません。\n\n新しいPDFの印刷倍率は100%。指定倍率では自動縮小せず、欠けをプレビューで知らせます。\nドライバー側の拡大縮小・Nアップは無効にしてください。\n回転を保存するときは別名保存します。\n\n寸法確認用PDFには縦横100mmの基準線があります。\n会社での印刷は利用者評価で用途上合格（約0.1mmのずれに見えるとの報告）。",
             "AiryView — 使い方", MessageBoxButton.OK, MessageBoxImage.Information);
     }
     private void ToolsClick(object sender, RoutedEventArgs e)

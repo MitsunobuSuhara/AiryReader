@@ -36,12 +36,12 @@ public static class SelfTest
         var selectionBadge = (FrameworkElement)window.FindName("TextSelectionBadge");
         var selectionInfo = (TextBlock)window.FindName("TextSelectionInfo");
         var markdownModeButton = (Button)window.FindName("MarkdownModeButton");
-        Check(markdownModeButton.Visibility == Visibility.Visible && selectionInfo.Text.Contains("Preview") && selectionInfo.Text.Contains("MD"), "MarkdownのPreview状態と切替アイコンを表示");
+        Check(markdownModeButton.Visibility == Visibility.Visible && selectionInfo.Text.Contains("プレビュー / Preview") && selectionInfo.Text.Contains("MD"), "MarkdownのPreview状態と切替アイコンを表示");
         await window.ToggleMarkdownModeAsync(); window.UpdateLayout();
         var markdownEditor = (TextBox)window.FindName("TextEditor");
         Check(markdownEditor.IsVisible && markdownEditor.Text.Contains("# 見出し") && selectionInfo.Text.Contains("Source"), "MarkdownをSource表示へ切り替え");
-        Check(window.ToggleWrapForTest() && markdownEditor.TextWrapping == TextWrapping.Wrap && markdownEditor.HorizontalScrollBarVisibility == ScrollBarVisibility.Disabled && selectionInfo.Text.Contains("Wrap ON"), "Markdown Sourceの折り返しをON");
-        Check(!window.ToggleWrapForTest() && markdownEditor.TextWrapping == TextWrapping.NoWrap && markdownEditor.HorizontalScrollBarVisibility == ScrollBarVisibility.Auto && selectionInfo.Text.Contains("Wrap OFF"), "Markdown Sourceの折り返しをOFF");
+        Check(window.ToggleWrapForTest() && markdownEditor.TextWrapping == TextWrapping.Wrap && markdownEditor.HorizontalScrollBarVisibility == ScrollBarVisibility.Disabled && selectionInfo.Text.Contains("折返し ON / Wrap ON"), "Markdown Sourceの折り返しをON");
+        Check(!window.ToggleWrapForTest() && markdownEditor.TextWrapping == TextWrapping.NoWrap && markdownEditor.HorizontalScrollBarVisibility == ScrollBarVisibility.Auto && selectionInfo.Text.Contains("折返し OFF / Wrap OFF"), "Markdown Sourceの折り返しをOFF");
         Check(string.Equals(MainWindow.LastRecentFileForTest, markdownFixture, StringComparison.OrdinalIgnoreCase), "開いたMarkdownをWindows Recent登録対象にする");
         markdownEditor.Text += "\n\n## 編集確認\n保存される本文";
         string editedMarkdown = System.IO.Path.GetFullPath("artifacts/markdown-edited.md");
@@ -62,9 +62,9 @@ public static class SelfTest
         Check(window.SearchTextForTest("1行目") == 1 && textEditor.SelectedText == "1行目", "TXTをCtrl＋F相当で検索");
         var characterCount = MainWindow.CountCharacterWidths("ＡあA1");
         Check(characterCount == (4, 2, 2, 6), "全角・半角・半角換算の文字数を区別");
-        Check(selectionBadge.Visibility == Visibility.Visible && selectionInfo.Text.Contains("3 chars") && selectionInfo.Text.Contains("Full 2  Half 1") && selectionInfo.Text.Contains("Width 5"), "TXTの選択文字数を右下に表示");
+        Check(selectionBadge.Visibility == Visibility.Visible && selectionInfo.Text.Contains("選択 3字 / 3 chars") && selectionInfo.Text.Contains("全角 2 / Full 2") && selectionInfo.Text.Contains("半角 1 / Half 1") && selectionInfo.Text.Contains("幅 5 / Width 5"), "TXTの選択文字数を右下に表示");
         textEditor.Select(0, 0); window.UpdateLayout();
-        Check(selectionInfo.Text.Contains("Ln 1") && selectionInfo.Text.Contains("Col 1") && selectionInfo.Text.Contains("UTF-8"), "選択していないTXTで行・列・文字コードを表示");
+        Check(selectionInfo.Text.Contains("行 1 / Ln 1") && selectionInfo.Text.Contains("列 1 / Col 1") && selectionInfo.Text.Contains("UTF-8") && selectionInfo.Text.Contains("改行形式 LF / EOL LF"), "選択していないTXTで行・列・文字コードを表示");
         int textTabCount = window.TabCountForTest;
         await window.OpenPathsAsync([textFixture]); window.UpdateLayout();
         Check(window.TabCountForTest == textTabCount && string.Equals(window.CurrentPathForTest, textFixture, StringComparison.OrdinalIgnoreCase), "同じTXTを再度開くと既存タブへ移動");
