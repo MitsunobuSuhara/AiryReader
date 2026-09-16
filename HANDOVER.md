@@ -416,3 +416,27 @@ GitHubリポジトリ `MitsunobuSuhara/AiryReader` は利用者の指示によ�
 利用者の指示により、公開GitHubのREADMEを初心者向けの最小構成へ整理。ダウンロード、ZIP展開、`AiryReaderをセットアップ.cmd` のダブルクリック、Windows確認の4手順、短い機能一覧、MIT Licenseだけを掲載する。詳しい運用説明は別途メールで送る方針。
 
 GitHub Release `v1.4.3` を公開。添付は `AiryReader-1.4.3-20260916-104817.zip` のみで、ZIPには日本語名のセットアップ実行ファイル、最初に読む案内、README、LICENSEを同梱。Release URL: https://github.com/MitsunobuSuhara/AiryReader/releases/tag/v1.4.3
+## 軽量保存 @@@（2026-09-16 16:30）
+
+### 完了したこと
+
+- AiryReader 1.4.4を公開。TXT／Markdown Sourceの折り返しを`Alt＋Z`で切替でき、初期状態はOFF、タブごとに保持する。
+- 開いたPDF・Markdown・TXT・画像をWindowsの「最近使ったファイル」へ登録する。Windows側の履歴表示設定が無効な場合は表示されない。
+- MarkdownはPreview／Source切替、Source編集・安全保存、閉じたタブは`Ctrl＋Shift＋T`で復元できる。
+- ビルド警告0・エラー0、自己テスト・UIテスト成功。Program Filesへ実行環境同梱版を導入済み。
+- GitHub Release `v1.4.4`を最新版として公開。ZIPは`AiryReader-1.4.4-20260916-162201.zip`、SHA256は`FCF4BE043205B19A3447A7E7CCB7A83C3088B4E440482D97191A0B9FB44317B8`。
+- Release ZIPに内々用の紹介PDFは含めていない。アプリ機能用の`app/Samples/print-check.pdf`のみ同梱。
+- 今回使用した`tmp`／`artifacts/tmp`は存在せず、削除した一時ファイルはない。配布ZIPは成果物のため保持。
+
+### 次に着手すべき
+
+1. 利用者が希望する場合、ステータス表示の`Ln`／`Col`を初心者向けに`行`／`列`へ変更する。
+2. タスクバー右クリックの「最近使ったファイル」がWindowsの設定下で表示されることを実画面で確認する。
+3. 次の機能変更時はバージョンを1.4.5以降へ上げ、自己テスト・UIテスト・実行環境同梱ZIP・Releaseの順で更新する。
+
+### 重要な設計原則・未確定論点
+
+- 起動速度と軽さを優先し、起動時の履歴走査は行わない。履歴登録はファイルを正常に開いた時だけ行う。
+- 紹介PDFは内々用で、Git・GitHub Release・配布ZIPへ含めない。
+- 利用者へ.NETの別途導入を求めず、Releaseは`--self-contained true`のWindows x64版を配布する。
+- GitHubは簡潔な案内に留め、管理署担当者向けの詳しい説明は別途メールで行う。
