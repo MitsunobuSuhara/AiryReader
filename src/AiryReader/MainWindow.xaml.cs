@@ -29,6 +29,7 @@ public partial class MainWindow : Window
         public bool Editable = editable;
         public bool IsMarkdown => new[] { ".md", ".markdown" }.Contains(System.IO.Path.GetExtension(Path), StringComparer.OrdinalIgnoreCase);
         public bool SourceMode;
+        public bool Wrap;
         public bool CanEdit => Editable || IsMarkdown;
         public bool ShowEditor => Editable || IsMarkdown && SourceMode;
         public bool Dirty;
@@ -68,6 +69,9 @@ public partial class MainWindow : Window
     private int selectionAnchor = -1;
     private string selectedPdfText = "";
     private readonly List<string> closedPaths = [];
+    internal static bool SuppressRecentFilesForTest;
+    internal static string? LastRecentFileForTest;
+    private static bool recentJumpListReady;
     private const long MaxTextBytes = 64L * 1024 * 1024;
     private const long MaxImageBytes = 256L * 1024 * 1024;
     private const long MaxImagePixels = 200_000_000;
@@ -114,13 +118,33 @@ public partial class MainWindow : Window
     };
     private TabItem? FindOpenTab(string path) => Tabs.Items.Cast<TabItem>().FirstOrDefault(tab =>
         StatePath(tab.Tag) is { } openPath && string.Equals(System.IO.Path.GetFullPath(openPath), path, StringComparison.OrdinalIgnoreCase));
-    internal string? CurrentPathForTest => StatePath((Tabs.SelectedItem as TabItem)?.Tag);    internal int TabCountForTest => Tabs.Items.Count;
+    internal string? CurrentPathForTest => StatePath((Tabs.SelectedItem as TabItem)?.Tag);
+    internal int TabCountForTest => Tabs.Items.Count;
     internal async Task NewTextAsync()
     {
         var state = new TextTabState("", LightweightTextRenderer.BuildPlain(""), "", new UTF8Encoding(false), true);
         var tab = CreateTab("無題.txt", "新しいテキスト", state);
         opening = true; Tabs.Items.Add(tab); Tabs.SelectedItem = tab; opening = false;
         await RenderCurrent(); TextEditor.Focus();
+    }
+    private static void AddRecentFile(string path)
+    {
+        LastRecentFileForTest = path;
+        if (SuppressRecentFilesForTest) return;
+        try
+        {
+            if (!recentJumpListReady)
+            {
+                var list = System.Windows.Shell.JumpList.GetJumpList(Application.Current) ?? new System.Windows.Shell.JumpList();
+                list.ShowRecentCategory = true;
+                list.ShowFrequentCategory = false;
+                System.Windows.Shell.JumpList.SetJumpList(Application.Current, list);
+                list.Apply();
+                recentJumpListReady = true;
+            }
+            System.Windows.Shell.JumpList.AddToRecentCategory(path);
+        }
+        catch { }
     }
     public async void OpenPaths(IEnumerable<string> paths) => await OpenPathsAsync(paths);
     public async Task OpenPathsAsync(IEnumerable<string> paths)
@@ -134,6 +158,7 @@ public partial class MainWindow : Window
                 {
                     Tabs.SelectedItem = existing;
                     await RenderCurrent();
+                    AddRecentFile(path);
                     continue;
                 }
                 string extension = System.IO.Path.GetExtension(path).ToLowerInvariant();
@@ -145,7 +170,7 @@ public partial class MainWindow : Window
                     var reader = new TextTabState(path, document, text, loaded.Encoding, extension == ".txt");
                     var readerTab = CreateTab(System.IO.Path.GetFileName(path), path, reader);
                     opening = true; Tabs.Items.Add(readerTab); Tabs.SelectedItem = readerTab; opening = false;
-                    await RenderCurrent(); continue;
+                    await RenderCurrent(); AddRecentFile(path); continue;
                 }
                 if (new[] { ".jpg", ".jpeg", ".png", ".tif", ".tiff", ".bmp" }.Contains(extension))
                 {
@@ -163,8 +188,9 @@ public partial class MainWindow : Window
                     var image = new ImageTabState(path, bitmap);
                     var imageTab = CreateTab(System.IO.Path.GetFileName(path), path, image);
                     opening = true; Tabs.Items.Add(imageTab); Tabs.SelectedItem = imageTab; opening = false;
-                    await RenderCurrent(); continue;
-                }                Status.Text = "PDFを読み込んでいます…";
+                    await RenderCurrent(); AddRecentFile(path); continue;
+                }
+                Status.Text = "PDFを読み込んでいます…";
                 PdfDocument doc;
                 string? password = null;
                 while (true)
@@ -180,6 +206,7 @@ public partial class MainWindow : Window
                 var tab = CreateTab(System.IO.Path.GetFileName(path), path, state);
                 opening = true; Tabs.Items.Add(tab); Tabs.SelectedItem = tab; opening = false;
                 await RenderCurrent();
+                AddRecentFile(path);
             }
             catch (Exception ex) { Error(ex); Status.Text = "ファイルを開けませんでした。"; }
         }
@@ -199,7 +226,8 @@ public partial class MainWindow : Window
             Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
             var encoding = Encoding.GetEncoding(932); return (encoding.GetString(bytes), encoding);
         }
-    }    private void OpenClick(object sender, RoutedEventArgs e)
+    }
+    private void OpenClick(object sender, RoutedEventArgs e)
     {
         var dialog = new Microsoft.Win32.OpenFileDialog { Filter = "対応ファイル|*.pdf;*.md;*.markdown;*.txt;*.jpg;*.jpeg;*.png;*.tif;*.tiff;*.bmp|PDF|*.pdf|文章|*.md;*.markdown;*.txt|画像|*.jpg;*.jpeg;*.png;*.tif;*.tiff;*.bmp", Multiselect = true };
         if (dialog.ShowDialog(this) == true) OpenPaths(dialog.FileNames);
@@ -240,6 +268,8 @@ public partial class MainWindow : Window
         ContentGrid.Background = textDocument != null || image != null ? Brushes.White : new SolidColorBrush(Color.FromRgb(188, 195, 204));
         MarkdownViewer.Document = textDocument?.IsMarkdown == true && !textDocument.SourceMode ? textDocument.Document : null;
         if (textDocument?.ShowEditor == true && TextEditor.Text != textDocument.LiveText) { opening = true; TextEditor.Text = textDocument.LiveText; opening = false; }
+        TextEditor.TextWrapping = textDocument?.Wrap == true ? TextWrapping.Wrap : TextWrapping.NoWrap;
+        TextEditor.HorizontalScrollBarVisibility = textDocument?.Wrap == true ? ScrollBarVisibility.Disabled : ScrollBarVisibility.Auto;
         if (textDocument?.ShowEditor == true) UpdateTextSmartStatus();
         else if (textDocument?.IsMarkdown == true) UpdateMarkdownPreviewStatus();
         ReaderImage.Source = image?.Image;
@@ -434,6 +464,16 @@ public partial class MainWindow : Window
         if (CurrentText is { } text)
             Status.Text = text.IsMarkdown ? $"{System.IO.Path.GetFileName(text.Path)}  ·  {(text.SourceMode ? "Source編集" : "Preview")}  ·  Ctrl＋Shift＋Mで切替" : $"{(string.IsNullOrEmpty(text.Path) ? "無題.txt" : System.IO.Path.GetFileName(text.Path))}  ·  編集可能  ·  Ctrl＋Sで保存";
         else if (CurrentImage is { } image) Status.Text = $"{System.IO.Path.GetFileName(image.Path)}  ·  {image.Image.PixelWidth} × {image.Image.PixelHeight} px  ·  表示 {image.Zoom * 100:0.##}%";
+    }
+    private void ToggleWrap(object s, RoutedEventArgs e) => ToggleWrapForTest();
+    internal bool ToggleWrapForTest()
+    {
+        if (CurrentText is not { ShowEditor: true } state) return false;
+        state.Wrap = !state.Wrap;
+        TextEditor.TextWrapping = state.Wrap ? TextWrapping.Wrap : TextWrapping.NoWrap;
+        TextEditor.HorizontalScrollBarVisibility = state.Wrap ? ScrollBarVisibility.Disabled : ScrollBarVisibility.Auto;
+        UpdateTextSmartStatus();
+        return state.Wrap;
     }
     private async void MarkdownModeClick(object s, RoutedEventArgs e) => await ToggleMarkdownModeAsync();
     internal async Task ToggleMarkdownModeAsync()
@@ -722,7 +762,7 @@ public partial class MainWindow : Window
         {
             var count = CountCharacterWidths(TextEditor.SelectedText);
             string source = state.IsMarkdown ? "  •  Source" : "";
-            TextSelectionInfo.Text = $"{count.Total} chars  •  Full {count.FullWidth}  Half {count.HalfWidth}  •  Width {count.HalfWidthEquivalent}{source}";
+            TextSelectionInfo.Text = $"{count.Total} chars  •  Full {count.FullWidth}  Half {count.HalfWidth}  •  Width {count.HalfWidthEquivalent}{source}  •  Wrap {(state.Wrap ? "ON" : "OFF")}";
             TextSelectionBadge.ToolTip = "選択範囲の文字数。Widthは全角を2、半角を1として数えます。";
         }
         else
@@ -731,7 +771,7 @@ public partial class MainWindow : Window
             int lineStart = TextEditor.GetCharacterIndexFromLineIndex(line);
             int column = Math.Max(0, TextEditor.CaretIndex - lineStart);
             string source = state.IsMarkdown ? "  •  Source" : "";
-            TextSelectionInfo.Text = $"Ln {line + 1}  Col {column + 1}  •  {EncodingLabel(state.Encoding)}  •  {LineEndingLabel(state.LiveText)}{source}";
+            TextSelectionInfo.Text = $"Ln {line + 1}  Col {column + 1}  •  {EncodingLabel(state.Encoding)}  •  {LineEndingLabel(state.LiveText)}{source}  •  Wrap {(state.Wrap ? "ON" : "OFF")}";
             TextSelectionBadge.ToolTip = "現在の行・列と、保存時に使用する文字コードです。";
         }
         TextSelectionBadge.Visibility = Visibility.Visible;
@@ -849,7 +889,7 @@ public partial class MainWindow : Window
     private void HelpClick(object s, RoutedEventArgs e)
     {
         MessageBox.Show(this,
-            "AiryReader 1.4.3\n\n対応形式：PDF、Markdown、TXT、JPEG、PNG、TIFF、BMP\nファイルを開く：Ctrl＋O、またはドラッグ＆ドロップ\nページ移動：ホイールで連続スクロール、ページ番号入力、左右のボタン\nPDF・画像の拡大縮小：Ctrl＋ホイール、＋／−、倍率入力、画面幅に合わせる\n画像：回転アイコン、ダブルクリックで100％／画面内表示\nMarkdown：Ctrl＋Shift＋MでPreview／Source編集、Ctrl＋Sで保存、Ctrl＋Fで検索\nTXT：単体起動で新しいメモ、＋またはCtrl＋Tでタブ追加、×またはCtrl＋Wで閉じる、Ctrl＋Sで安全に保存、Ctrl＋Fで検索、Ctrl＋Pで印刷\n共通：Ctrl＋Shift＋Tで閉じたタブを復元、Ctrl＋0で100％、Ctrl＋＋／－で倍率変更\nPDF文字の選択：文字をドラッグ、Ctrl＋Cでコピー\n印刷：Ctrl＋P\nPDFの入力・注釈・検索・署名確認：Ctrl＋F\nパスワードはファイルを開く際に入力します。保存・ログには残しません。\n\n新しいPDFの印刷倍率は100%。指定倍率では自動縮小せず、欠けをプレビューで知らせます。\nドライバー側の拡大縮小・Nアップは無効にしてください。\n回転を保存するときは別名保存します。\n\n寸法確認用PDFには縦横100mmの基準線があります。\n会社での印刷は利用者評価で用途上合格（約0.1mmのずれに見えるとの報告）。",
+            "AiryReader 1.4.3\n\n対応形式：PDF、Markdown、TXT、JPEG、PNG、TIFF、BMP\nファイルを開く：Ctrl＋O、またはドラッグ＆ドロップ\nページ移動：ホイールで連続スクロール、ページ番号入力、左右のボタン\nPDF・画像の拡大縮小：Ctrl＋ホイール、＋／−、倍率入力、画面幅に合わせる\n画像：回転アイコン、ダブルクリックで100％／画面内表示\nMarkdown：Ctrl＋Shift＋MでPreview／Source編集、SourceはAlt＋Zで折り返し、Ctrl＋Sで保存\nTXT：Alt＋Zで折り返し、Ctrl＋Sで安全に保存、Ctrl＋Fで検索、Ctrl＋Pで印刷\n共通：Ctrl＋Shift＋Tで閉じたタブを復元、Ctrl＋0で100％、Ctrl＋＋／－で倍率変更\nPDF文字の選択：文字をドラッグ、Ctrl＋Cでコピー\n印刷：Ctrl＋P\nPDFの入力・注釈・検索・署名確認：Ctrl＋F\nパスワードはファイルを開く際に入力します。保存・ログには残しません。\n\n新しいPDFの印刷倍率は100%。指定倍率では自動縮小せず、欠けをプレビューで知らせます。\nドライバー側の拡大縮小・Nアップは無効にしてください。\n回転を保存するときは別名保存します。\n\n寸法確認用PDFには縦横100mmの基準線があります。\n会社での印刷は利用者評価で用途上合格（約0.1mmのずれに見えるとの報告）。",
             "AiryReader — 使い方", MessageBoxButton.OK, MessageBoxImage.Information);
     }
     private void ToolsClick(object sender, RoutedEventArgs e)
@@ -935,6 +975,7 @@ public partial class MainWindow : Window
 
     private void WindowKeyDown(object s, KeyEventArgs e)
     {
+        if (Keyboard.Modifiers == ModifierKeys.Alt && (e.Key == Key.Z || e.SystemKey == Key.Z)) { ToggleWrap(s, e); e.Handled = true; return; }
         if (e.Key == Key.F3 && CurrentText != null) { if (TextSearchBar.Visibility != Visibility.Visible) ShowTextSearch(); else MoveTextMatch(Keyboard.Modifiers.HasFlag(ModifierKeys.Shift) ? -1 : 1); e.Handled = true; return; }
         if (Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift) && e.Key == Key.M) { MarkdownModeClick(s, e); e.Handled = true; return; }
         if (Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift) && e.Key == Key.T) { RestoreClosedTab(s, e); e.Handled = true; return; }

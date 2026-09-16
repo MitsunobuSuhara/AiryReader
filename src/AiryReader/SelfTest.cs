@@ -40,6 +40,9 @@ public static class SelfTest
         await window.ToggleMarkdownModeAsync(); window.UpdateLayout();
         var markdownEditor = (TextBox)window.FindName("TextEditor");
         Check(markdownEditor.IsVisible && markdownEditor.Text.Contains("# 見出し") && selectionInfo.Text.Contains("Source"), "MarkdownをSource表示へ切り替え");
+        Check(window.ToggleWrapForTest() && markdownEditor.TextWrapping == TextWrapping.Wrap && markdownEditor.HorizontalScrollBarVisibility == ScrollBarVisibility.Disabled && selectionInfo.Text.Contains("Wrap ON"), "Markdown Sourceの折り返しをON");
+        Check(!window.ToggleWrapForTest() && markdownEditor.TextWrapping == TextWrapping.NoWrap && markdownEditor.HorizontalScrollBarVisibility == ScrollBarVisibility.Auto && selectionInfo.Text.Contains("Wrap OFF"), "Markdown Sourceの折り返しをOFF");
+        Check(string.Equals(MainWindow.LastRecentFileForTest, markdownFixture, StringComparison.OrdinalIgnoreCase), "開いたMarkdownをWindows Recent登録対象にする");
         markdownEditor.Text += "\n\n## 編集確認\n保存される本文";
         string editedMarkdown = System.IO.Path.GetFullPath("artifacts/markdown-edited.md");
         Check(window.SaveTextToPathForTest(editedMarkdown) && File.ReadAllText(editedMarkdown, Encoding.UTF8).Contains("編集確認"), "Markdown Sourceを安全に保存");
