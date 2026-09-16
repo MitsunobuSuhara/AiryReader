@@ -208,7 +208,7 @@ public partial class MainWindow : Window
         TextEditor.Visibility = textDocument?.Editable == true ? Visibility.Visible : Visibility.Collapsed;
         SaveTextButton.Visibility = textDocument?.Editable == true ? Visibility.Visible : Visibility.Collapsed;
         ImageViewer.Visibility = image != null ? Visibility.Visible : Visibility.Collapsed;
-        DocumentToolbar.Visibility = state != null || textDocument != null || image != null ? Visibility.Visible : Visibility.Collapsed;
+        DocumentToolbar.Visibility = Visibility.Visible;
         PageControls.Visibility = state != null ? Visibility.Visible : Visibility.Collapsed;
         RotationControls.Visibility = state != null || image != null ? Visibility.Visible : Visibility.Collapsed;
         FitWidthButton.Visibility = state != null || image != null ? Visibility.Visible : Visibility.Collapsed;
@@ -389,13 +389,17 @@ public partial class MainWindow : Window
     private void ZoomOutClick(object s, RoutedEventArgs e) => StepZoom(1 / 1.2);
     private void FitClick(object s, RoutedEventArgs e)
     {
-        if (Current is not null && PageSurface.Width > 0) Zoom((Viewer.ViewportWidth - 56) / PageSurface.Width);
+        if (Current is { } state && PageSurface.Width > 0)
+        {
+            double target = Math.Clamp(state.Zoom * (Viewer.ViewportWidth - 56) / PageSurface.Width, .1, 8);
+            Zoom(Math.Abs(target - state.Zoom) < .005 ? 1 / state.Zoom : target / state.Zoom);
+        }
         else if (CurrentImage is { } image)
         {
             bool side = Math.Abs(image.Rotation) % 180 == 90;
             double width = side ? image.Image.PixelHeight : image.Image.PixelWidth, height = side ? image.Image.PixelWidth : image.Image.PixelHeight;
-            double target = Math.Min((ImageViewer.ViewportWidth - 24) / Math.Max(1, width), (ImageViewer.ViewportHeight - 24) / Math.Max(1, height));
-            Zoom(Math.Clamp(target, .1, 8) / image.Zoom);
+            double target = Math.Clamp(Math.Min((ImageViewer.ViewportWidth - 24) / Math.Max(1, width), (ImageViewer.ViewportHeight - 24) / Math.Max(1, height)), .1, 8);
+            Zoom(Math.Abs(target - image.Zoom) < .005 ? 1 / image.Zoom : target / image.Zoom);
         }
     }
     private void StepZoom(double factor, Point? anchor = null)
@@ -536,6 +540,24 @@ public partial class MainWindow : Window
     }
     private void RotateLeftClick(object s, RoutedEventArgs e) => Rotate(-1);
     private void RotateRightClick(object s, RoutedEventArgs e) => Rotate(1);
+    private async void ResetRotationClick(object s, RoutedEventArgs e)
+    {
+        if (CurrentImage is { } image)
+        {
+            image.Rotation = 0;
+            ApplyImageLayout(image);
+            UpdateNonPdfStatus();
+            return;
+        }
+        if (Current is not { } state) return;
+        try
+        {
+            state.Document.ResetRotation(state.Page);
+            UpdateTabTitle(state);
+            await RenderCurrent();
+        }
+        catch (Exception ex) { Error(ex); }
+    }
     private void UpdateTabTitle(TabState state)
     {
         foreach (TabItem tab in Tabs.Items) if (tab.Tag == state) SetTabTitle(tab, System.IO.Path.GetFileName(state.Document.Path) + (state.Document.Dirty ? " *" : ""));
@@ -666,7 +688,7 @@ public partial class MainWindow : Window
     private void HelpClick(object s, RoutedEventArgs e)
     {
         MessageBox.Show(this,
-            "AiryReader 1.4.2\n\n対応形式：PDF、Markdown、TXT、JPEG、PNG、TIFF、BMP\nファイルを開く：Ctrl＋O、またはドラッグ＆ドロップ\nページ移動：ホイールで連続スクロール、ページ番号入力、左右のボタン\nPDF・画像の拡大縮小：Ctrl＋ホイール、＋／−、倍率入力、画面幅に合わせる\n画像：回転アイコン、ダブルクリックで100％／画面内表示\nMarkdown：Ctrl＋ホイールで文字倍率、Ctrl＋Fで検索、選択・コピー\nTXT：単体起動で新しいメモ、＋またはCtrl＋Tでタブ追加、×またはCtrl＋Wで閉じる、Ctrl＋Sで安全に保存、Ctrl＋Fで検索、Ctrl＋Pで印刷\n共通：Ctrl＋0で100％、Ctrl＋＋／－で倍率変更\nPDF文字の選択：文字をドラッグ、Ctrl＋Cでコピー\n印刷：Ctrl＋P\nPDFの入力・注釈・検索・署名確認：Ctrl＋F\nパスワードはファイルを開く際に入力します。保存・ログには残しません。\n\n新しいPDFの印刷倍率は100%。指定倍率では自動縮小せず、欠けをプレビューで知らせます。\nドライバー側の拡大縮小・Nアップは無効にしてください。\n回転を保存するときは別名保存します。\n\n寸法確認用PDFには縦横100mmの基準線があります。\n会社での印刷は利用者評価で用途上合格（約0.1mmのずれに見えるとの報告）。",
+            "AiryReader 1.4.3\n\n対応形式：PDF、Markdown、TXT、JPEG、PNG、TIFF、BMP\nファイルを開く：Ctrl＋O、またはドラッグ＆ドロップ\nページ移動：ホイールで連続スクロール、ページ番号入力、左右のボタン\nPDF・画像の拡大縮小：Ctrl＋ホイール、＋／−、倍率入力、画面幅に合わせる\n画像：回転アイコン、ダブルクリックで100％／画面内表示\nMarkdown：Ctrl＋ホイールで文字倍率、Ctrl＋Fで検索、選択・コピー\nTXT：単体起動で新しいメモ、＋またはCtrl＋Tでタブ追加、×またはCtrl＋Wで閉じる、Ctrl＋Sで安全に保存、Ctrl＋Fで検索、Ctrl＋Pで印刷\n共通：Ctrl＋0で100％、Ctrl＋＋／－で倍率変更\nPDF文字の選択：文字をドラッグ、Ctrl＋Cでコピー\n印刷：Ctrl＋P\nPDFの入力・注釈・検索・署名確認：Ctrl＋F\nパスワードはファイルを開く際に入力します。保存・ログには残しません。\n\n新しいPDFの印刷倍率は100%。指定倍率では自動縮小せず、欠けをプレビューで知らせます。\nドライバー側の拡大縮小・Nアップは無効にしてください。\n回転を保存するときは別名保存します。\n\n寸法確認用PDFには縦横100mmの基準線があります。\n会社での印刷は利用者評価で用途上合格（約0.1mmのずれに見えるとの報告）。",
             "AiryReader — 使い方", MessageBoxButton.OK, MessageBoxImage.Information);
     }
     private void ToolsClick(object sender, RoutedEventArgs e)

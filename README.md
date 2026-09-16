@@ -1,4 +1,4 @@
-# AiryReader 1.4.2
+# AiryReader 1.4.3
 
 Windows 11 x64用の軽量ファイルリーダー。PDFは文字のドラッグ選択とCtrl+Cコピー、原寸・指定倍率の印刷、連続スクロール、入力・注釈・検索・しおり・証明書署名に対応します。Markdownは読みやすい本文表示、TXTは直接編集と上書き保存、JPEG・PNG・TIFF・BMPは画像表示に対応します。CSV・Word・JSON・XMLは対象外です。アイコンは背景透明の白い折り鶴シンボルです。
 

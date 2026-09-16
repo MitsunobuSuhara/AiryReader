@@ -137,6 +137,12 @@ public sealed class PdfDocument : IDisposable
         Dirty = true;
     }
 
+    public void ResetRotation(int index)
+    {
+        if (!CanEdit) throw new InvalidOperationException("このPDFは編集が制限されています。");
+        WithPage(index, page => { Native.FPDFPage_SetRotation(page, 0); return true; });
+        Dirty = true;
+    }
     public void SaveCopy(string destination, bool markClean = true)
     {
         if (!CanEdit) throw new InvalidOperationException("このPDFは編集が制限されています。");

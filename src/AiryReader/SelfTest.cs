@@ -79,7 +79,7 @@ public static class SelfTest
         Check(((FrameworkElement)window.FindName("ImageViewer")).Visibility == Visibility.Visible && ((Image)window.FindName("ReaderImage")).Source is BitmapSource source && source.PixelWidth == 12, "PNG画像を同じタブで表示");
         double imageZoom = window.ActiveZoomForTest; window.ZoomByWheel(120); window.UpdateLayout();
         Check(window.ActiveZoomForTest > imageZoom && ((Image)window.FindName("ReaderImage")).Width > 12, "画像をCtrlホイール相当で拡大");
-        Check(((FrameworkElement)window.FindName("RotationControls")).Visibility == Visibility.Visible && ((FrameworkElement)window.FindName("FitWidthButton")).Visibility == Visibility.Visible, "画像の回転と画面内フィットを表示");
+        Check(((FrameworkElement)window.FindName("RotationControls")).Visibility == Visibility.Visible && ((FrameworkElement)window.FindName("FitWidthButton")).Visibility == Visibility.Visible && ((FrameworkElement)window.FindName("ResetRotationButton")).Visibility == Visibility.Visible, "画像の回転・リセット・画面内フィットを表示");
         Capture(window, "artifacts/image-window.png");
         string selectablePath = System.IO.Path.Combine(AppContext.BaseDirectory, "Samples", "print-check.pdf");
         await window.OpenPathsAsync([selectablePath]); window.UpdateLayout();
@@ -161,6 +161,10 @@ public static class SelfTest
         await Task.Delay(200); window.UpdateLayout();
         fit.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
         Check(second.Height < oldHeight, "画面幅に合わせて100％未満の倍率にする");
+        fit.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        Check(Near(second.Height, oldHeight) && zoomInput.Text == "100", "画面幅に合わせるを2回押すと100％へ戻る");
+        fit.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        Check(second.Height < oldHeight, "100％から画面幅に合わせて表示できる");
         for (int i = 0; i < 40 && !Near(second.Height, oldHeight); i++) window.ZoomByWheel(120);
         Check(Near(second.Height, oldHeight) && zoomInput.Text == "100", "画面幅調整後の連続ホイールも100％で停止");
         fit.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
@@ -384,6 +388,9 @@ public static class SelfTest
         try { PrintLayout.Build(doc.SizeMm, [0], paper, printable, new(PrintMode.Scale, double.NaN)); Check(false, "不正な倍率"); } catch (ArgumentException) { Check(true, "不正な倍率を拒否"); }
         doc.Rotate(0, 1);
         Check(Near(doc.SizeMm(0).Width, 297) && Near(doc.SizeMm(1).Width, 210), "現在ページだけ回転");
+        doc.ResetRotation(0);
+        Check(Near(doc.SizeMm(0).Width, 210), "現在ページの回転をリセット");
+        doc.Rotate(0, 1);
         string copy = System.IO.Path.GetFullPath("artifacts/rotated.pdf");
         doc.SaveCopy(copy);
         using (var reopened = new PdfDocument(copy)) Check(Near(reopened.SizeMm(0).Width, 297) && reopened.Count == 5, "回転の保存・再読込");
