@@ -101,7 +101,7 @@ public partial class MainWindow : Window
         var tab = new TabItem { ToolTip = toolTip, Tag = state, Padding = new Thickness(12, 6, 7, 6), MinHeight = 42 };
         var header = new StackPanel { Orientation = Orientation.Horizontal };
         header.Children.Add(new TextBlock { Text = title, VerticalAlignment = VerticalAlignment.Center, FontSize = 15 });
-        var close = new Button { Content = "×", Tag = tab, ToolTip = "タブを閉じる  Ctrl+W", FontSize = 19, FontWeight = FontWeights.SemiBold, Width = 30, Height = 28, Padding = new Thickness(0, -2, 0, 1), Margin = new Thickness(9, 0, -2, 0), Background = Brushes.Transparent, BorderThickness = new Thickness(0) };
+        var close = new Button { Content = "×", Tag = tab, ToolTip = "タブを閉じる / Close tab  Ctrl+W", FontSize = 19, FontWeight = FontWeights.SemiBold, Width = 30, Height = 28, Padding = new Thickness(0, -2, 0, 1), Margin = new Thickness(9, 0, -2, 0), Background = Brushes.Transparent, BorderThickness = new Thickness(0) };
         close.Click += CloseTabClick; header.Children.Add(close); tab.Header = header;
         return tab;
     }
@@ -258,7 +258,7 @@ public partial class MainWindow : Window
         TextSelectionBadge.Visibility = Visibility.Collapsed;
         SaveTextButton.Visibility = textDocument?.CanEdit == true ? Visibility.Visible : Visibility.Collapsed;
         MarkdownModeButton.Visibility = textDocument?.IsMarkdown == true ? Visibility.Visible : Visibility.Collapsed;
-        if (textDocument?.IsMarkdown == true) MarkdownModeButton.ToolTip = textDocument.SourceMode ? "MarkdownをPreview表示へ切り替え\nCtrl+Shift+M" : "MarkdownをSource編集へ切り替え\nCtrl+Shift+M";
+        if (textDocument?.IsMarkdown == true) MarkdownModeButton.ToolTip = textDocument.SourceMode ? "整形表示へ / Switch to Preview\nCtrl+Shift+M" : "編集表示へ / Switch to Source\nCtrl+Shift+M";
         ImageViewer.Visibility = image != null ? Visibility.Visible : Visibility.Collapsed;
         DocumentToolbar.Visibility = Visibility.Visible;
         PageControls.Visibility = state != null ? Visibility.Visible : Visibility.Collapsed;
