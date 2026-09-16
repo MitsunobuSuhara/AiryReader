@@ -205,7 +205,8 @@ public partial class MainWindow : Window
         Welcome.Visibility = state == null && textDocument == null && image == null ? Visibility.Visible : Visibility.Collapsed;
         Viewer.Visibility = state != null ? Visibility.Visible : Visibility.Collapsed;
         MarkdownViewer.Visibility = textDocument != null && !textDocument.Editable ? Visibility.Visible : Visibility.Collapsed;
-        TextEditor.Visibility = textDocument?.Editable == true ? Visibility.Visible : Visibility.Collapsed;
+        TextEditorArea.Visibility = textDocument?.Editable == true ? Visibility.Visible : Visibility.Collapsed;
+        if (textDocument?.Editable != true) TextSelectionBadge.Visibility = Visibility.Collapsed;
         SaveTextButton.Visibility = textDocument?.Editable == true ? Visibility.Visible : Visibility.Collapsed;
         ImageViewer.Visibility = image != null ? Visibility.Visible : Visibility.Collapsed;
         DocumentToolbar.Visibility = Visibility.Visible;
@@ -619,6 +620,31 @@ public partial class MainWindow : Window
         if (opening || CurrentText is not { Editable: true } state) return;
         state.LiveText = TextEditor.Text;
         state.Dirty = state.LiveText != state.Text; UpdateTextTabTitle(state);
+    }
+    private void TextEditorSelectionChanged(object s, RoutedEventArgs e)
+    {
+        if (CurrentText is not { Editable: true } || TextEditor.SelectionLength == 0)
+        {
+            TextSelectionBadge.Visibility = Visibility.Collapsed;
+            return;
+        }
+        var count = CountCharacterWidths(TextEditor.SelectedText);
+        TextSelectionInfo.Text = $"選択 {count.Total}文字（全角{count.FullWidth}・半角{count.HalfWidth}／半角換算{count.HalfWidthEquivalent}）";
+        TextSelectionBadge.Visibility = Visibility.Visible;
+    }
+    internal static (int Total, int FullWidth, int HalfWidth, int HalfWidthEquivalent) CountCharacterWidths(string text)
+    {
+        int full = 0, half = 0;
+        var elements = System.Globalization.StringInfo.GetTextElementEnumerator(text);
+        while (elements.MoveNext())
+        {
+            string element = (string)elements.Current!;
+            int codePoint = char.ConvertToUtf32(element, 0);
+            if (codePoint is 10 or 13) continue;
+            if (codePoint <= 0x7F || codePoint is >= 0xFF61 and <= 0xFFDC) half++;
+            else full++;
+        }
+        return (full + half, full, half, full * 2 + half);
     }
     private void UpdateTextTabTitle(TextTabState state)
     {

@@ -45,6 +45,11 @@ public static class SelfTest
         var textEditor = (TextBox)window.FindName("TextEditor");
         Check(textEditor.Visibility == Visibility.Visible && textEditor.IsReadOnly == false, "TXTを同じタブで編集表示");
         Check(window.SearchTextForTest("1行目") == 1 && textEditor.SelectedText == "1行目", "TXTをCtrl＋F相当で検索");
+        var characterCount = MainWindow.CountCharacterWidths("ＡあA1");
+        Check(characterCount == (4, 2, 2, 6), "全角・半角・半角換算の文字数を区別");
+        var selectionBadge = (FrameworkElement)window.FindName("TextSelectionBadge");
+        var selectionInfo = (TextBlock)window.FindName("TextSelectionInfo");
+        Check(selectionBadge.Visibility == Visibility.Visible && selectionInfo.Text.Contains("選択 3文字") && selectionInfo.Text.Contains("全角2・半角1") && selectionInfo.Text.Contains("半角換算5"), "TXTの選択文字数を右下に表示");
         textEditor.Text += "\n追記"; window.SaveTextForTest();
         Check(File.ReadAllText(textFixture, Encoding.UTF8).Contains("追記"), "TXTをCtrl＋S相当で上書き保存");
         Check(((FrameworkElement)window.FindName("PrintButton")).Visibility == Visibility.Visible, "TXTで印刷ボタンを表示");

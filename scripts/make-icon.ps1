@@ -15,7 +15,7 @@ try {
             # 明るい背景でも白い鶴が消えないよう、配布ICOだけに軽い濃色の円を置く。
             $taskBrush = [Drawing.SolidBrush]::new([Drawing.Color]::FromArgb(255,38,45,55))
             try { $taskGraphics.FillEllipse($taskBrush,0,0,$taskSize-1,$taskSize-1) } finally { $taskBrush.Dispose() }
-            $taskInset = if ($taskSize -le 64) { -0.15 * $taskSize } else { 0 }
+            $taskInset = if ($taskSize -le 64) { -0.18 * $taskSize } else { 0 }
             $taskGraphics.DrawImage($taskSource,$taskInset,$taskInset,$taskSize-2*$taskInset,$taskSize-2*$taskInset)
             $taskBitmap.Save($taskMemory,[Drawing.Imaging.ImageFormat]::Png)
             $taskPngs.Add($taskMemory.ToArray())
