@@ -129,6 +129,8 @@ public static class SelfTest
         int pdfTabCount = window.TabCountForTest;
         await window.OpenPathsAsync([uiPath]); window.UpdateLayout();
         Check(window.TabCountForTest == pdfTabCount && string.Equals(window.CurrentPathForTest, uiPath, StringComparison.OrdinalIgnoreCase), "同じPDFを再度開くと既存タブへ移動");
+        window.WindowState = WindowState.Minimized; App.BringWindowToFront(window); window.UpdateLayout();
+        Check(window.WindowState != WindowState.Minimized && window.IsVisible, "外部からファイルを開くと既存画面を最小化解除して表示");
         Capture(window, "artifacts/viewer-window.png");
         var viewer = (ScrollViewer)window.FindName("Viewer");
         var host = (StackPanel)window.FindName("PagesHost");

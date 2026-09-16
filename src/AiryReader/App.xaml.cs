@@ -1,4 +1,6 @@
 using System.Threading;
+using System.Runtime.InteropServices;
+using System.Windows.Interop;
 namespace AiryReader;
 
 public partial class App : System.Windows.Application
@@ -6,6 +8,11 @@ public partial class App : System.Windows.Application
     private const string InstanceMutexName = "Local\\AiryReader.SingleInstance.v1";
     private const string InstancePipeName = "AiryReader.OpenFiles.v1";
     private Mutex? instanceMutex;
+    [DllImport("user32.dll")] private static extern bool SetForegroundWindow(IntPtr window);
+    [DllImport("user32.dll")] private static extern bool ShowWindow(IntPtr window, int command);
+    [DllImport("user32.dll")] private static extern bool AllowSetForegroundWindow(int processId);
+    private const int AllowAnyProcess = -1;
+    private const int RestoreWindow = 9;
     private CancellationTokenSource? pipeCancellation;
     protected override async void OnStartup(StartupEventArgs e)
     {
@@ -63,6 +70,7 @@ public partial class App : System.Windows.Application
         instanceMutex = new Mutex(true, InstanceMutexName, out bool firstInstance);
         if (!firstInstance)
         {
+            AllowSetForegroundWindow(AllowAnyProcess);
             if (!await ForwardFilesAsync(files)) MessageBox.Show("起動中のAiryReaderへファイルを渡せませんでした。少し待ってから開き直してください。", "AiryReader");
             instanceMutex.Dispose(); instanceMutex = null; Shutdown(0); return;
         }
@@ -95,6 +103,16 @@ public partial class App : System.Windows.Application
         return false;
     }
 
+    internal static void BringWindowToFront(Window window)
+    {
+        if (window.WindowState == WindowState.Minimized) window.WindowState = WindowState.Normal;
+        window.Show();
+        IntPtr handle = new WindowInteropHelper(window).Handle;
+        if (handle != IntPtr.Zero) ShowWindow(handle, RestoreWindow);
+        window.Activate();
+        if (handle != IntPtr.Zero) SetForegroundWindow(handle);
+        window.Focus();
+    }
     private async Task ListenForFilesAsync(MainWindow window, CancellationToken cancellationToken)
     {
         while (!cancellationToken.IsCancellationRequested)
@@ -110,8 +128,7 @@ public partial class App : System.Windows.Application
                 await Dispatcher.InvokeAsync(() =>
                 {
                     if (files.Length > 0) window.OpenPaths(files);
-                    if (window.WindowState == WindowState.Minimized) window.WindowState = WindowState.Normal;
-                    window.Show(); window.Activate();
+                    BringWindowToFront(window);
                 });
             }
             catch (OperationCanceledException) { break; }
