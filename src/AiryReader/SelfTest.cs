@@ -100,6 +100,13 @@ public static class SelfTest
         double imageZoom = window.ActiveZoomForTest; window.ZoomByWheel(120); window.UpdateLayout();
         Check(window.ActiveZoomForTest > imageZoom && ((Image)window.FindName("ReaderImage")).Width > 12, "画像をCtrlホイール相当で拡大");
         Check(((FrameworkElement)window.FindName("RotationControls")).Visibility == Visibility.Visible && ((FrameworkElement)window.FindName("FitWidthButton")).Visibility == Visibility.Visible && ((FrameworkElement)window.FindName("ResetRotationButton")).Visibility == Visibility.Visible, "画像の回転・リセット・画面内フィットを表示");
+        int tabsBeforeClose = window.TabCountForTest;
+        window.CloseCurrentTabForTest(); window.UpdateLayout();
+        Check(window.TabCountForTest == tabsBeforeClose - 1, "保存済みタブを閉じて復元履歴へ追加");
+        Check(await window.RestoreClosedTabAsync(), "閉じたタブの復元を実行");
+        window.UpdateLayout();
+        Check(window.TabCountForTest == tabsBeforeClose && string.Equals(window.CurrentPathForTest, imageFixture, StringComparison.OrdinalIgnoreCase), "閉じた画像タブを同じファイルから復元");
+        Check(!await window.RestoreClosedTabAsync(), "復元済みの履歴を重複して開かない");
         Capture(window, "artifacts/image-window.png");
         string selectablePath = System.IO.Path.Combine(AppContext.BaseDirectory, "Samples", "print-check.pdf");
         await window.OpenPathsAsync([selectablePath]); window.UpdateLayout();

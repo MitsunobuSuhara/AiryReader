@@ -67,6 +67,7 @@ public partial class MainWindow : Window
     private PageView? selectingPage;
     private int selectionAnchor = -1;
     private string selectedPdfText = "";
+    private readonly List<string> closedPaths = [];
     private const long MaxTextBytes = 64L * 1024 * 1024;
     private const long MaxImageBytes = 256L * 1024 * 1024;
     private const long MaxImagePixels = 200_000_000;
@@ -789,9 +790,29 @@ public partial class MainWindow : Window
     {
         if (tab.Tag is TabState state && !CanClose(state)) return;
         if (tab.Tag is TextTabState text && !CanClose(text)) return;
+        if (StatePath(tab.Tag) is { } path && File.Exists(path))
+        {
+            closedPaths.RemoveAll(item => string.Equals(item, path, StringComparison.OrdinalIgnoreCase));
+            closedPaths.Add(path);
+            if (closedPaths.Count > 20) closedPaths.RemoveAt(0);
+        }
         ++renderVersion; Tabs.Items.Remove(tab);
         if (tab.Tag is TabState pdf) pdf.Document.Dispose();
     }
+    private async void RestoreClosedTab(object s, RoutedEventArgs e) => await RestoreClosedTabAsync();
+    internal async Task<bool> RestoreClosedTabAsync()
+    {
+        while (closedPaths.Count > 0)
+        {
+            string path = closedPaths[^1];
+            closedPaths.RemoveAt(closedPaths.Count - 1);
+            if (!File.Exists(path)) continue;
+            await OpenPathsAsync([path]);
+            return true;
+        }
+        return false;
+    }
+    internal void CloseCurrentTabForTest() { if (Tabs.SelectedItem is TabItem tab) CloseTab(tab); }
     private void WindowClosing(object? s, CancelEventArgs e)
     {
         var states = Tabs.Items.Cast<TabItem>().Select(t => t.Tag).OfType<TabState>().ToArray();
@@ -828,7 +849,7 @@ public partial class MainWindow : Window
     private void HelpClick(object s, RoutedEventArgs e)
     {
         MessageBox.Show(this,
-            "AiryReader 1.4.3\n\n対応形式：PDF、Markdown、TXT、JPEG、PNG、TIFF、BMP\nファイルを開く：Ctrl＋O、またはドラッグ＆ドロップ\nページ移動：ホイールで連続スクロール、ページ番号入力、左右のボタン\nPDF・画像の拡大縮小：Ctrl＋ホイール、＋／−、倍率入力、画面幅に合わせる\n画像：回転アイコン、ダブルクリックで100％／画面内表示\nMarkdown：Ctrl＋ホイールで文字倍率、Ctrl＋Fで検索、選択・コピー\nTXT：単体起動で新しいメモ、＋またはCtrl＋Tでタブ追加、×またはCtrl＋Wで閉じる、Ctrl＋Sで安全に保存、Ctrl＋Fで検索、Ctrl＋Pで印刷\n共通：Ctrl＋0で100％、Ctrl＋＋／－で倍率変更\nPDF文字の選択：文字をドラッグ、Ctrl＋Cでコピー\n印刷：Ctrl＋P\nPDFの入力・注釈・検索・署名確認：Ctrl＋F\nパスワードはファイルを開く際に入力します。保存・ログには残しません。\n\n新しいPDFの印刷倍率は100%。指定倍率では自動縮小せず、欠けをプレビューで知らせます。\nドライバー側の拡大縮小・Nアップは無効にしてください。\n回転を保存するときは別名保存します。\n\n寸法確認用PDFには縦横100mmの基準線があります。\n会社での印刷は利用者評価で用途上合格（約0.1mmのずれに見えるとの報告）。",
+            "AiryReader 1.4.3\n\n対応形式：PDF、Markdown、TXT、JPEG、PNG、TIFF、BMP\nファイルを開く：Ctrl＋O、またはドラッグ＆ドロップ\nページ移動：ホイールで連続スクロール、ページ番号入力、左右のボタン\nPDF・画像の拡大縮小：Ctrl＋ホイール、＋／−、倍率入力、画面幅に合わせる\n画像：回転アイコン、ダブルクリックで100％／画面内表示\nMarkdown：Ctrl＋Shift＋MでPreview／Source編集、Ctrl＋Sで保存、Ctrl＋Fで検索\nTXT：単体起動で新しいメモ、＋またはCtrl＋Tでタブ追加、×またはCtrl＋Wで閉じる、Ctrl＋Sで安全に保存、Ctrl＋Fで検索、Ctrl＋Pで印刷\n共通：Ctrl＋Shift＋Tで閉じたタブを復元、Ctrl＋0で100％、Ctrl＋＋／－で倍率変更\nPDF文字の選択：文字をドラッグ、Ctrl＋Cでコピー\n印刷：Ctrl＋P\nPDFの入力・注釈・検索・署名確認：Ctrl＋F\nパスワードはファイルを開く際に入力します。保存・ログには残しません。\n\n新しいPDFの印刷倍率は100%。指定倍率では自動縮小せず、欠けをプレビューで知らせます。\nドライバー側の拡大縮小・Nアップは無効にしてください。\n回転を保存するときは別名保存します。\n\n寸法確認用PDFには縦横100mmの基準線があります。\n会社での印刷は利用者評価で用途上合格（約0.1mmのずれに見えるとの報告）。",
             "AiryReader — 使い方", MessageBoxButton.OK, MessageBoxImage.Information);
     }
     private void ToolsClick(object sender, RoutedEventArgs e)
@@ -916,6 +937,7 @@ public partial class MainWindow : Window
     {
         if (e.Key == Key.F3 && CurrentText != null) { if (TextSearchBar.Visibility != Visibility.Visible) ShowTextSearch(); else MoveTextMatch(Keyboard.Modifiers.HasFlag(ModifierKeys.Shift) ? -1 : 1); e.Handled = true; return; }
         if (Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift) && e.Key == Key.M) { MarkdownModeClick(s, e); e.Handled = true; return; }
+        if (Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift) && e.Key == Key.T) { RestoreClosedTab(s, e); e.Handled = true; return; }
         if (Keyboard.Modifiers == (ModifierKeys.Control | ModifierKeys.Shift) && e.Key == Key.S)
         {
             if (CurrentText is { CanEdit: true } text) SaveText(text, true);
