@@ -1,4 +1,4 @@
-param()
+﻿param()
 $ErrorActionPreference = "Stop"
 $taskRoot = Split-Path -Parent $PSScriptRoot
 Set-Location $taskRoot
@@ -12,9 +12,25 @@ chcp 65001 >nul
 start "" "%~dp0app\AiryReader.exe" --install
 "@
 $taskSetup = $taskSetup.Replace([string][char]13, [string]::Empty).Replace([string][char]10,[string][char]13+[char]10)
-[IO.File]::WriteAllText((Join-Path $taskRelease "Setup.cmd"), $taskSetup, [Text.UTF8Encoding]::new($false))
+$taskSetupName = "AiryReaderをセットアップ.cmd"
+[IO.File]::WriteAllText((Join-Path $taskRelease $taskSetupName), $taskSetup, [Text.UTF8Encoding]::new($false))
+$taskGuide = @(
+    'AiryReader のセットアップ',
+    '',
+    'このフォルダでは、次の1つだけ行ってください。',
+    '',
+    '  AiryReaderをセットアップ.cmd をダブルクリック',
+    '',
+    'Windowsの確認画面が出たら、内容を確認して「はい」を選びます。',
+    '完了画面が出たら、このフォルダは閉じて大丈夫です。',
+    '以後はデスクトップまたはスタートメニューの AiryReader から開けます。',
+    '',
+    '更新するときも、AiryReaderを閉じてから同じファイルをダブルクリックしてください。'
+) -join [Environment]::NewLine
+[IO.File]::WriteAllText((Join-Path $taskRelease "はじめにお読みください.txt"), $taskGuide, [Text.UTF8Encoding]::new($false))
 Copy-Item -LiteralPath README.md -Destination (Join-Path $taskRelease "README.md")
+Copy-Item -LiteralPath LICENSE -Destination (Join-Path $taskRelease "LICENSE")
 $taskZip = $taskRelease + ".zip"
-Compress-Archive -LiteralPath (Join-Path $taskRelease "app"), (Join-Path $taskRelease "Setup.cmd"), (Join-Path $taskRelease "README.md") -DestinationPath $taskZip
+Compress-Archive -LiteralPath (Join-Path $taskRelease "app"), (Join-Path $taskRelease $taskSetupName), (Join-Path $taskRelease "はじめにお読みください.txt"), (Join-Path $taskRelease "README.md"), (Join-Path $taskRelease "LICENSE") -DestinationPath $taskZip
 Get-FileHash -LiteralPath $taskZip -Algorithm SHA256 | Format-List
 $taskZip

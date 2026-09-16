@@ -4,16 +4,21 @@ Windows 11 x64用の軽量ファイルリーダー。PDFは文字のドラッグ
 
 エクスプローラーからPDFや複数のPNG・JPEGなどを続けて開くと、起動中のAiryReaderへ渡され、同じウィンドウのタブとして追加されます。
 
-## インストール・起動
+## はじめて使う方へ（3ステップ）
 
-初めて使う場合は、GitHubの [Releases](https://github.com/MitsunobuSuhara/AiryReader/releases/latest) から最新の `AiryReader-*.zip` をダウンロードします。
+GitHubの [Releases](https://github.com/MitsunobuSuhara/AiryReader/releases/latest) から、いちばん新しい `AiryReader-*.zip` をダウンロードしてください。リポジトリが非公開の場合は、配布する人からGitHubの閲覧権限を受け取ってください。
 
-セットアップ一式を展開し、Setup.cmdを実行します。Windowsの管理者確認後に C:\Program Files\AiryReader へ.NETとPDF編集エンジンを同梱して登録します。AiryReaderのデスクトップ・スタートメニュー・既存のタスクバーピンを更新します。実行ファイルは C:\Program Files\AiryReader\AiryReader.exe です。更新時はAiryReaderを閉じてからSetup.cmdを実行します。Windowsの「設定」→「アプリ」→「既定のアプリ」→「AiryReader」から、PDF、Markdown、文章、画像の各形式を既定にできます。ファイルを右クリック→「プログラムから開く」から個別に設定することもできます。
+1. ダウンロードしたZIPを右クリックし、**すべて展開**を選びます。
+2. 展開されたフォルダを開き、**AiryReaderをセットアップ.cmd** をダブルクリックします。
+3. Windowsの管理者確認で、内容を確認して **はい** を選びます。完了の画面が出たら、デスクトップのAiryReaderから使えます。
 
-PDF・Markdown・TXT・JPEG・PNG・TIFF・BMPの「プログラムから開く」にAiryReaderを追加します。 画像はCtrl＋ホイールで拡大縮小し、画面内表示と左右回転ができます。MarkdownはCtrl＋ホイールで文字倍率を変え、Ctrl＋Fで本文検索できます。TXTは単体起動時に白紙で開き、Ctrl＋Z／Y、切り取り・コピー・貼り付け・全選択などWindows標準の編集操作を使えます。最後のタブの隣にある＋またはCtrl＋Tで新しいメモを追加し、Ctrl＋Sで保存できます。各タブ内の×またはCtrl＋Wで閉じられます。Ctrl＋Nでも新規作成できます。Ctrl＋Shift＋Sで別名保存できます。共通の倍率操作はCtrl＋0、Ctrl＋＋、Ctrl＋－にも対応します。既定のPDFアプリは変更しません。設定はユーザーのLocalAppData/AiryReaderに保存します。登録解除はWindowsのアプリ一覧から行います。登録と自分のリンクを解除し、実行ファイルと設定は復旧用に残す方式です。
+.NETやPythonを別途インストールする必要はありません。更新時も、AiryReaderを閉じてから同じ3ステップを行うだけです。PDFを右クリックして「プログラムから開く」→「AiryReader」を選べます。既定のPDFアプリにしたい場合は、Windowsの「設定」→「アプリ」→「既定のアプリ」からAiryReaderを選びます。
 
-別PCで使用する場合も.NETやPythonの追加インストールは不要です。プリンタードライバーはそのPCで導入してください。パッケージに社内IP、プリンタードライバー、個人のPDFや証明書は含めません。
+## インストール・起動（補足）
 
+セットアップは `C:\Program Files\AiryReader` へアプリ本体と必要な部品を登録し、デスクトップ・スタートメニュー・既存のタスクバーピンを更新します。実行ファイルは `C:\Program Files\AiryReader\AiryReader.exe` です。プリンタードライバーは使用するPC側で用意してください。パッケージには個人のPDF・証明書・社内IPは含めません。
+
+PDF・Markdown・TXT・JPEG・PNG・TIFF・BMPの「プログラムから開く」にAiryReaderを追加します。画像はCtrl＋ホイールで拡大縮小し、画面内表示と左右回転ができます。MarkdownはCtrl＋ホイールで文字倍率を変え、Ctrl＋Fで本文検索できます。TXTは単体起動時に白紙で開き、Ctrl＋Z／Y、切り取り・コピー・貼り付け・全選択などWindows標準の編集操作を使えます。最後のタブの隣にある＋またはCtrl＋Tで新しいメモを追加し、Ctrl＋Sで保存できます。各タブ内の×またはCtrl＋Wで閉じられます。Ctrl＋Nでも新規作成できます。Ctrl＋Shift＋Sで別名保存できます。共通の倍率操作はCtrl＋0、Ctrl＋＋、Ctrl＋－にも対応します。既定のPDFアプリは変更しません。設定はユーザーのLocalAppData/AiryReaderに保存します。登録解除はWindowsのアプリ一覧から行います。登録と自分のリンクを解除し、実行ファイルと設定は復旧用に残す方式です。
 ## PDFの閲覧・印刷
 
 PDFを開く：Ctrl＋O、またはドラッグ＆ドロップ。複数ファイルはタブになります。ホイールでページを連続スクロール、Ctrl＋ホイールで拡大縮小。ページ番号入力と左右ボタンでも移動できます。
@@ -73,3 +78,7 @@ Adobe Acrobat Standard DCで作成された、2ページ・80文字欄の暗号�
 印刷プレビューではCtrl＋Enterでも「この設定で印刷」を実行できます。プレビュー更新中や不正な入力では開始できません。
 印刷ボタンには「この設定で印刷（Ctrl＋Enter）」と表示します。送信が成功するとプレビューを自動で閉じ、取り消しや送信エラーの場合は画面を残します。
 閲覧時は画面の画素に合わせ、液晶向けの文字描画で細かい文字を表示します。表示倍率100％の寸法と実印刷の描画は維持します。画像化済みの低解像度PDFは、元の画像の細かさに制約されます。
+
+## License
+
+このソフトウェアは [MIT License](LICENSE) で公開します。利用、複製、改変、再配布、商用利用を含め、ライセンスの条件に従って自由に行えます。
