@@ -93,6 +93,10 @@ public static class SelfTest
         File.WriteAllText(utf16Fixture, "外部アプリの変更", new UnicodeEncoding(false, true));
         Check(window.CurrentTextHasExternalChangeForTest(), "開いた後の外部変更を検知");
         Check(window.FindName("TabsScroller") is ScrollViewer { HorizontalScrollBarVisibility: ScrollBarVisibility.Auto }, "多数のタブを横スクロール可能にする");
+        var toolbar = (WrapPanel)window.FindName("DocumentToolbar");
+        var tabsScroller = (ScrollViewer)window.FindName("TabsScroller");
+        var tabsControl = (TabControl)window.FindName("Tabs");
+        Check(Double.IsNaN(toolbar.Height) && toolbar.Margin.Top == 5 && toolbar.Margin.Bottom == 5 && tabsScroller.Margin.Bottom == 3 && tabsControl.MinHeight == 34 && tabsControl.Items.OfType<TabItem>().All(tab => tab.MinHeight == 34), "操作行とタブ行を省スペースに保つ");
         string imageFixture = System.IO.Path.GetFullPath("artifacts/image-view.png");
         var testBitmap = new System.Windows.Media.Imaging.WriteableBitmap(12, 8, 96, 96, PixelFormats.Bgra32, null);
         byte[] pixels = Enumerable.Repeat((byte)180, 12 * 8 * 4).ToArray(); testBitmap.WritePixels(new Int32Rect(0, 0, 12, 8), pixels, 12 * 4, 0);
@@ -143,6 +147,9 @@ public static class SelfTest
         Check(Math.Abs(firstBitmap.PixelWidth - firstSurface.ActualWidth * VisualTreeHelper.GetDpi(window).DpiScaleX) <= 1, "100％表示を画面画素に合わせて二重縮小を避ける");
         Check(Near(firstSurface.Width, uiDocument.SizeMm(0).Width * 96 / 25.4), "高解像度でも100％の表示寸法を保持");
         Check(host.Children.Cast<Grid>().Select(g => ((Image)g.Children[0]).Source).OfType<BitmapSource>().Sum(b => (long)b.PixelWidth * b.PixelHeight) < 12_100_000, "高解像度描画も画面付近の画像予算内");
+        viewer.ScrollToTop(); window.ScrollPdfByWheel(-120); window.UpdateLayout();
+        Check(viewer.VerticalOffset >= 119, "PDFのホイール1段で120px進む");
+        viewer.ScrollToTop();
         // ScrollToOffsetだけでは実際のホイール経路の不具合を見落とすため、入力イベントでも検証する。
         for (int i = 0; i < 35; i++)
         {
