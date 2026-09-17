@@ -135,6 +135,8 @@ public static class SelfTest
         var viewer = (ScrollViewer)window.FindName("Viewer");
         var host = (StackPanel)window.FindName("PagesHost");
         var pageNumber = (TextBox)window.FindName("PageNumber");
+        var pageCount = (TextBlock)window.FindName("PageCount");
+        Check(pageNumber.TextAlignment == TextAlignment.Center && pageNumber.HorizontalContentAlignment == HorizontalAlignment.Center && pageNumber.VerticalContentAlignment == VerticalAlignment.Center && pageCount.MinWidth >= 42 && pageCount.VerticalAlignment == VerticalAlignment.Center, "ページ番号と総ページ数を中央高さで整列");
         Check(host.Children.Count == pageTotal, "PDFの全ページを連続して配置");
         var firstSurface = (Grid)host.Children[0];
         var firstBitmap = (BitmapSource)((Image)firstSurface.Children[0]).Source;
