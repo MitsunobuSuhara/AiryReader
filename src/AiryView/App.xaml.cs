@@ -12,7 +12,8 @@ public partial class App : System.Windows.Application
     [DllImport("user32.dll")] private static extern bool ShowWindow(IntPtr window, int command);
     [DllImport("user32.dll")] private static extern bool AllowSetForegroundWindow(int processId);
     private const int AllowAnyProcess = -1;
-    private const int RestoreWindow = 9;
+    private const int ShowNormal = 5;
+    private const int ShowMaximized = 3;
     private CancellationTokenSource? pipeCancellation;
     protected override async void OnStartup(StartupEventArgs e)
     {
@@ -105,10 +106,11 @@ public partial class App : System.Windows.Application
 
     internal static void BringWindowToFront(Window window)
     {
+        bool isMaximized = window.WindowState == WindowState.Maximized;
         if (window.WindowState == WindowState.Minimized) window.WindowState = WindowState.Normal;
         window.Show();
         IntPtr handle = new WindowInteropHelper(window).Handle;
-        if (handle != IntPtr.Zero) ShowWindow(handle, RestoreWindow);
+        if (handle != IntPtr.Zero) ShowWindow(handle, isMaximized ? ShowMaximized : ShowNormal);
         window.Activate();
         if (handle != IntPtr.Zero) SetForegroundWindow(handle);
         window.Focus();
