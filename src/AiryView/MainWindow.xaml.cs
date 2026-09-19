@@ -467,18 +467,19 @@ public partial class MainWindow : Window
         if (!ZoomText.IsKeyboardFocusWithin) ZoomText.Text = (state.Zoom * 100).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
         UpdateNonPdfStatus();
     }
-    private bool FitImageForInitialDisplay(ImageTabState state)
+    private double ImageFitWidthZoom(ImageTabState state)
     {
         bool side = Math.Abs(state.Rotation) % 180 == 90;
         double width = side ? state.Image.PixelHeight : state.Image.PixelWidth;
-        double height = side ? state.Image.PixelWidth : state.Image.PixelHeight;
         ImageViewer.UpdateLayout();
         double viewportWidth = ImageViewer.ViewportWidth > 0 ? ImageViewer.ViewportWidth : ImageViewer.ActualWidth;
-        double viewportHeight = ImageViewer.ViewportHeight > 0 ? ImageViewer.ViewportHeight : ImageViewer.ActualHeight;
         double availableWidth = (viewportWidth > 0 ? viewportWidth : ContentGrid.ActualWidth) - 24;
-        double availableHeight = (viewportHeight > 0 ? viewportHeight : ContentGrid.ActualHeight) - 24;
-        if (availableWidth <= 0 || availableHeight <= 0) return false;
-        double target = Math.Min(1, Math.Clamp(Math.Min(availableWidth / Math.Max(1, width), availableHeight / Math.Max(1, height)), .1, 8));
+        return availableWidth > 0 ? Math.Clamp(availableWidth / Math.Max(1, width), .1, 8) : double.NaN;
+    }
+    private bool FitImageForInitialDisplay(ImageTabState state)
+    {
+        double target = ImageFitWidthZoom(state);
+        if (!double.IsFinite(target)) return false;
         state.Zoom = target;
         ApplyImageLayout(state);
         ImageViewer.ScrollToHorizontalOffset(0);
@@ -552,10 +553,8 @@ public partial class MainWindow : Window
         }
         else if (CurrentImage is { } image)
         {
-            bool side = Math.Abs(image.Rotation) % 180 == 90;
-            double width = side ? image.Image.PixelHeight : image.Image.PixelWidth, height = side ? image.Image.PixelWidth : image.Image.PixelHeight;
-            double target = Math.Clamp(Math.Min((ImageViewer.ViewportWidth - 24) / Math.Max(1, width), (ImageViewer.ViewportHeight - 24) / Math.Max(1, height)), .1, 8);
-            Zoom(Math.Abs(target - image.Zoom) < .005 ? 1 / image.Zoom : target / image.Zoom);
+            double target = ImageFitWidthZoom(image);
+            if (double.IsFinite(target)) Zoom(Math.Abs(target - image.Zoom) < .005 ? 1 / image.Zoom : target / image.Zoom);
         }
     }
     private void StepZoom(double factor, Point? anchor = null)
@@ -930,7 +929,7 @@ public partial class MainWindow : Window
     private void HelpClick(object s, RoutedEventArgs e)
     {
         MessageBox.Show(this,
-            "AiryView 2.0.5\n\n対応形式：PDF、Markdown、TXT、JPEG、PNG、TIFF、BMP\nファイルを開く：Ctrl＋O、またはドラッグ＆ドロップ\nページ移動：ホイールで連続スクロール、ページ番号入力、左右のボタン\nPDF・画像の拡大縮小：Ctrl＋ホイール、＋／−、倍率入力、画面幅に合わせる\n画像：回転アイコン、ダブルクリックで100％／画面内表示\nMarkdown：Ctrl＋Shift＋MでPreview／Source編集、SourceはAlt＋Zで折り返し、Ctrl＋Sで保存\nTXT：Alt＋Zで折り返し、Ctrl＋Sで安全に保存、Ctrl＋Fで検索、Ctrl＋Pで印刷\n共通：Ctrl＋Shift＋Tで閉じたタブを復元、Ctrl＋0で100％、Ctrl＋＋／－で倍率変更\nPDF文字の選択：文字をドラッグ、Ctrl＋Cでコピー\n印刷：Ctrl＋P\nPDFの入力・注釈・検索・署名確認：Ctrl＋F\nパスワードはファイルを開く際に入力します。保存・ログには残しません。\n\n新しいPDFの印刷倍率は100%。指定倍率では自動縮小せず、欠けをプレビューで知らせます。\nドライバー側の拡大縮小・Nアップは無効にしてください。\n回転を保存するときは別名保存します。\n\n寸法確認用PDFには縦横100mmの基準線があります。\n会社での印刷は利用者評価で用途上合格（約0.1mmのずれに見えるとの報告）。",
+            "AiryView 2.0.6\n\n対応形式：PDF、Markdown、TXT、JPEG、PNG、TIFF、BMP\nファイルを開く：Ctrl＋O、またはドラッグ＆ドロップ\nページ移動：ホイールで連続スクロール、ページ番号入力、左右のボタン\nPDF・画像の拡大縮小：Ctrl＋ホイール、＋／−、倍率入力、画面幅に合わせる\n画像：回転アイコン、ダブルクリックで100％／画面内表示\nMarkdown：Ctrl＋Shift＋MでPreview／Source編集、SourceはAlt＋Zで折り返し、Ctrl＋Sで保存\nTXT：Alt＋Zで折り返し、Ctrl＋Sで安全に保存、Ctrl＋Fで検索、Ctrl＋Pで印刷\n共通：Ctrl＋Shift＋Tで閉じたタブを復元、Ctrl＋0で100％、Ctrl＋＋／－で倍率変更\nPDF文字の選択：文字をドラッグ、Ctrl＋Cでコピー\n印刷：Ctrl＋P\nPDFの入力・注釈・検索・署名確認：Ctrl＋F\nパスワードはファイルを開く際に入力します。保存・ログには残しません。\n\n新しいPDFの印刷倍率は100%。指定倍率では自動縮小せず、欠けをプレビューで知らせます。\nドライバー側の拡大縮小・Nアップは無効にしてください。\n回転を保存するときは別名保存します。\n\n寸法確認用PDFには縦横100mmの基準線があります。\n会社での印刷は利用者評価で用途上合格（約0.1mmのずれに見えるとの報告）。",
             "AiryView — 使い方", MessageBoxButton.OK, MessageBoxImage.Information);
     }
     private void ToolsClick(object sender, RoutedEventArgs e)
