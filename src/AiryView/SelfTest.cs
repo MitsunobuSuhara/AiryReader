@@ -97,13 +97,27 @@ public static class SelfTest
         var tabsScroller = (ScrollViewer)window.FindName("TabsScroller");
         var tabsControl = (TabControl)window.FindName("Tabs");
         Check(Double.IsNaN(toolbar.Height) && toolbar.Margin.Top == 5 && toolbar.Margin.Bottom == 5 && tabsScroller.Margin.Bottom == 3 && tabsControl.MinHeight == 34 && tabsControl.Items.OfType<TabItem>().All(tab => tab.MinHeight == 34), "操作行とタブ行を省スペースに保つ");
+        string svgFixture = System.IO.Path.GetFullPath("artifacts/vector-view.svg");
+        File.WriteAllText(svgFixture, "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"640\" height=\"360\" viewBox=\"0 0 640 360\"><rect width=\"640\" height=\"360\" fill=\"#E6F3FF\"/><circle cx=\"180\" cy=\"180\" r=\"110\" fill=\"#2563EB\"/><text x=\"320\" y=\"205\" font-size=\"48\" fill=\"#192432\">SVG</text></svg>", Encoding.UTF8);
+        await window.OpenPathsAsync([svgFixture]); window.UpdateLayout(); await Task.Delay(100);
+        Check(((Image)window.FindName("ReaderImage")).Source is BitmapSource { PixelWidth: > 0 } && string.Equals(window.CurrentPathForTest, svgFixture, StringComparison.OrdinalIgnoreCase), "SVGを同じタブで表示");
+        string webpFixture = System.IO.Path.GetFullPath("artifacts/webp-view.webp");
+        using (var webpBitmap = new SkiaSharp.SKBitmap(48, 32))
+        {
+            webpBitmap.Erase(SkiaSharp.SKColors.CornflowerBlue);
+            using var webpImage = SkiaSharp.SKImage.FromBitmap(webpBitmap);
+            using var webpData = webpImage.Encode(SkiaSharp.SKEncodedImageFormat.Webp, 100);
+            File.WriteAllBytes(webpFixture, webpData.ToArray());
+        }
+        await window.OpenPathsAsync([webpFixture]); window.UpdateLayout(); await Task.Delay(100);
+        Check(((Image)window.FindName("ReaderImage")).Source is BitmapSource { PixelWidth: 48 } && string.Equals(window.CurrentPathForTest, webpFixture, StringComparison.OrdinalIgnoreCase), "WebPを同じタブで表示");
         string imageFixture = System.IO.Path.GetFullPath("artifacts/image-view.png");
         var testBitmap = new System.Windows.Media.Imaging.WriteableBitmap(3200, 1800, 96, 96, PixelFormats.Bgra32, null);
         byte[] pixels = Enumerable.Repeat((byte)180, 3200 * 1800 * 4).ToArray(); testBitmap.WritePixels(new Int32Rect(0, 0, 3200, 1800), pixels, 3200 * 4, 0);
         var encoder = new System.Windows.Media.Imaging.PngBitmapEncoder(); encoder.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(testBitmap));
         using (var imageFile = File.Create(imageFixture)) encoder.Save(imageFile);
         await window.OpenPathsAsync([imageFixture]); window.UpdateLayout(); await Task.Delay(100); window.UpdateLayout();
-        Check(((FrameworkElement)window.FindName("ImageViewer")).Visibility == Visibility.Visible && ((Image)window.FindName("ReaderImage")).Source is BitmapSource source && source.PixelWidth == 3200 && window.ActiveZoomForTest < 1, "大きなPNGを初回から画面内に収めて表示");
+        Check(((FrameworkElement)window.FindName("ImageViewer")).Visibility == Visibility.Visible && ((Image)window.FindName("ReaderImage")).Source is BitmapSource source && source.PixelWidth == 3200 && window.ActiveZoomForTest < 1, "大きなPNGを初回から画面幅に合わせて表示");
         double imageZoom = window.ActiveZoomForTest; window.ZoomByWheel(120); window.UpdateLayout();
         Check(window.ActiveZoomForTest > imageZoom && ((Image)window.FindName("ReaderImage")).Width > 0, "画像をCtrlホイール相当で拡大");
         Check(((FrameworkElement)window.FindName("RotationControls")).Visibility == Visibility.Visible && ((FrameworkElement)window.FindName("FitWidthButton")).Visibility == Visibility.Visible && ((FrameworkElement)window.FindName("ResetRotationButton")).Visibility == Visibility.Visible, "画像の回転・リセット・画面内フィットを表示");

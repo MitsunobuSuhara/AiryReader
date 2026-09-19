@@ -10,7 +10,7 @@
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <AssemblyName>AiryView</AssemblyName>
     <ApplicationIcon>../../assets/icons/AiryView.ico</ApplicationIcon>
-    <Version>2.0.6</Version>
+    <Version>2.0.7</Version>
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
   </PropertyGroup>
   <ItemGroup>
@@ -19,6 +19,7 @@
     <Content Include="../../assets/checks/*.pdf" Link="Samples/print-check.pdf" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="../../artifacts/helper/airyview-pdf-helper/**/*" Link="Helper/%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="../../assets/icons/AiryView.ico" Link="AiryView.ico" CopyToOutputDirectory="PreserveNewest" />
+    <PackageReference Include="Svg.Skia" Version="5.2.3" />
     <Resource Include="../../assets/icons/AiryView.ico" Link="Assets/icon.ico" />
   </ItemGroup>
 </Project>

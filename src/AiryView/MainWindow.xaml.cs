@@ -6,6 +6,8 @@ using System.Windows.Media.Imaging;
 using System.Windows.Input;
 using System.Windows.Threading;
 using System.Security.Cryptography;
+using SkiaSharp;
+using Svg.Skia;
 
 namespace AiryView;
 
@@ -76,6 +78,7 @@ public partial class MainWindow : Window
     private const long MaxTextBytes = 64L * 1024 * 1024;
     private const long MaxImageBytes = 256L * 1024 * 1024;
     private const long MaxImagePixels = 200_000_000;
+    private static readonly string[] ImageExtensions = [".jpg", ".jpeg", ".png", ".tif", ".tiff", ".bmp", ".gif", ".ico", ".webp", ".svg"];
 
     public MainWindow()
     {
@@ -173,19 +176,12 @@ public partial class MainWindow : Window
                     opening = true; Tabs.Items.Add(readerTab); Tabs.SelectedItem = readerTab; opening = false;
                     await RenderCurrent(); AddRecentFile(path); continue;
                 }
-                if (new[] { ".jpg", ".jpeg", ".png", ".tif", ".tiff", ".bmp" }.Contains(extension))
+                if (ImageExtensions.Contains(extension))
                 {
                     if (new FileInfo(path).Length > MaxImageBytes) throw new IOException("画像が大きすぎます（上限256MB）。");
                     byte[] bytes = await File.ReadAllBytesAsync(path);
-                    using (var probe = new MemoryStream(bytes, writable: false))
-                    {
-                        var decoder = BitmapDecoder.Create(probe, BitmapCreateOptions.PreservePixelFormat, BitmapCacheOption.None);
-                        var frame = decoder.Frames[0];
-                        if ((long)frame.PixelWidth * frame.PixelHeight > MaxImagePixels) throw new IOException("画像の画素数が大きすぎます（上限2億画素）。");
-                    }
-                    var bitmap = new BitmapImage(); bitmap.BeginInit(); bitmap.CacheOption = BitmapCacheOption.OnLoad;
-                    using (var stream = new MemoryStream(bytes)) { bitmap.StreamSource = stream; bitmap.EndInit(); }
-                    bitmap.Freeze();
+                    BitmapSource bitmap = extension == ".svg" ? LoadSvgBitmap(bytes) : extension == ".webp" ? LoadSkiaBitmap(bytes) : LoadWpfBitmap(bytes);
+                    if ((long)bitmap.PixelWidth * bitmap.PixelHeight > MaxImagePixels) throw new IOException("画像の画素数が大きすぎます（上限2億画素）。");
                     var image = new ImageTabState(path, bitmap);
                     var imageTab = CreateTab(System.IO.Path.GetFileName(path), path, image);
                     opening = true; Tabs.Items.Add(imageTab); Tabs.SelectedItem = imageTab; opening = false;
@@ -212,6 +208,47 @@ public partial class MainWindow : Window
             catch (Exception ex) { Error(ex); Status.Text = "ファイルを開けませんでした。"; }
         }
     }
+    private static BitmapSource LoadWpfBitmap(byte[] bytes)
+    {
+        using var probe = new MemoryStream(bytes, writable: false);
+        var decoder = BitmapDecoder.Create(probe, BitmapCreateOptions.PreservePixelFormat, BitmapCacheOption.None);
+        var frame = decoder.Frames[0];
+        if ((long)frame.PixelWidth * frame.PixelHeight > MaxImagePixels) throw new IOException("画像の画素数が大きすぎます（上限2億画素）。");
+        var bitmap = new BitmapImage(); bitmap.BeginInit(); bitmap.CacheOption = BitmapCacheOption.OnLoad;
+        using (var stream = new MemoryStream(bytes)) { bitmap.StreamSource = stream; bitmap.EndInit(); }
+        bitmap.Freeze(); return bitmap;
+    }
+    private static BitmapSource LoadSkiaBitmap(byte[] bytes)
+    {
+        using var data = SKData.CreateCopy(bytes);
+        using var codec = SKCodec.Create(data) ?? throw new IOException("画像形式を読み込めませんでした。");
+        var info = codec.Info;
+        if (info.Width <= 0 || info.Height <= 0 || (long)info.Width * info.Height > MaxImagePixels) throw new IOException("画像の画素数が大きすぎます（上限2億画素）。");
+        using var bitmap = new SKBitmap(info);
+        if (codec.GetPixels(bitmap.Info, bitmap.GetPixels()) != SKCodecResult.Success) throw new IOException("画像の読み込みに失敗しました。");
+        using var image = SKImage.FromBitmap(bitmap);
+        using var png = image.Encode(SKEncodedImageFormat.Png, 100);
+        return LoadWpfBitmap(png.ToArray());
+    }
+    private static BitmapSource LoadSvgBitmap(byte[] bytes)
+    {
+        using var stream = new MemoryStream(bytes, writable: false);
+        var svg = new SKSvg(); svg.Load(stream);
+        var picture = svg.Picture ?? throw new IOException("SVGの図形を読み込めませんでした。");
+        SKRect bounds = picture.CullRect;
+        if (bounds.Width <= 0 || bounds.Height <= 0) throw new IOException("SVGのサイズを取得できませんでした。");
+        double scale = Math.Min(4, Math.Sqrt(MaxImagePixels / Math.Max(1, bounds.Width * bounds.Height)));
+        int width = Math.Max(1, (int)Math.Ceiling(bounds.Width * scale));
+        int height = Math.Max(1, (int)Math.Ceiling(bounds.Height * scale));
+        using var surface = SKSurface.Create(new SKImageInfo(width, height, SKColorType.Bgra8888, SKAlphaType.Premul)) ?? throw new IOException("SVG用の表示領域を作成できませんでした。");
+        surface.Canvas.Clear(SKColors.Transparent);
+        surface.Canvas.Scale(width / bounds.Width, height / bounds.Height);
+        surface.Canvas.Translate(-bounds.Left, -bounds.Top);
+        surface.Canvas.DrawPicture(picture);
+        using var image = surface.Snapshot();
+        using var png = image.Encode(SKEncodedImageFormat.Png, 100);
+        return LoadWpfBitmap(png.ToArray());
+    }
     private static async Task<(string Text, Encoding Encoding)> ReadTextAsync(string path)
     {
         if (new FileInfo(path).Length > MaxTextBytes) throw new IOException("文章ファイルが大きすぎます（上限64MB）。");
@@ -230,12 +267,12 @@ public partial class MainWindow : Window
     }
     private void OpenClick(object sender, RoutedEventArgs e)
     {
-        var dialog = new Microsoft.Win32.OpenFileDialog { Filter = "対応ファイル|*.pdf;*.md;*.markdown;*.txt;*.jpg;*.jpeg;*.png;*.tif;*.tiff;*.bmp|PDF|*.pdf|文章|*.md;*.markdown;*.txt|画像|*.jpg;*.jpeg;*.png;*.tif;*.tiff;*.bmp", Multiselect = true };
+        var dialog = new Microsoft.Win32.OpenFileDialog { Filter = "対応ファイル|*.pdf;*.md;*.markdown;*.txt;*.jpg;*.jpeg;*.png;*.tif;*.tiff;*.bmp;*.gif;*.ico;*.webp;*.svg|PDF|*.pdf|文章|*.md;*.markdown;*.txt|画像|*.jpg;*.jpeg;*.png;*.tif;*.tiff;*.bmp;*.gif;*.ico;*.webp;*.svg", Multiselect = true };
         if (dialog.ShowDialog(this) == true) OpenPaths(dialog.FileNames);
     }
     private void FilesDropped(object sender, DragEventArgs e)
     {
-        if (e.Data.GetData(DataFormats.FileDrop) is string[] files) OpenPaths(files.Where(x => new[] { ".pdf", ".md", ".markdown", ".txt", ".jpg", ".jpeg", ".png", ".tif", ".tiff", ".bmp" }.Contains(System.IO.Path.GetExtension(x), StringComparer.OrdinalIgnoreCase)));
+        if (e.Data.GetData(DataFormats.FileDrop) is string[] files) OpenPaths(files.Where(x => new[] { ".pdf", ".md", ".markdown", ".txt" }.Contains(System.IO.Path.GetExtension(x), StringComparer.OrdinalIgnoreCase) || ImageExtensions.Contains(System.IO.Path.GetExtension(x), StringComparer.OrdinalIgnoreCase)));
     }
     private async void TabChanged(object sender, SelectionChangedEventArgs e)
     {
@@ -929,7 +966,7 @@ public partial class MainWindow : Window
     private void HelpClick(object s, RoutedEventArgs e)
     {
         MessageBox.Show(this,
-            "AiryView 2.0.6\n\n対応形式：PDF、Markdown、TXT、JPEG、PNG、TIFF、BMP\nファイルを開く：Ctrl＋O、またはドラッグ＆ドロップ\nページ移動：ホイールで連続スクロール、ページ番号入力、左右のボタン\nPDF・画像の拡大縮小：Ctrl＋ホイール、＋／−、倍率入力、画面幅に合わせる\n画像：回転アイコン、ダブルクリックで100％／画面内表示\nMarkdown：Ctrl＋Shift＋MでPreview／Source編集、SourceはAlt＋Zで折り返し、Ctrl＋Sで保存\nTXT：Alt＋Zで折り返し、Ctrl＋Sで安全に保存、Ctrl＋Fで検索、Ctrl＋Pで印刷\n共通：Ctrl＋Shift＋Tで閉じたタブを復元、Ctrl＋0で100％、Ctrl＋＋／－で倍率変更\nPDF文字の選択：文字をドラッグ、Ctrl＋Cでコピー\n印刷：Ctrl＋P\nPDFの入力・注釈・検索・署名確認：Ctrl＋F\nパスワードはファイルを開く際に入力します。保存・ログには残しません。\n\n新しいPDFの印刷倍率は100%。指定倍率では自動縮小せず、欠けをプレビューで知らせます。\nドライバー側の拡大縮小・Nアップは無効にしてください。\n回転を保存するときは別名保存します。\n\n寸法確認用PDFには縦横100mmの基準線があります。\n会社での印刷は利用者評価で用途上合格（約0.1mmのずれに見えるとの報告）。",
+            "AiryView 2.0.7\n\n対応形式：PDF、Markdown、TXT、JPEG、PNG、TIFF、BMP、GIF、ICO、WebP、SVG\nファイルを開く：Ctrl＋O、またはドラッグ＆ドロップ\nページ移動：ホイールで連続スクロール、ページ番号入力、左右のボタン\nPDF・画像の拡大縮小：Ctrl＋ホイール、＋／−、倍率入力、画面幅に合わせる\n画像：回転アイコン、ダブルクリックで100％／画面幅表示\nMarkdown：Ctrl＋Shift＋MでPreview／Source編集、SourceはAlt＋Zで折り返し、Ctrl＋Sで保存\nTXT：Alt＋Zで折り返し、Ctrl＋Sで安全に保存、Ctrl＋Fで検索、Ctrl＋Pで印刷\n共通：Ctrl＋Shift＋Tで閉じたタブを復元、Ctrl＋0で100％、Ctrl＋＋／－で倍率変更\nPDF文字の選択：文字をドラッグ、Ctrl＋Cでコピー\n印刷：Ctrl＋P\nPDFの入力・注釈・検索・署名確認：Ctrl＋F\nパスワードはファイルを開く際に入力します。保存・ログには残しません。\n\n新しいPDFの印刷倍率は100%。指定倍率では自動縮小せず、欠けをプレビューで知らせます。\nドライバー側の拡大縮小・Nアップは無効にしてください。\n回転を保存するときは別名保存します。\n\n寸法確認用PDFには縦横100mmの基準線があります。\n会社での印刷は利用者評価で用途上合格（約0.1mmのずれに見えるとの報告）。",
             "AiryView — 使い方", MessageBoxButton.OK, MessageBoxImage.Information);
     }
     private void ToolsClick(object sender, RoutedEventArgs e)
