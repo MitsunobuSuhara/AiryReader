@@ -43,6 +43,7 @@ public partial class MainWindow : Window
         public string Path = path; public BitmapSource Image = image;
         public double Zoom = 1;
         public int Rotation;
+        public bool InitialFitComplete;
     }
     private ImageTabState? CurrentImage => (Tabs.SelectedItem as TabItem)?.Tag as ImageTabState;
     private readonly DispatcherTimer zoomTimer = new() { Interval = TimeSpan.FromMilliseconds(140) };
@@ -274,7 +275,21 @@ public partial class MainWindow : Window
         else if (textDocument?.IsMarkdown == true) UpdateMarkdownPreviewStatus();
         ReaderImage.Source = image?.Image;
         if (textDocument != null) { MarkdownViewer.Zoom = textDocument.Zoom * 100; TextEditor.FontSize = 15 * textDocument.Zoom; }
-        if (image != null) ApplyImageLayout(image);
+        if (image != null)
+        {
+            ApplyImageLayout(image);
+            if (!image.InitialFitComplete)
+            {
+                _ = Dispatcher.BeginInvoke(DispatcherPriority.ContextIdle, new Action(() =>
+                {
+                    if (!ReferenceEquals(CurrentImage, image)) return;
+                    image.InitialFitComplete = FitImageForInitialDisplay(image);
+                    if (!image.InitialFitComplete) return;
+                    if (!ZoomText.IsKeyboardFocusWithin) ZoomText.Text = (image.Zoom * 100).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
+                    UpdateNonPdfStatus();
+                }));
+            }
+        }
         if (!ZoomText.IsKeyboardFocusWithin && (state != null || textDocument != null || image != null)) ZoomText.Text = (ActiveZoom * 100).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
         try
         {
@@ -451,6 +466,24 @@ public partial class MainWindow : Window
         ImageViewer.ScrollToVerticalOffset(ImageViewer.VerticalOffset + moved.Y - point.Y);
         if (!ZoomText.IsKeyboardFocusWithin) ZoomText.Text = (state.Zoom * 100).ToString("0.##", System.Globalization.CultureInfo.InvariantCulture);
         UpdateNonPdfStatus();
+    }
+    private bool FitImageForInitialDisplay(ImageTabState state)
+    {
+        bool side = Math.Abs(state.Rotation) % 180 == 90;
+        double width = side ? state.Image.PixelHeight : state.Image.PixelWidth;
+        double height = side ? state.Image.PixelWidth : state.Image.PixelHeight;
+        ImageViewer.UpdateLayout();
+        double viewportWidth = ImageViewer.ViewportWidth > 0 ? ImageViewer.ViewportWidth : ImageViewer.ActualWidth;
+        double viewportHeight = ImageViewer.ViewportHeight > 0 ? ImageViewer.ViewportHeight : ImageViewer.ActualHeight;
+        double availableWidth = (viewportWidth > 0 ? viewportWidth : ContentGrid.ActualWidth) - 24;
+        double availableHeight = (viewportHeight > 0 ? viewportHeight : ContentGrid.ActualHeight) - 24;
+        if (availableWidth <= 0 || availableHeight <= 0) return false;
+        double target = Math.Min(1, Math.Clamp(Math.Min(availableWidth / Math.Max(1, width), availableHeight / Math.Max(1, height)), .1, 8));
+        state.Zoom = target;
+        ApplyImageLayout(state);
+        ImageViewer.ScrollToHorizontalOffset(0);
+        ImageViewer.ScrollToVerticalOffset(0);
+        return true;
     }
     private void ApplyImageLayout(ImageTabState state)
     {
@@ -897,7 +930,7 @@ public partial class MainWindow : Window
     private void HelpClick(object s, RoutedEventArgs e)
     {
         MessageBox.Show(this,
-            "AiryView 2.0.4\n\n対応形式：PDF、Markdown、TXT、JPEG、PNG、TIFF、BMP\nファイルを開く：Ctrl＋O、またはドラッグ＆ドロップ\nページ移動：ホイールで連続スクロール、ページ番号入力、左右のボタン\nPDF・画像の拡大縮小：Ctrl＋ホイール、＋／−、倍率入力、画面幅に合わせる\n画像：回転アイコン、ダブルクリックで100％／画面内表示\nMarkdown：Ctrl＋Shift＋MでPreview／Source編集、SourceはAlt＋Zで折り返し、Ctrl＋Sで保存\nTXT：Alt＋Zで折り返し、Ctrl＋Sで安全に保存、Ctrl＋Fで検索、Ctrl＋Pで印刷\n共通：Ctrl＋Shift＋Tで閉じたタブを復元、Ctrl＋0で100％、Ctrl＋＋／－で倍率変更\nPDF文字の選択：文字をドラッグ、Ctrl＋Cでコピー\n印刷：Ctrl＋P\nPDFの入力・注釈・検索・署名確認：Ctrl＋F\nパスワードはファイルを開く際に入力します。保存・ログには残しません。\n\n新しいPDFの印刷倍率は100%。指定倍率では自動縮小せず、欠けをプレビューで知らせます。\nドライバー側の拡大縮小・Nアップは無効にしてください。\n回転を保存するときは別名保存します。\n\n寸法確認用PDFには縦横100mmの基準線があります。\n会社での印刷は利用者評価で用途上合格（約0.1mmのずれに見えるとの報告）。",
+            "AiryView 2.0.5\n\n対応形式：PDF、Markdown、TXT、JPEG、PNG、TIFF、BMP\nファイルを開く：Ctrl＋O、またはドラッグ＆ドロップ\nページ移動：ホイールで連続スクロール、ページ番号入力、左右のボタン\nPDF・画像の拡大縮小：Ctrl＋ホイール、＋／−、倍率入力、画面幅に合わせる\n画像：回転アイコン、ダブルクリックで100％／画面内表示\nMarkdown：Ctrl＋Shift＋MでPreview／Source編集、SourceはAlt＋Zで折り返し、Ctrl＋Sで保存\nTXT：Alt＋Zで折り返し、Ctrl＋Sで安全に保存、Ctrl＋Fで検索、Ctrl＋Pで印刷\n共通：Ctrl＋Shift＋Tで閉じたタブを復元、Ctrl＋0で100％、Ctrl＋＋／－で倍率変更\nPDF文字の選択：文字をドラッグ、Ctrl＋Cでコピー\n印刷：Ctrl＋P\nPDFの入力・注釈・検索・署名確認：Ctrl＋F\nパスワードはファイルを開く際に入力します。保存・ログには残しません。\n\n新しいPDFの印刷倍率は100%。指定倍率では自動縮小せず、欠けをプレビューで知らせます。\nドライバー側の拡大縮小・Nアップは無効にしてください。\n回転を保存するときは別名保存します。\n\n寸法確認用PDFには縦横100mmの基準線があります。\n会社での印刷は利用者評価で用途上合格（約0.1mmのずれに見えるとの報告）。",
             "AiryView — 使い方", MessageBoxButton.OK, MessageBoxImage.Information);
     }
     private void ToolsClick(object sender, RoutedEventArgs e)
